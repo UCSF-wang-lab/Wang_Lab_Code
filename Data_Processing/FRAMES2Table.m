@@ -1,4 +1,4 @@
-function FRAMES2Table(filename)
+function FRAMES2Table(filename,savepath)
 % FRAMES2Table: used to convert Vicon force plate data into a csv format.
 % Author:   Kenneth Louie
 % Date:     12/09/2020
@@ -11,11 +11,16 @@ data_table_per_second = array2table(readmatrix(filename,'Range',[data_blocks(2,1
 data_table_per_second.Properties.VariableNames = col_names{2};
 
 [dir,file,ext] = fileparts(filename);
-save_name = fullfile(dir,['ForcePlateData',ext]);
-writetable(data_table,save_name);
-save_name_per_second = fullfile(dir,['ForcePlateData_perSecond',ext]);
-writetable(data_table_per_second,save_name_per_second);
 
+if ~exist('savepath','var') || isempty(savepath)
+    save_name = fullfile(dir,['ForcePlateData',ext]);
+    save_name_per_second = fullfile(dir,['ForcePlateData_perSecond',ext]);
+else
+    save_name = fullfile(savepath,[file,'_ForcePlateData',ext]);
+    save_name_per_second = fullfile(savepath,[file,'_ForcePlateData_perSecond',ext]);
+end
+writetable(data_table,save_name);
+writetable(data_table_per_second,save_name_per_second);
 end
 
 function [col_names,data_blocks] = getColNames(filename)

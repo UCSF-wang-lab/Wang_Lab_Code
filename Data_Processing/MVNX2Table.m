@@ -1,4 +1,4 @@
-function xsens_table = MVNX2Table(filename,savename)
+function xsens_table = MVNX2Table(filename,savepath)
 %% Processes the converted mvnx files from Xsens to .mat and .csv
 % The .mat file follows the same structure as previous .mat files.
 % The .csv file outputs only the segment and joint data with no meta-data
@@ -62,8 +62,8 @@ if isfield(tree.subject.frames.frame(1),'position')
 end
 
 [default_path,default_filename,default_ext] = fileparts(filename);
-if exist('savename','var') && ~isempty(savename)
-    save_name = fullfile(savename,[default_filename,'.mat']);
+if exist('savepath','var') && ~isempty(savepath)
+    save_name = fullfile(savepath,[default_filename,'.mat']);
 else
     save_name = fullfile(default_path,[default_filename,'.mat']);
 end

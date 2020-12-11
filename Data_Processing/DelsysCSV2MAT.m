@@ -1,4 +1,4 @@
-function out_struct = DelsysCSV2MAT(filename)
+function out_struct = DelsysCSV2MAT(filename,savepath)
 %{ DelsysCSV2Mat
 % Converts exported Delsys CSV file to a struct. The struct has four
 % fields: Chan_names, srates, Data, and Time. "Chan_names" are the names
@@ -23,18 +23,21 @@ function out_struct = DelsysCSV2MAT(filename)
 stopWatch = tic;
 
 [out_struct,data_start_ind] = readHeader(filename);
-toc(stopWatch);
 
 raw_data = readtable(filename,'HeaderLines',data_start_ind+1);
-toc(stopWatch);
 
-toc(stopWatch);
 for i = 1:length(out_struct.Chan_names)
     nDataPointsSignal = length(out_struct.Time.(out_struct.Chan_names{i}));
     out_struct.Data.(out_struct.Chan_names{i}) = raw_data{1:nDataPointsSignal,i*2};
 end
-toc(stopWatch);
 
+[default_path,default_filename,default_ext] = fileparts(filename);
+if exist('savepath','var') && ~isempty(savepath)
+    savename = fullfile(savepath,[default_filename,'.mat']);
+else
+    savename = fullfile(default_path,[default_filename,'.mat']);
+end
+save(savename,'out_struct');
 end
 
 function [out_struct,data_start_ind] = readHeader(filename)
