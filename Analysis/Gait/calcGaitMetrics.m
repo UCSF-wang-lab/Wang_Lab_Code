@@ -1,7 +1,44 @@
 function [out_table,cadence,gait_speed] = calcGaitMetrics(varargin)
 % Calculates spatial and temporal gait metrics from Delsys or Xsens data
+%
+% INPUTS:   gait_events         [=] Matrix of gait events. 4 columns in the
+%                                   following order: LHS,RTO,RHS,LTO.
+%           gait_event_type     [=] "samples"/"time". What type of data the
+%                                   gait event matrix contains.
+%           gait_event_source   [=] "xsens"/"delsys". Source of gait event
+%                                   matrix. 
+%           xsens_data          [=] Xsens table of data from csv file. 
+%           xsens_filename      [=] Xsens csv file to read in. If
+%                                   gait_events is empty, automatic gait
+%                                   event detection occurs.
+%           level_type          [=] "none"/"single". Changes the way gait
+%                                   events are automatically detected and
+%                                   how gait metrics are calculated.
+%           flip_data           [=] true/false. Used to flip the 
+%                                   coordinates to accurately calculate 
+%                                   gait metrics. Should be set to true if 
+%                                   on the xsens recording the mannequin 
+%                                   body is walking into the screen from 
+%                                   the origin. If walking to the left or 
+%                                   right, should be set to false.
+%           baseline_nSamples   [=] How many samples to ignore in the
+%                                   beginning of the recording. Used to
+%                                   remove false gait events if using
+%                                   automatic detection.
+%           sample_tol          [=] How many samples in forward/backward
+%                                   direction to search for Z peak, which
+%                                   helps indicate gait events. Only used
+%                                   if using automatic gait event
+%                                   detection.
+%           preview             [=] Show a preview of automatic detected
+%                                   gait events.
+%
+% OUTPUTS:  out_table           [=] Table of gait events by gait cycle.
+%           cadence             [=] Cadence of patient during walking.
+%           gait_speed          [=] Gait speed of patient during walking. 
+%
 % Author:   Kenneth Louie
-% Date:     12/09/2020
+% Date:     12/16/2020
 
 % filename = '/Volumes/dwang3_shared/Patient Data/RC+S Data/RCS07/Gait/Pre-Processed Data/Xsens /Xsens Raw/MVNX/RCS07_Gait_12_17_19_walking_back_and_forth_after_task.csv'
 % filename2 = '/Volumes/dwang3_shared/Patient Data/RC+S Data/RCS07/Gait/Pre-Processed Data/Xsens /Xsens Raw/MVNX/RCS07_Gait_12_17_19_walking_back_and_forth_before_task.csv'
@@ -20,6 +57,11 @@ for i = 1:nargin/2
             xsens_filename = varargin{i*2};
         case 'level_type'
             level_type = varargin{i*2};
+        case 'flip_data'
+            % Used to flip the coordinate.
+            flip_data = varargin{i*2};
+        case 'baseline_nSamples'
+            baseline_nSamples = varargin{i*2};
         case 'sample_tol'
             sample_tol = varargin{i*2};
         case 'preview'
@@ -52,6 +94,14 @@ if ~exist('level_type','var') || isempty(level_type)
     level_type = 'single';
 end
 
+if ~exist('flip_data','var') || isempty(flip_data)
+    flip_data = false;
+end
+
+if ~exist('baseline_nSamples','var') || isempty(baseline_nSamples)
+    baseline_nSamples = 1000;
+end
+
 if ~exist('sample_tol','var') || isempty(sample_tol)
     sample_tol = 0;
 end
@@ -63,14 +113,22 @@ end
 % Detect gait events from xsens position data if gait events input is empty
 % or doesn't exist
 foot_data = [xsens_data.LeftFoot_PosX,xsens_data.LeftFoot_PosY,xsens_data.LeftFoot_PosZ...
-        xsens_data.RightFoot_PosX,xsens_data.RightFoot_PosY,xsens_data.RightFoot_PosZ];
+    xsens_data.RightFoot_PosX,xsens_data.RightFoot_PosY,xsens_data.RightFoot_PosZ];
 if (~exist('gait_events','var') || isempty(gait_events))
-    if strcmp(level_type,'single')
-        gait_events = getGaitEvents(foot_data,'single',sample_tol,preview);
-    elseif strcmp(level_type,'none')
-        gait_events = getGaitEvents(foot_data,'none',sample_tol,preview);
+    if flip_data
+        temp = [foot_data(:,2),foot_data(:,5)];
+        foot_data(:,2) = foot_data(:,1);
+        foot_data(:,5) = foot_data(:,4);
+        foot_data(:,1) = temp(:,1);
+        foot_data(:,4) = temp(:,2);
     end
-end 
+    
+    if strcmp(level_type,'single')
+        gait_events = getGaitEvents(foot_data,'single',sample_tol,baseline_nSamples,preview);
+    elseif strcmp(level_type,'none')
+        gait_events = getGaitEvents(foot_data,'none',sample_tol,baseline_nSamples,preview);
+    end
+end
 
 % 0 indicates there was not a detected gait event there using the detector
 % above. Set it to nan.
@@ -103,7 +161,7 @@ out_table.Double_Limb_Support = dls;
 out_table.Stride_Time(2:2:end) = out_table.Step_Time(1:2:n_gait_events*2) + out_table.Step_Time(2:2:n_gait_events*2);   % Left
 out_table.Stride_Time(3:2:end) = out_table.Step_Time(2:2:n_gait_events*2-1) + out_table.Step_Time(3:2:n_gait_events*2); % Right
 
-out_table.Stride_Length(2:2:end) = out_table.Step_Length(1:2:n_gait_events*2) + out_table.Step_Length(2:2:n_gait_events*2);   % Left 
+out_table.Stride_Length(2:2:end) = out_table.Step_Length(1:2:n_gait_events*2) + out_table.Step_Length(2:2:n_gait_events*2);   % Left
 out_table.Stride_Length(3:2:end) = out_table.Step_Length(2:2:n_gait_events*2-1) + out_table.Step_Length(3:2:n_gait_events*2); % Right
 
 cadence = [];
@@ -111,7 +169,7 @@ gait_speed = [];
 
 end
 
-function gait_events = getGaitEvents(foot_data,level_type,sample_tol,preview)
+function gait_events = getGaitEvents(foot_data,level_type,sample_tol,baseline_nSamples,preview)
 % Determine peaks and valleys
 left_foot_prevX = diff(foot_data(1:end-1,1));
 left_foot_prevY = diff(foot_data(1:end-1,2));
@@ -194,6 +252,7 @@ if strcmp(level_type,'single')
     
     LHS_remove_inds2 = diff(LHS_valid) < LHS_avg_stride_time - LHS_std_stride_time;
     LHS_valid([false;LHS_remove_inds2]) = [];
+    LHS_valid(LHS_valid<baseline_nSamples) = [];
     
     % Remove detected heel strikes that are not above the threshold or
     % occur too soon after a previous detected heel strike
@@ -209,6 +268,7 @@ if strcmp(level_type,'single')
     
     RHS_remove_inds2 = diff(RHS_valid) < RHS_avg_stride_time - RHS_std_stride_time;
     RHS_valid([false;RHS_remove_inds2]) = [];
+    RHS_valid(RHS_valid<baseline_nSamples) = [];
     
 end
 
@@ -419,8 +479,8 @@ if strcmp(level_type,'none')
             sls(i*2) = nan;
             stance_time(i*2-1) = nan;
         else
-            step_time(i*2) = (gait_events(i+1,1)-gait_events(i,3))/time_correction;  
-            swing_time(i*2) = (gait_events(i+1,1)-gait_events(i,4))/time_correction; 
+            step_time(i*2) = (gait_events(i+1,1)-gait_events(i,3))/time_correction;
+            swing_time(i*2) = (gait_events(i+1,1)-gait_events(i,4))/time_correction;
             sls(i*2) = (gait_events(i+1,1)-gait_events(i,4))/time_correction;
             stance_time(i*2-1) = (gait_events(i+1,2)-gait_events(i,3))/time_correction;
             
@@ -441,7 +501,7 @@ if strcmp(level_type,'none')
             step_length(i*2-1) = abs(foot_data(gait_events_spatial(i,3),5)-foot_data(gait_events_spatial(i,3),2));  % Right
             step_width(i*2-1) = abs(foot_data(gait_events_spatial(i,3),4)-foot_data(gait_events_spatial(i,3),1));   % Right
         end
-      
+        
         % Only looks at current gait cycle and doesn't matter if nan
         stance_time(i*2) = (gait_events(i,4)-gait_events(i,1))/time_correction;
         dls(i*2) = (gait_events(i,4)-gait_events(i,3))/time_correction;
@@ -449,7 +509,7 @@ if strcmp(level_type,'none')
         swing_time(i*2-1) = (gait_events(i,3)-gait_events(i,2))/time_correction;
         sls(i*2-1) = (gait_events(i,3)-gait_events(i,2))/time_correction;
         dls(i*2-1) = (gait_events(i,2)-gait_events(i,1))/time_correction;
-    end        
+    end
 end
 
 if strcmp(level_type,'single')
