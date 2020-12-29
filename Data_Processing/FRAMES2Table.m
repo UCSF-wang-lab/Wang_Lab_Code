@@ -19,22 +19,22 @@ data_table_per_second.Properties.VariableNames = col_names{2};
 % Rotate coordinates so it is in the right directions and magnitude
 temp = data_table.Cx_mm;
 data_table.Cx_mm = data_table.Cy_mm;
-data_table.Cy_mm = temp;
+data_table.Cy_mm = -temp;
 data_table.Cz_mm = -data_table.Cz_mm;
 
 temp = data_table.Fx_N;
 data_table.Fx_N = data_table.Fy_N;
-data_table.Fy_N = temp;
+data_table.Fy_N = -temp;
 data_table.Fz_N = -data_table.Fz_N;
 
 temp = data_table_per_second.Cx_mm_s;
 data_table_per_second.Cx_mm_s = data_table_per_second.Cy_mm_s;
-data_table_per_second.Cy_mm_s = temp;
+data_table_per_second.Cy_mm_s = -temp;
 data_table_per_second.Cz_mm_s = -data_table_per_second.Cz_mm_s;
 
 temp = data_table_per_second.Fx_N_s;
 data_table_per_second.Fx_N_s = data_table_per_second.Fy_N_s;
-data_table_per_second.Fy_N_s = temp;
+data_table_per_second.Fy_N_s = -temp;
 data_table_per_second.Fz_N_s = -data_table_per_second.Fz_N_s;
 
 [dir,file,ext] = fileparts(filename);
