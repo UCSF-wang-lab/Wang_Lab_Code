@@ -37,6 +37,9 @@ function [out_table,cadence,gait_speed] = calcGaitMetrics(varargin)
 %           cadence             [=] Cadence of patient during walking.
 %           gait_speed          [=] Gait speed of patient during walking. 
 %
+% EXAMPLE:
+%           calcGaitMetrics('xsens_filename',filename2,'level_type','single','sample_tol',5,'preview',true);
+%
 % Author:   Kenneth Louie
 % Date:     12/16/2020
 
