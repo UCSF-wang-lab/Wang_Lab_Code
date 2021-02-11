@@ -2,7 +2,7 @@ function saveData(src,obj)
 %
 %
 % Author:   Kenneth Louie
-% Date:     12/29/20
+% Date:     02/10/2021
 
 if ~isfield(src.Parent.UserData,'APAMetrics')
     calcAPAMetrics();
@@ -31,7 +31,7 @@ src.Parent.UserData.logger.Value = length(src.Parent.UserData.logger.String);
 pause(0.5);
 
 % Save mat file
-filename = [src.Parent.UserData.save_path,src.Parent.UserData.Vicon_filename];
+filename = [src.Parent.UserData.save_path,src.Parent.UserData.data_file(1:end-4),'_CoP_Markings'];
 save([filename,'.mat'],'cueTime','mvmtOnsetTime','stanceToeOffTime',...
     'Vicon_time','CoP_startInd','CoP_endInd',...
     'L1_ind','L2_ind',...
@@ -46,8 +46,7 @@ pause(0.5);
 
 % Save txt file
 fid = fopen([filename,'.txt'],'w+');
-fprintf(fid,'Vicon file: %s\n',src.Parent.UserData.Vicon_filename);
-fprintf(fid,'Delsys file: %s\n',src.Parent.UserData.Delsys_filename);
+fprintf(fid,'Alignment file used: %s\n',src.Parent.UserData.data_file);
 fprintf(fid,'Cue time: %3.6f\n',cueTime);
 fprintf(fid,'Movement onset time: %3.6f\n',mvmtOnsetTime);
 fprintf(fid,'Stance leg toe-off time: %3.6f\n',stanceToeOffTime);
