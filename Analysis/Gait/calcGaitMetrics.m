@@ -1,4 +1,7 @@
 function [out_table,cadence,gait_speed] = calcGaitMetrics(varargin)
+% Author:   Kenneth Louie
+% Date:     12/16/2020
+%
 % Calculates spatial and temporal gait metrics from Delsys or Xsens data
 %
 % INPUTS:   gait_events         [=] Matrix of gait events. 4 columns in the
@@ -35,16 +38,20 @@ function [out_table,cadence,gait_speed] = calcGaitMetrics(varargin)
 %
 % OUTPUTS:  out_table           [=] Table of gait events by gait cycle.
 %           cadence             [=] Cadence of patient during walking.
-%           gait_speed          [=] Gait speed of patient during walking. 
+%           gait_speed          [=] Gait speed of patient during walking.
 %
+<<<<<<< HEAD
 % EXAMPLE:
 %           calcGaitMetrics('xsens_filename',filename2,'level_type','single','sample_tol',5,'preview',true);
 %
 % Author:   Kenneth Louie
 % Date:     12/16/2020
 
+% Example: 
+% out_table = calcGaitMetrics('xsens_filename',xsens_filename,'level_type','single','flip_data',true,'baseline_nSamples',4500,'sample_tol',3,'preview',true);
 % filename = '/Volumes/dwang3_shared/Patient Data/RC+S Data/RCS07/Gait/Pre-Processed Data/Xsens /Xsens Raw/MVNX/RCS07_Gait_12_17_19_walking_back_and_forth_after_task.csv'
 % filename2 = '/Volumes/dwang3_shared/Patient Data/RC+S Data/RCS07/Gait/Pre-Processed Data/Xsens /Xsens Raw/MVNX/RCS07_Gait_12_17_19_walking_back_and_forth_before_task.csv'
+%%%%%%%%%%%%%%%%%%%%%%%%
 
 for i = 1:nargin/2
     switch varargin{i*2-1}

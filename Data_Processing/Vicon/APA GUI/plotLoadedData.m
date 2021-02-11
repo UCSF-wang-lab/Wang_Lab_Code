@@ -53,15 +53,15 @@ end
 
 % Plot Delsys
 if ~isempty(main_window_handle.UserData.Delsys_data)
-    TTL_ind = find(contains(main_window_handle.UserData.Delsys_data.out_struct.Chan_names,'TTL'));
-    chan_name = main_window_handle.UserData.Delsys_data.out_struct.Chan_names{TTL_ind};
+    TTL_ind = find(contains(main_window_handle.UserData.Delsys_data.Chan_names,'TTL'));
+    chan_name = main_window_handle.UserData.Delsys_data.Chan_names{TTL_ind};
     
     yyaxis(main_window_handle.UserData.plot_axes(1),'right');
     cla(main_window_handle.UserData.plot_axes(1));
     
     plot(main_window_handle.UserData.plot_axes(1),...
-        main_window_handle.UserData.Delsys_data.out_struct.Time.(chan_name),...
-        main_window_handle.UserData.Delsys_data.out_struct.Data.(chan_name),...
+        main_window_handle.UserData.Delsys_data.Time.(chan_name),...
+        main_window_handle.UserData.Delsys_data.Data.(chan_name),...
         'Color',colors(4,:));
 end
 xlabel(main_window_handle.UserData.plot_axes(1),'Time (s)','FontWeight','bold');
