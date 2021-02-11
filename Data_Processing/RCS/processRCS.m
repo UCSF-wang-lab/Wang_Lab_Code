@@ -56,12 +56,23 @@ for i = 1:length(files2Convert)
 end
 
 % Save data
+save_path = strrep(folder_path,'Raw Data','Processed Data');
+slashes = strfind(save_path,'/');
+if exist(save_path(1:slashes(end-1)),'dir') ~= 7
+    mkdir(save_path(1:slashes(end-1)));
+end
+
+if exist(save_path(1:slashes(end)),'dir') ~= 7
+    mkdir(save_path(1:slashes(end)));
+end
+save_path = save_path(1:slashes(end));
+
 fprintf('Saving data...');
-save(fullfile(folder_path,'DeviceSettings.mat'),'DeviceSettings');
-save(fullfile(folder_path,'RawDataTD.mat'),'timeDomainDataTable');
-save(fullfile(folder_path,'RawDataAccel.mat'),'accelDataTable');
-save(fullfile(folder_path,'RawDataPower.mat'),'powerDataTable');
-save(fullfile(folder_path,'RawDataFFT.mat'),'fftDataTable');
+save(fullfile(save_path,'DeviceSettings.mat'),'DeviceSettings');
+save(fullfile(save_path,'RawDataTD.mat'),'timeDomainDataTable');
+save(fullfile(save_path,'RawDataAccel.mat'),'accelDataTable');
+save(fullfile(save_path,'RawDataPower.mat'),'powerDataTable');
+save(fullfile(save_path,'RawDataFFT.mat'),'fftDataTable');
 fprintf('Complete.\n\n');
 
 fprintf('All files in directory processed.\n');
