@@ -49,6 +49,8 @@ switch src.Tag
         str = sprintf('Loaded gait initiation force plate file: %s',fullfile(path,filename));
 end
 
+src.Parent.Parent.UserData.file_names{end+1} = fullfile(path,filename);
+
 % Add event to logger
 addEvent(str);
 
