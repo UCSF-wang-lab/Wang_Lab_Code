@@ -1,4 +1,9 @@
-function varargout = addEmptyData(time_vec,LFP_signal,sampling_freq)
+function varargout = addEmptyData(time_vec,LFP_signal,sampling_freq,type)
+
+if ~exist('type','var')
+    type = 'blank';
+end
+
 out_data = LFP_signal;
 out_time = time_vec;
 
@@ -16,7 +21,12 @@ sorted_diff_val = diff_val(order);
 cum_new_val_added = 0;
 for i = 1:length(sorted_ind)
     new_time_vals{i} = (time_vec(sorted_ind(i))+1/sampling_freq:1/sampling_freq:time_vec(sorted_ind(i)+1)-1/sampling_freq)';
-    new_data_vals{i} = zeros(length(new_time_vals{i}),1);
+    if strcmp(type,'blank')
+        new_data_vals{i} = zeros(length(new_time_vals{i}),1);
+    elseif strcmp(type,'interp')
+        % USE INTERP1
+        new_data_vals{i} = zeros(length(new_time_vals{i}),1);
+    end
     
     out_time = [out_time(1:sorted_ind(i)+cum_new_val_added);new_time_vals{i};out_time(sorted_ind(i)+cum_new_val_added+1:end)];
     out_data = [out_data(1:sorted_ind(i)+cum_new_val_added);new_data_vals{i};out_data(sorted_ind(i)+cum_new_val_added+1:end)];
