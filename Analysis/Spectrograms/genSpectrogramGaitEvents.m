@@ -1,14 +1,14 @@
 function genSpectrogramGaitEvents(filename,savepath,gapFillType)
 % Load data
 if ~exist('filename','var')
-    [filename,path] = uigetfile('*w_Gait_Events.mat');
+    [filename,path] = uigetfile('*w_Gait_Events*.mat');
     filename = fullfile(path,filename);
 end
 load(filename);
 
 % Save location
 if ~exist('savepath','var')
-    savepath = uigetdir();
+%     savepath = uigetdir();
 end
 
 % Drop packet fill technique (blank or interp)
@@ -401,6 +401,59 @@ for j = 1:length(left_chan_names)
     end
 end
 
+for j = 1:length(left_chan_names)
+    for k = 1:4
+        figure;
+        for m = 1:length(band_names)
+            ax_hand = subplot(2,4,m);
+            mean_std_plot(-1:1/right_sr:1,left_average_power_matrix{j,k}(1,:,m),left_std_power_matrix{j,k}(1,:,m),ax_hand,[],[]);
+            hold(ax_hand,'on');
+            xline(0,'--k');
+            hold(ax_hand,'off');
+            xlabel('Time (s)');
+            ylabel('db/Hz');
+            title(band_names{m});
+        end
+        sgtitle({'Left Brain';left_chan_names{j};aligned_data.gait_events.Properties.VariableNames{k}});
+    end
+end
+
+for j = 1:length(left_chan_names)
+    for k = 1:2
+        figure;
+        for m = 1:length(band_names)
+            ax_hand = subplot(2,4,m);
+            hold(ax_hand,'on');
+            mean_std_plot(-1:1/left_sr:1,left_average_power_matrix{j,k}(1,:,m),left_std_power_matrix{j,k}(1,:,m),ax_hand,colors(k,:),[]);
+            mean_std_plot(-1:1/left_sr:1,left_average_power_matrix{j,k+2}(1,:,m),left_std_power_matrix{j,k+2}(1,:,m),ax_hand,colors(k+2,:),[]);
+            xline(0,'--k');
+            hold(ax_hand,'off');
+            xlabel('Time (s)');
+            ylabel('db/Hz');
+            title(band_names{m});
+        end
+        sgtitle({'Left Brain';left_chan_names{j};[aligned_data.gait_events.Properties.VariableNames{k},' vs ',aligned_data.gait_events.Properties.VariableNames{k+2}]});
+    end
+end
+
+for j = 1:length(left_chan_names)
+    for k = 1:1
+        figure;
+        for m = 1:length(band_names)
+            ax_hand = subplot(2,4,m);
+            hold(ax_hand,'on');
+            mean_std_plot(-1:1/left_sr:1,left_average_power_matrix{j,k}(1,:,m),left_std_power_matrix{j,k}(1,:,m),ax_hand,colors(k,:),[]);
+            mean_std_plot(-1:1/left_sr:1,left_average_power_matrix{j,k+1}(1,:,m),left_std_power_matrix{j,k+1}(1,:,m),ax_hand,colors(k+1,:),[]);
+            xline(0,'--k');
+            hold(ax_hand,'off');
+            xlabel('Time (s)');
+            ylabel('db/Hz');
+            title(band_names{m});
+        end
+        sgtitle({'Left Brain';left_chan_names{j};[aligned_data.gait_events.Properties.VariableNames{k},' vs ',aligned_data.gait_events.Properties.VariableNames{k+1}]});
+    end
+end
+
 % Right
 right_average_power_matrix = cell(length(right_chan_names),length(aligned_data.gait_events.Properties.VariableNames));
 right_std_power_matrix = cell(length(right_chan_names),length(aligned_data.gait_events.Properties.VariableNames));
@@ -423,6 +476,41 @@ for j = 1:length(right_chan_names)
         end
         right_average_power_matrix{j,k} = mean(vals,1);
         right_std_power_matrix{j,k} = std(vals,0,1);
+    end
+end
+
+for j = 1:length(right_chan_names)
+    for k = 1:4
+        figure;
+        for m = 1:length(band_names)
+            ax_hand = subplot(2,4,m);
+            mean_std_plot(-1:1/right_sr:1,right_average_power_matrix{j,k}(1,:,m),right_std_power_matrix{j,k}(1,:,m),ax_hand,[],[]);
+            hold(ax_hand,'on');
+            xline(0,'--k');
+            hold(ax_hand,'off');
+            xlabel('Time (s)');
+            ylabel('db/Hz');
+            title(band_names{m});
+        end
+        sgtitle({'Right Brain';right_chan_names{j};aligned_data.gait_events.Properties.VariableNames{k}});
+    end
+end
+
+for j = 1:length(right_chan_names)
+    for k = 1:2
+        figure;
+        for m = 1:length(band_names)
+            ax_hand = subplot(2,4,m);
+            hold(ax_hand,'on');
+            mean_std_plot(-1:1/right_sr:1,right_average_power_matrix{j,k}(1,:,m),right_std_power_matrix{j,k}(1,:,m),ax_hand,colors(k,:),[]);
+            mean_std_plot(-1:1/right_sr:1,right_average_power_matrix{j,k+2}(1,:,m),right_std_power_matrix{j,k+2}(1,:,m),ax_hand,colors(k+2,:),[]);
+            xline(0,'--k');
+            hold(ax_hand,'off');
+            xlabel('Time (s)');
+            ylabel('db/Hz');
+            title(band_names{m});
+        end
+        sgtitle({'Right Brain';right_chan_names{j};[aligned_data.gait_events.Properties.VariableNames{k},' vs ',aligned_data.gait_events.Properties.VariableNames{k+2}]});
     end
 end
 
