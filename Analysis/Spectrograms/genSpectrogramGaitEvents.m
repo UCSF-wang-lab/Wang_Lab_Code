@@ -35,13 +35,17 @@ if isfield(aligned_data,'left_LFP_table')
     left_spect_freq = {};
     left_spect_time = {};
     left_PSD = {};
+    remove_ind = [];
     for i = 1:length(left_chan_names)
         same_chan = cellfun(@(x) strcmp(left_chan_names{i},x),left_chan_names(1:i-1));
         if sum(same_chan) == 0  % Not a duplicate channel recording
             [data,time] = addEmptyData(aligned_data.left_taxis,aligned_data.left_LFP_table.(['key',num2str(i-1)]),left_sr,gapFillType);
             [left_spect{end+1},left_spect_freq{end+1},left_spect_time{end+1},left_PSD{end+1}]=spectrogram(data,WINDOW,NOVERLAP,NFFT,left_sr);
+        else
+            remove_ind = [remove_ind,i];
         end
     end
+    left_chan_names(remove_ind) = [];
 end
 
 %% Right RCS
@@ -60,255 +64,259 @@ if isfield(aligned_data,'right_LFP_table')
     right_spect_freq = {};
     right_spect_time = {};
     right_PSD = {};
+    remove_ind = [];
     for i = 1:length(right_chan_names)
         same_chan = cellfun(@(x) strcmp(right_chan_names{i},x),right_chan_names(1:i-1));
         if sum(same_chan) == 0  % Not a duplicate channel recording
             [data,time] = addEmptyData(aligned_data.right_taxis,aligned_data.right_LFP_table.(['key',num2str(i-1)]),right_sr,gapFillType);
             [right_spect{end+1},right_spect_freq{end+1},right_spect_time{end+1},right_PSD{end+1}]=spectrogram(data,WINDOW,NOVERLAP,NFFT,right_sr);
+        else
+            remove_ind = [remove_ind,i];
         end
     end
+    right_chan_names(remove_ind) = [];
 end
 
 % Colors for plotting; by rows: 1 = black (LHS), 2 = Maroon (LTO), 3 = Red
 % (RHS), 4 = Orange (RTO)
 colors = CBMap('GaitEvents',4);
 
-%% Full trial plotting with all gait events
-% Left
-for j = 1:length(left_chan_names)
-    figure;
-    hold on;
-    pcolor(left_spect_time{j},left_spect_freq{j},10*log10(abs(left_PSD{j})))
-    shading interp
-    colorbar
-    caxis([-110,-30])
-    title({'Left';left_chan_names{j};'All gait events'});
-    
-    a1 = [];
-    a2 = [];
-    a3 = [];
-    a4 = [];
-    for k = 1:height(aligned_data.gait_events)
-        if ~isnan(aligned_data.gait_events.LHS(k))
-            if isempty(a1)
-                a1 = xline(aligned_data.gait_events.LHS(k),'linewidth',1.5,'Color',colors(1,:),'DisplayName','LHS');
-            else
-                xline(aligned_data.gait_events.LHS(k),'linewidth',1.5,'Color',colors(1,:));
-            end
-        end
-        
-        if ~isnan(aligned_data.gait_events.LTO(k))
-            if isempty(a2)
-                a2 = xline(aligned_data.gait_events.LTO(k),'linewidth',1.5,'Color',colors(2,:),'DisplayName','LTO');
-            else
-                xline(aligned_data.gait_events.LTO(k),'linewidth',1.5,'Color',colors(2,:));
-            end
-        end
-        
-        if ~isnan(aligned_data.gait_events.RHS(k))
-            if isempty(a3)
-                a3 = xline(aligned_data.gait_events.RHS(k),'linewidth',1.5,'Color',colors(3,:),'DisplayName','RHS');
-            else
-                xline(aligned_data.gait_events.RHS(k),'linewidth',1.5,'Color',colors(3,:));
-            end
-        end
-        
-        if ~isnan(aligned_data.gait_events.RTO(k))
-            if isempty(a4)
-                a4 = xline(aligned_data.gait_events.RTO(k),'linewidth',1.5,'Color',colors(4,:),'DisplayName','RTO');
-            else
-                xline(aligned_data.gait_events.RTO(k),'linewidth',1.5,'Color',colors(4,:));
-            end
-        end
-    end
-    legend([a1,a2,a3,a4]);
-    ylim([2.5,50]);
-end
-
-% Right
-for j = 1:length(right_chan_names)
-    figure;
-    hold on;
-    pcolor(right_spect_time{j},right_spect_freq{j},10*log10(abs(right_PSD{j})))
-    shading interp
-    colorbar
-    caxis([-110,-30])
-    title({'Right';right_chan_names{j};"All gait events"});
-    
-    a1 = [];
-    a2 = [];
-    a3 = [];
-    a4 = [];
-    for k = 1:height(aligned_data.gait_events)
-        if ~isnan(aligned_data.gait_events.LHS(k))
-            if isempty(a1)
-                a1 = xline(aligned_data.gait_events.LHS(k),'linewidth',1.5,'Color',colors(1,:),'DisplayName','LHS');
-            else
-                xline(aligned_data.gait_events.LHS(k),'linewidth',1.5,'Color',colors(1,:));
-            end
-        end
-        
-        if ~isnan(aligned_data.gait_events.LTO(k))
-            if isempty(a2)
-                a2 = xline(aligned_data.gait_events.LTO(k),'linewidth',1.5,'Color',colors(2,:),'DisplayName','LTO');
-            else
-                xline(aligned_data.gait_events.LTO(k),'linewidth',1.5,'Color',colors(2,:));
-            end
-        end
-        
-        if ~isnan(aligned_data.gait_events.RHS(k))
-            if isempty(a3)
-                a3 = xline(aligned_data.gait_events.RHS(k),'linewidth',1.5,'Color',colors(3,:),'DisplayName','RHS');
-            else
-                xline(aligned_data.gait_events.RHS(k),'linewidth',1.5,'Color',colors(3,:));
-            end
-        end
-        
-        if ~isnan(aligned_data.gait_events.RTO(k))
-            if isempty(a4)
-                a4 = xline(aligned_data.gait_events.RTO(k),'linewidth',1.5,'Color',colors(4,:),'DisplayName','RTO');
-            else
-                xline(aligned_data.gait_events.RTO(k),'linewidth',1.5,'Color',colors(4,:));
-            end
-        end
-    end
-    legend([a1,a2,a3,a4]);
-    ylim([2.5,50]);
-end
-
-%% Full trial contralateral events
-% Left
-for j = 1:length(left_chan_names)
-    figure;
-    hold on;
-    pcolor(left_spect_time{j},left_spect_freq{j},10*log10(abs(left_PSD{j})))
-    shading interp
-    colorbar
-    caxis([-110,-30])
-    title({'Left';left_chan_names{j};'Contralateral gait events'});
-    
-    a3 = [];
-    a4 = [];
-    for k = 1:height(aligned_data.gait_events)
-        if ~isnan(aligned_data.gait_events.RHS(k))
-            if isempty(a3)
-                a3 = xline(aligned_data.gait_events.RHS(k),'linewidth',1.5,'Color',colors(3,:),'DisplayName','RHS');
-            else
-                xline(aligned_data.gait_events.RHS(k),'linewidth',1.5,'Color',colors(3,:));
-            end
-        end
-        
-        if ~isnan(aligned_data.gait_events.RTO(k))
-            if isempty(a4)
-                a4 = xline(aligned_data.gait_events.RTO(k),'linewidth',1.5,'Color',colors(4,:),'DisplayName','RTO');
-            else
-                xline(aligned_data.gait_events.RTO(k),'linewidth',1.5,'Color',colors(4,:));
-            end
-        end
-    end
-    legend([a3,a4]);
-    ylim([2.5,50]);
-end
-
-% Right
-for j = 1:length(right_chan_names)
-    figure;
-    hold on;
-    pcolor(right_spect_time{j},right_spect_freq{j},10*log10(abs(right_PSD{j})))
-    shading interp
-    colorbar
-    caxis([-110,-30])
-    title({'Right';right_chan_names{j};"Contralateral gait events"});
-    
-    a1 = [];
-    a2 = [];
-    for k = 1:height(aligned_data.gait_events)
-        if ~isnan(aligned_data.gait_events.LHS(k))
-            if isempty(a1)
-                a1 = xline(aligned_data.gait_events.LHS(k),'linewidth',1.5,'Color',colors(1,:),'DisplayName','LHS');
-            else
-                xline(aligned_data.gait_events.LHS(k),'linewidth',1.5,'Color',colors(1,:));
-            end
-        end
-        
-        if ~isnan(aligned_data.gait_events.LTO(k))
-            if isempty(a2)
-                a2 = xline(aligned_data.gait_events.LTO(k),'linewidth',1.5,'Color',colors(2,:),'DisplayName','LTO');
-            else
-                xline(aligned_data.gait_events.LTO(k),'linewidth',1.5,'Color',colors(2,:));
-            end
-        end
-    end
-    legend([a1,a2]);
-    ylim([2.5,50]);
-end
-
-%% Full trial ipsilateral events
-% Left
-for j = 1:length(left_chan_names)
-    figure;
-    hold on;
-    pcolor(left_spect_time{j},left_spect_freq{j},10*log10(abs(left_PSD{j})))
-    shading interp
-    colorbar
-    caxis([-110,-30])
-    title({'Left';left_chan_names{j};"Ipsilateral gait events"});
-    
-    a1 = [];
-    a2 = [];
-    for k = 1:height(aligned_data.gait_events)
-        if ~isnan(aligned_data.gait_events.LHS(k))
-            if isempty(a1)
-                a1 = xline(aligned_data.gait_events.LHS(k),'linewidth',1.5,'Color',colors(1,:),'DisplayName','LHS');
-            else
-                xline(aligned_data.gait_events.LHS(k),'linewidth',1.5,'Color',colors(1,:));
-            end
-        end
-        
-        if ~isnan(aligned_data.gait_events.LTO(k))
-            if isempty(a2)
-                a2 = xline(aligned_data.gait_events.LTO(k),'linewidth',1.5,'Color',colors(2,:),'DisplayName','LTO');
-            else
-                xline(aligned_data.gait_events.LTO(k),'linewidth',1.5,'Color',colors(2,:));
-            end
-        end
-    end
-    legend([a1,a2]);
-    ylim([2.5,50]);
-end
-
-% Right
-for j = 1:length(right_chan_names)
-    figure;
-    hold on;
-    pcolor(right_spect_time{j},right_spect_freq{j},10*log10(abs(right_PSD{j})))
-    shading interp
-    colorbar
-    caxis([-110,-30])
-    title({'Right';right_chan_names{j};"Ipsilateral gait events"});
-    
-    a3 = [];
-    a4 = [];
-    for k = 1:height(aligned_data.gait_events)
-        if ~isnan(aligned_data.gait_events.RHS(k))
-            if isempty(a3)
-                a3 = xline(aligned_data.gait_events.RHS(k),'linewidth',1.5,'Color',colors(3,:),'DisplayName','RHS');
-            else
-                xline(aligned_data.gait_events.RHS(k),'linewidth',1.5,'Color',colors(3,:));
-            end
-        end
-        
-        if ~isnan(aligned_data.gait_events.RTO(k))
-            if isempty(a4)
-                a4 = xline(aligned_data.gait_events.RTO(k),'linewidth',1.5,'Color',colors(4,:),'DisplayName','RTO');
-            else
-                xline(aligned_data.gait_events.RTO(k),'linewidth',1.5,'Color',colors(4,:));
-            end
-        end
-    end
-    legend([a3,a4]);
-    ylim([2.5,50]);
-end
+% %% Full trial plotting with all gait events
+% % Left
+% for j = 1:length(left_chan_names)
+%     figure;
+%     hold on;
+%     pcolor(left_spect_time{j},left_spect_freq{j},10*log10(abs(left_PSD{j})))
+%     shading interp
+%     colorbar
+%     caxis([-110,-30])
+%     title({'Left';left_chan_names{j};'All gait events'});
+%     
+%     a1 = [];
+%     a2 = [];
+%     a3 = [];
+%     a4 = [];
+%     for k = 1:height(aligned_data.gait_events)
+%         if ~isnan(aligned_data.gait_events.LHS(k))
+%             if isempty(a1)
+%                 a1 = xline(aligned_data.gait_events.LHS(k),'linewidth',1.5,'Color',colors(1,:),'DisplayName','LHS');
+%             else
+%                 xline(aligned_data.gait_events.LHS(k),'linewidth',1.5,'Color',colors(1,:));
+%             end
+%         end
+%         
+%         if ~isnan(aligned_data.gait_events.LTO(k))
+%             if isempty(a2)
+%                 a2 = xline(aligned_data.gait_events.LTO(k),'linewidth',1.5,'Color',colors(2,:),'DisplayName','LTO');
+%             else
+%                 xline(aligned_data.gait_events.LTO(k),'linewidth',1.5,'Color',colors(2,:));
+%             end
+%         end
+%         
+%         if ~isnan(aligned_data.gait_events.RHS(k))
+%             if isempty(a3)
+%                 a3 = xline(aligned_data.gait_events.RHS(k),'linewidth',1.5,'Color',colors(3,:),'DisplayName','RHS');
+%             else
+%                 xline(aligned_data.gait_events.RHS(k),'linewidth',1.5,'Color',colors(3,:));
+%             end
+%         end
+%         
+%         if ~isnan(aligned_data.gait_events.RTO(k))
+%             if isempty(a4)
+%                 a4 = xline(aligned_data.gait_events.RTO(k),'linewidth',1.5,'Color',colors(4,:),'DisplayName','RTO');
+%             else
+%                 xline(aligned_data.gait_events.RTO(k),'linewidth',1.5,'Color',colors(4,:));
+%             end
+%         end
+%     end
+%     legend([a1,a2,a3,a4]);
+%     ylim([2.5,50]);
+% end
+% 
+% % Right
+% for j = 1:length(right_chan_names)
+%     figure;
+%     hold on;
+%     pcolor(right_spect_time{j},right_spect_freq{j},10*log10(abs(right_PSD{j})))
+%     shading interp
+%     colorbar
+%     caxis([-110,-30])
+%     title({'Right';right_chan_names{j};"All gait events"});
+%     
+%     a1 = [];
+%     a2 = [];
+%     a3 = [];
+%     a4 = [];
+%     for k = 1:height(aligned_data.gait_events)
+%         if ~isnan(aligned_data.gait_events.LHS(k))
+%             if isempty(a1)
+%                 a1 = xline(aligned_data.gait_events.LHS(k),'linewidth',1.5,'Color',colors(1,:),'DisplayName','LHS');
+%             else
+%                 xline(aligned_data.gait_events.LHS(k),'linewidth',1.5,'Color',colors(1,:));
+%             end
+%         end
+%         
+%         if ~isnan(aligned_data.gait_events.LTO(k))
+%             if isempty(a2)
+%                 a2 = xline(aligned_data.gait_events.LTO(k),'linewidth',1.5,'Color',colors(2,:),'DisplayName','LTO');
+%             else
+%                 xline(aligned_data.gait_events.LTO(k),'linewidth',1.5,'Color',colors(2,:));
+%             end
+%         end
+%         
+%         if ~isnan(aligned_data.gait_events.RHS(k))
+%             if isempty(a3)
+%                 a3 = xline(aligned_data.gait_events.RHS(k),'linewidth',1.5,'Color',colors(3,:),'DisplayName','RHS');
+%             else
+%                 xline(aligned_data.gait_events.RHS(k),'linewidth',1.5,'Color',colors(3,:));
+%             end
+%         end
+%         
+%         if ~isnan(aligned_data.gait_events.RTO(k))
+%             if isempty(a4)
+%                 a4 = xline(aligned_data.gait_events.RTO(k),'linewidth',1.5,'Color',colors(4,:),'DisplayName','RTO');
+%             else
+%                 xline(aligned_data.gait_events.RTO(k),'linewidth',1.5,'Color',colors(4,:));
+%             end
+%         end
+%     end
+%     legend([a1,a2,a3,a4]);
+%     ylim([2.5,50]);
+% end
+% 
+% %% Full trial contralateral events
+% % Left
+% for j = 1:length(left_chan_names)
+%     figure;
+%     hold on;
+%     pcolor(left_spect_time{j},left_spect_freq{j},10*log10(abs(left_PSD{j})))
+%     shading interp
+%     colorbar
+%     caxis([-110,-30])
+%     title({'Left';left_chan_names{j};'Contralateral gait events'});
+%     
+%     a3 = [];
+%     a4 = [];
+%     for k = 1:height(aligned_data.gait_events)
+%         if ~isnan(aligned_data.gait_events.RHS(k))
+%             if isempty(a3)
+%                 a3 = xline(aligned_data.gait_events.RHS(k),'linewidth',1.5,'Color',colors(3,:),'DisplayName','RHS');
+%             else
+%                 xline(aligned_data.gait_events.RHS(k),'linewidth',1.5,'Color',colors(3,:));
+%             end
+%         end
+%         
+%         if ~isnan(aligned_data.gait_events.RTO(k))
+%             if isempty(a4)
+%                 a4 = xline(aligned_data.gait_events.RTO(k),'linewidth',1.5,'Color',colors(4,:),'DisplayName','RTO');
+%             else
+%                 xline(aligned_data.gait_events.RTO(k),'linewidth',1.5,'Color',colors(4,:));
+%             end
+%         end
+%     end
+%     legend([a3,a4]);
+%     ylim([2.5,50]);
+% end
+% 
+% % Right
+% for j = 1:length(right_chan_names)
+%     figure;
+%     hold on;
+%     pcolor(right_spect_time{j},right_spect_freq{j},10*log10(abs(right_PSD{j})))
+%     shading interp
+%     colorbar
+%     caxis([-110,-30])
+%     title({'Right';right_chan_names{j};"Contralateral gait events"});
+%     
+%     a1 = [];
+%     a2 = [];
+%     for k = 1:height(aligned_data.gait_events)
+%         if ~isnan(aligned_data.gait_events.LHS(k))
+%             if isempty(a1)
+%                 a1 = xline(aligned_data.gait_events.LHS(k),'linewidth',1.5,'Color',colors(1,:),'DisplayName','LHS');
+%             else
+%                 xline(aligned_data.gait_events.LHS(k),'linewidth',1.5,'Color',colors(1,:));
+%             end
+%         end
+%         
+%         if ~isnan(aligned_data.gait_events.LTO(k))
+%             if isempty(a2)
+%                 a2 = xline(aligned_data.gait_events.LTO(k),'linewidth',1.5,'Color',colors(2,:),'DisplayName','LTO');
+%             else
+%                 xline(aligned_data.gait_events.LTO(k),'linewidth',1.5,'Color',colors(2,:));
+%             end
+%         end
+%     end
+%     legend([a1,a2]);
+%     ylim([2.5,50]);
+% end
+% 
+% %% Full trial ipsilateral events
+% % Left
+% for j = 1:length(left_chan_names)
+%     figure;
+%     hold on;
+%     pcolor(left_spect_time{j},left_spect_freq{j},10*log10(abs(left_PSD{j})))
+%     shading interp
+%     colorbar
+%     caxis([-110,-30])
+%     title({'Left';left_chan_names{j};"Ipsilateral gait events"});
+%     
+%     a1 = [];
+%     a2 = [];
+%     for k = 1:height(aligned_data.gait_events)
+%         if ~isnan(aligned_data.gait_events.LHS(k))
+%             if isempty(a1)
+%                 a1 = xline(aligned_data.gait_events.LHS(k),'linewidth',1.5,'Color',colors(1,:),'DisplayName','LHS');
+%             else
+%                 xline(aligned_data.gait_events.LHS(k),'linewidth',1.5,'Color',colors(1,:));
+%             end
+%         end
+%         
+%         if ~isnan(aligned_data.gait_events.LTO(k))
+%             if isempty(a2)
+%                 a2 = xline(aligned_data.gait_events.LTO(k),'linewidth',1.5,'Color',colors(2,:),'DisplayName','LTO');
+%             else
+%                 xline(aligned_data.gait_events.LTO(k),'linewidth',1.5,'Color',colors(2,:));
+%             end
+%         end
+%     end
+%     legend([a1,a2]);
+%     ylim([2.5,50]);
+% end
+% 
+% % Right
+% for j = 1:length(right_chan_names)
+%     figure;
+%     hold on;
+%     pcolor(right_spect_time{j},right_spect_freq{j},10*log10(abs(right_PSD{j})))
+%     shading interp
+%     colorbar
+%     caxis([-110,-30])
+%     title({'Right';right_chan_names{j};"Ipsilateral gait events"});
+%     
+%     a3 = [];
+%     a4 = [];
+%     for k = 1:height(aligned_data.gait_events)
+%         if ~isnan(aligned_data.gait_events.RHS(k))
+%             if isempty(a3)
+%                 a3 = xline(aligned_data.gait_events.RHS(k),'linewidth',1.5,'Color',colors(3,:),'DisplayName','RHS');
+%             else
+%                 xline(aligned_data.gait_events.RHS(k),'linewidth',1.5,'Color',colors(3,:));
+%             end
+%         end
+%         
+%         if ~isnan(aligned_data.gait_events.RTO(k))
+%             if isempty(a4)
+%                 a4 = xline(aligned_data.gait_events.RTO(k),'linewidth',1.5,'Color',colors(4,:),'DisplayName','RTO');
+%             else
+%                 xline(aligned_data.gait_events.RTO(k),'linewidth',1.5,'Color',colors(4,:));
+%             end
+%         end
+%     end
+%     legend([a3,a4]);
+%     ylim([2.5,50]);
+% end
 
 %% PSD at each gait event
 PSD_gait_events.Left = {};
@@ -320,6 +328,7 @@ for j = 1:length(left_chan_names)
     for k = 1:length(aligned_data.gait_events.Properties.VariableNames)
         PSD_gait_events.Left{j,k} = zeros(length(left_spect_freq{j}),sum(~isnan(aligned_data.gait_events.(aligned_data.gait_events.Properties.VariableNames{k}))));
         count = 1;
+        remove_ind = [];
         for m = 1:height(aligned_data.gait_events)
             event_time = aligned_data.gait_events.(aligned_data.gait_events.Properties.VariableNames{k})(m);
             if ~isnan(event_time)
@@ -327,9 +336,14 @@ for j = 1:length(left_chan_names)
                 
                 PSD_gait_events.Left{j,k}(:,count) = left_PSD{j}(:,min_ind);
                 
+                if sum(left_PSD{j}(:,min_ind) == 0) ~= 0
+                    remove_ind = [remove_ind,count];
+                end
+                
                 count = count + 1;
             end
         end
+        PSD_gait_events.Left{j,k}(:,remove_ind) = [];
         
         subplot(2,2,k);
         plot(repmat(left_spect_freq{j},1,size(PSD_gait_events.Left{j,k},2)),10*log10(abs(PSD_gait_events.Left{j,k})),'Color',[0,0,0,0.2]);
@@ -349,16 +363,22 @@ for j = 1:length(right_chan_names)
     for k = 1:length(aligned_data.gait_events.Properties.VariableNames)
         PSD_gait_events.Right{j,k} = zeros(length(right_spect_freq{j}),sum(~isnan(aligned_data.gait_events.(aligned_data.gait_events.Properties.VariableNames{k}))));
         count = 1;
+        remove_ind = [];
         for m = 1:height(aligned_data.gait_events)
             event_time = aligned_data.gait_events.(aligned_data.gait_events.Properties.VariableNames{k})(m);
             if ~isnan(event_time)
                 [~,min_ind] = min(abs(right_spect_time{j}-event_time));
                 
                 PSD_gait_events.Right{j,k}(:,count) = right_PSD{j}(:,min_ind);
+                    
+                if sum(right_PSD{j}(:,min_ind) == 0) ~= 0
+                    remove_ind = [remove_ind,count];
+                end
                 
                 count = count + 1;
             end
         end
+        PSD_gait_events.Right{j,k}(:,remove_ind) = [];
         
         subplot(2,2,k);
         plot(repmat(right_spect_freq{j},1,size(PSD_gait_events.Right{j,k},2)),10*log10(abs(PSD_gait_events.Right{j,k})),'Color',[0,0,0,0.2]);
@@ -390,10 +410,13 @@ for j = 1:length(left_chan_names)
                 [~,min_ind_pre] = min(abs(left_spect_time{j}-(event_time-prePostTime)));
                 [~,min_ind_post] = min(abs(left_spect_time{j}-(event_time+prePostTime)));
                 
-                for n = 1:length(band_names)
-                    vals(count,:,n) = mean(10*log10(abs(left_PSD{j}(band_inds(n,1):band_inds(n,2),min_ind_pre:min_ind_post))));
+                Z = left_PSD{j}(:,min_ind_pre:min_ind_post);
+                if sum(Z==0,"all") == 0
+                    for n = 1:length(band_names)
+                        vals(count,:,n) = mean(10*log10(abs(left_PSD{j}(band_inds(n,1):band_inds(n,2),min_ind_pre:min_ind_post))));
+                    end
+                    count = count + 1;
                 end
-                count = count + 1;
             end
         end
         left_average_power_matrix{j,k} = mean(vals,1);
@@ -424,8 +447,8 @@ for j = 1:length(left_chan_names)
         for m = 1:length(band_names)
             ax_hand = subplot(2,4,m);
             hold(ax_hand,'on');
-            mean_std_plot(-1:1/left_sr:1,left_average_power_matrix{j,k}(1,:,m),left_std_power_matrix{j,k}(1,:,m),ax_hand,colors(k,:),[]);
-            mean_std_plot(-1:1/left_sr:1,left_average_power_matrix{j,k+2}(1,:,m),left_std_power_matrix{j,k+2}(1,:,m),ax_hand,colors(k+2,:),[]);
+            mean_std_plot(-1:1/left_sr:1,left_average_power_matrix{j,k}(1,:,m),left_std_power_matrix{j,k}(1,:,m),ax_hand,colors.(aligned_data.gait_events.Properties.VariableNames{k}),[]);
+            mean_std_plot(-1:1/left_sr:1,left_average_power_matrix{j,k+2}(1,:,m),left_std_power_matrix{j,k+2}(1,:,m),ax_hand,colors.(aligned_data.gait_events.Properties.VariableNames{k+2}),[]);
             xline(0,'--k');
             hold(ax_hand,'off');
             xlabel('Time (s)');
@@ -442,8 +465,8 @@ for j = 1:length(left_chan_names)
         for m = 1:length(band_names)
             ax_hand = subplot(2,4,m);
             hold(ax_hand,'on');
-            mean_std_plot(-1:1/left_sr:1,left_average_power_matrix{j,k}(1,:,m),left_std_power_matrix{j,k}(1,:,m),ax_hand,colors(k,:),[]);
-            mean_std_plot(-1:1/left_sr:1,left_average_power_matrix{j,k+1}(1,:,m),left_std_power_matrix{j,k+1}(1,:,m),ax_hand,colors(k+1,:),[]);
+            mean_std_plot(-1:1/left_sr:1,left_average_power_matrix{j,k}(1,:,m),left_std_power_matrix{j,k}(1,:,m),ax_hand,colors.(aligned_data.gait_events.Properties.VariableNames{k}),[]);
+            mean_std_plot(-1:1/left_sr:1,left_average_power_matrix{j,k+1}(1,:,m),left_std_power_matrix{j,k+1}(1,:,m),ax_hand,colors.(aligned_data.gait_events.Properties.VariableNames{k+1}),[]);
             xline(0,'--k');
             hold(ax_hand,'off');
             xlabel('Time (s)');
@@ -468,10 +491,13 @@ for j = 1:length(right_chan_names)
                 [~,min_ind_pre] = min(abs(right_spect_time{j}-(event_time-prePostTime)));
                 [~,min_ind_post] = min(abs(right_spect_time{j}-(event_time+prePostTime)));
                 
-                for n = 1:length(band_names)
-                    vals(count,:,n) = mean(10*log10(abs(right_PSD{j}(band_inds(n,1):band_inds(n,2),min_ind_pre:min_ind_post))));
+                Z = right_PSD{j}(:,min_ind_pre:min_ind_post);
+                if sum(Z==0,"all") == 0
+                    for n = 1:length(band_names)
+                        vals(count,:,n) = mean(10*log10(abs(right_PSD{j}(band_inds(n,1):band_inds(n,2),min_ind_pre:min_ind_post))));
+                    end
+                    count = count + 1;
                 end
-                count = count + 1;
             end
         end
         right_average_power_matrix{j,k} = mean(vals,1);
@@ -502,8 +528,8 @@ for j = 1:length(right_chan_names)
         for m = 1:length(band_names)
             ax_hand = subplot(2,4,m);
             hold(ax_hand,'on');
-            mean_std_plot(-1:1/right_sr:1,right_average_power_matrix{j,k}(1,:,m),right_std_power_matrix{j,k}(1,:,m),ax_hand,colors(k,:),[]);
-            mean_std_plot(-1:1/right_sr:1,right_average_power_matrix{j,k+2}(1,:,m),right_std_power_matrix{j,k+2}(1,:,m),ax_hand,colors(k+2,:),[]);
+            mean_std_plot(-1:1/right_sr:1,right_average_power_matrix{j,k}(1,:,m),right_std_power_matrix{j,k}(1,:,m),ax_hand,colors.(aligned_data.gait_events.Properties.VariableNames{k}),[]);
+            mean_std_plot(-1:1/right_sr:1,right_average_power_matrix{j,k+2}(1,:,m),right_std_power_matrix{j,k+2}(1,:,m),ax_hand,colors.(aligned_data.gait_events.Properties.VariableNames{k+2}),[]);
             xline(0,'--k');
             hold(ax_hand,'off');
             xlabel('Time (s)');
