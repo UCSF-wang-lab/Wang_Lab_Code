@@ -1,28 +1,6 @@
-function calcRCS_STFT(filename,save_path,gapFillType)
-% Load data
-if ~exist('filename','var')
-    [filename,path] = uigetfile('*w_Gait_Events*.mat');
-    filename = fullfile(path,filename);
-end
-load(filename);
-
-% Save location
-if ~exist('savepath','var')
-%     savepath = uigetdir();
-end
-
-% Drop packet fill technique (blank or interp)
+function STFT = calcRCS_STFT(aligned_data,gapFillType)
 if ~exist('gapFillType','var')
     gapFillType = 'blank';
-end
-
-A = strfind(filename,'RCS');
-subjectID = filename(A(1):A(1)+4);
-
-if contains(filename,"off_stim",'IgnoreCase',true)
-    stim_cond = 'OFF Stim';
-else
-    stim_cond = 'ON Stim';
 end
 
 %% Left RCS
@@ -52,6 +30,12 @@ if isfield(aligned_data,'left_LFP_table')
         end
     end
     left_chan_names(remove_ind) = [];
+    
+    STFT.Left.Values = left_spect;
+    STFT.Left.Time = left_spect_time;
+    STFT.Left.Freq_Values = left_spect_freq;
+    STFT.Left.PSD = left_PSD;
+    STFT.Left.Chan_Names = left_chan_names;
 end
 
 %% Right RCS
@@ -81,5 +65,11 @@ if isfield(aligned_data,'right_LFP_table')
         end
     end
     right_chan_names(remove_ind) = [];
+    
+    STFT.Right.Values = right_spect;
+    STFT.Right.Time = right_spect_time;
+    STFT.Right.Freq_Values = right_spect_freq;
+    STFT.Right.PSD = right_PSD;
+    STFT.Right.Chan_Names = right_chan_names;
 end
 end

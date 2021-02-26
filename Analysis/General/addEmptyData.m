@@ -1,9 +1,4 @@
 function varargout = addEmptyData(time_vec,LFP_signal,sampling_freq,type)
-
-if ~exist('type','var')
-    type = 'blank';
-end
-
 out_data = LFP_signal;
 out_time = time_vec;
 
