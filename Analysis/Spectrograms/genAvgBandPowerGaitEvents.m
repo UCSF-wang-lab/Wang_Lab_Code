@@ -24,6 +24,9 @@ if isfield(signal_analysis_data,'Left')
     [~,band_names] = getFreqBandInd(signal_analysis_data.Left.Freq_Values{1});
     for i = 1:length(signal_analysis_data.Left.Chan_Names)
         band_inds = getFreqBandInd(signal_analysis_data.Left.Freq_Values{i});
+        if band_inds(1,2) < band_inds(1,1)
+            band_inds = fliplr(band_inds);
+        end
         for j = 1:length(aligned_data.gait_events.Properties.VariableNames)
             if ~isfield(average_power.Left,aligned_data.gait_events.Properties.VariableNames{j})
                 average_power.Left.(aligned_data.gait_events.Properties.VariableNames{j}) = cell(1,length(signal_analysis_data.Left.Chan_Names));
@@ -37,10 +40,15 @@ if isfield(signal_analysis_data,'Left')
                     [~,min_ind_pre] = min(abs(signal_analysis_data.Left.Time{i}-(event_time-pre_post_time)));
                     [~,min_ind_post] = min(abs(signal_analysis_data.Left.Time{i}-(event_time+pre_post_time)));
                     
-                    temp = signal_analysis_data.Left.PSD{i}(:,min_ind_pre:min_ind_post);
+                    if isfield(signal_analysis_data.Left,'PSD')
+                        temp = 10*log10(abs(signal_analysis_data.Left.PSD{i}(:,min_ind_pre:min_ind_post)));
+                    else
+                        temp = abs(signal_analysis_data.Left.Values{i}(:,min_ind_pre:min_ind_post));
+                    end
+                    
                     if sum(temp==0,'all') == 0
                         for m = 1:length(band_names) 
-                            vals(count,:,m) = mean(10*log10(abs(temp(band_inds(m,1):band_inds(m,2),:))));
+                            vals(count,:,m) = mean(temp(band_inds(m,1):band_inds(m,2),:));
                         end
                         count = count + 1;
                     end
@@ -58,6 +66,9 @@ if isfield(signal_analysis_data,'Right')
     [~,band_names] = getFreqBandInd(signal_analysis_data.Right.Freq_Values{1});
     for i = 1:length(signal_analysis_data.Right.Chan_Names)
         band_inds = getFreqBandInd(signal_analysis_data.Right.Freq_Values{i});
+        if band_inds(1,2) < band_inds(1,1)
+            band_inds = fliplr(band_inds);
+        end
         for j = 1:length(aligned_data.gait_events.Properties.VariableNames)
             if ~isfield(average_power.Right,aligned_data.gait_events.Properties.VariableNames{j})
                 average_power.Right.(aligned_data.gait_events.Properties.VariableNames{j}) = cell(1,length(signal_analysis_data.Right.Chan_Names));
@@ -71,10 +82,15 @@ if isfield(signal_analysis_data,'Right')
                     [~,min_ind_pre] = min(abs(signal_analysis_data.Right.Time{i}-(event_time-pre_post_time)));
                     [~,min_ind_post] = min(abs(signal_analysis_data.Right.Time{i}-(event_time+pre_post_time)));
                     
-                    temp = signal_analysis_data.Right.PSD{i}(:,min_ind_pre:min_ind_post);
+                    if isfield(signal_analysis_data.Right,'PSD')
+                        temp = 10*log10(abs(signal_analysis_data.Right.PSD{i}(:,min_ind_pre:min_ind_post)));
+                    else
+                        temp = abs(signal_analysis_data.Right.Values{i}(:,min_ind_pre:min_ind_post));
+                    end
+                    
                     if sum(temp==0,'all') == 0
                         for m = 1:length(band_names) 
-                            vals(count,:,m) = mean(10*log10(abs(temp(band_inds(m,1):band_inds(m,2),:))));
+                            vals(count,:,m) = mean(temp(band_inds(m,1):band_inds(m,2),:));
                         end
                         count = count + 1;
                     end
@@ -90,43 +106,47 @@ end
 fig_vec = [];
 colors = CBMap('GaitEvents',4);
 
-time_vec = -1:1/unique(aligned_data.DeviceSettings.Left.timeDomainSettings.samplingRate):1;
-for i = 1:length(signal_analysis_data.Left.Chan_Names)
-    for j = 1:length(event_compare)
-        fig_vec(end+1) = figure;
-        for k = 1:length(band_names)
-            ax_hand = subplot(2,4,k);
-            for m = 1:length(event_compare{j})
-                mean_std_plot(time_vec,average_power.Left.(event_compare{j}{m}){i}(:,k),std_power.Left.(event_compare{j}{m}){i}(:,k),ax_hand,colors.(event_compare{j}{m}),[]);
+if isfield(average_power,'Left')
+    time_vec = -1:1/unique(aligned_data.DeviceSettings.Left.timeDomainSettings.samplingRate):1;
+    for i = 1:length(signal_analysis_data.Left.Chan_Names)
+        for j = 1:length(event_compare)
+            fig_vec(end+1) = figure;
+            for k = 1:length(band_names)
+                ax_hand = subplot(2,4,k);
+                for m = 1:length(event_compare{j})
+                    mean_std_plot(time_vec,average_power.Left.(event_compare{j}{m}){i}(:,k),std_power.Left.(event_compare{j}{m}){i}(:,k),ax_hand,colors.(event_compare{j}{m}),[]);
+                end
+                hold(ax_hand,'on');
+                xline(0,'--k');
+                hold(ax_hand,'off');
+                xlabel('Time (s)');
+                ylabel('db/Hz');
+                title(band_names{k});
             end
-            hold(ax_hand,'on');
-            xline(0,'--k');
-            hold(ax_hand,'off');
-            xlabel('Time (s)');
-            ylabel('db/Hz');
-            title(band_names{k});
+            sgtitle({[subjectID,' Left'];signal_analysis_data.Left.Chan_Names{i};createPlotTitle(event_compare{j})});
         end
-        sgtitle({[subjectID,' Left'];signal_analysis_data.Left.Chan_Names{i};createPlotTitle(event_compare{j})});
     end
 end
 
-time_vec = -1:1/unique(aligned_data.DeviceSettings.Right.timeDomainSettings.samplingRate):1;
-for i = 1:length(signal_analysis_data.Right.Chan_Names)
-    for j = 1:length(event_compare)
-        fig_vec(end+1) = figure;
-        for k = 1:length(band_names)
-            ax_hand = subplot(2,4,k);
-            for m = 1:length(event_compare{j})
-                mean_std_plot(time_vec,average_power.Right.(event_compare{j}{m}){i}(:,k),std_power.Right.(event_compare{j}{m}){i}(:,k),ax_hand,colors.(event_compare{j}{m}),[]);
+if isfield(average_power,'Right')
+    time_vec = -1:1/unique(aligned_data.DeviceSettings.Right.timeDomainSettings.samplingRate):1;
+    for i = 1:length(signal_analysis_data.Right.Chan_Names)
+        for j = 1:length(event_compare)
+            fig_vec(end+1) = figure;
+            for k = 1:length(band_names)
+                ax_hand = subplot(2,4,k);
+                for m = 1:length(event_compare{j})
+                    mean_std_plot(time_vec,average_power.Right.(event_compare{j}{m}){i}(:,k),std_power.Right.(event_compare{j}{m}){i}(:,k),ax_hand,colors.(event_compare{j}{m}),[]);
+                end
+                hold(ax_hand,'on');
+                xline(0,'--k');
+                hold(ax_hand,'off');
+                xlabel('Time (s)');
+                ylabel('db/Hz');
+                title(band_names{k});
             end
-            hold(ax_hand,'on');
-            xline(0,'--k');
-            hold(ax_hand,'off');
-            xlabel('Time (s)');
-            ylabel('db/Hz');
-            title(band_names{k});
+            sgtitle({[subjectID,' Right'];signal_analysis_data.Right.Chan_Names{i};createPlotTitle(event_compare{j})});
         end
-        sgtitle({[subjectID,' Right'];signal_analysis_data.Right.Chan_Names{i};createPlotTitle(event_compare{j})});
     end
 end
 
@@ -135,18 +155,30 @@ if save_flag
     save_dir = uigetdir();
     
     % check if saving folders exist
-    if ~isfolder(fullfile(save_dir,'AvgPower'))
-        mkdir(fullfile(save_dir,'AvgPower'));
+    if ~isfolder(fullfile(save_dir,'AvgEventPower'))
+        mkdir(fullfile(save_dir,'AvgEventPower'));
     end
     
-    if ~isfolder(fullfile(save_dir,'AvgPower','FT'))
-        mkdir(fullfile(save_dir,'AvgPower','FT'))
+    if isfield(signal_analysis_data,'PSD')
+        if ~isfolder(fullfile(save_dir,'AvgEventPower','FT'))
+            mkdir(fullfile(save_dir,'AvgEventPower','FT'))
+        end
+    else
+        if ~isfolder(fullfile(save_dir,'AvgEventPower','CWT'))
+            mkdir(fullfile(save_dir,'AvgEventPower','CWT'))
+        end
     end
     
     folders_to_check = {'FIG_files','PDF_files','TIFF_files'};
     for n = 1:length(folders_to_check)
-        if ~isfolder(fullfile(save_dir,'AvgPower','FT',folders_to_check{n}))
-            mkdir(fullfile(save_dir,'AvgPower','FT',folders_to_check{n}));
+        if isfield(signal_analysis_data,'PSD')
+            if ~isfolder(fullfile(save_dir,'AvgEventPower','FT',folders_to_check{n}))
+                mkdir(fullfile(save_dir,'AvgEventPower','FT',folders_to_check{n}));
+            end
+        else
+            if ~isfolder(fullfile(save_dir,'AvgEventPower','CWT',folders_to_check{n}))
+                mkdir(fullfile(save_dir,'AvgEventPower','CWT',folders_to_check{n}));
+            end
         end
     end
     
@@ -161,7 +193,11 @@ if save_flag
             end
         end
         
-        savefig(fig_vec(i),fullfile(save_dir,'AvgPower','FT',folders_to_check{1},save_name));
+        if isfield(signal_analysis_data,'PSD')
+            savefig(fig_vec(i),fullfile(save_dir,'Spectrogram','FT',folders_to_check{1},save_name));
+        else
+            savefig(fig_vec(i),fullfile(save_dir,'Spectrogram','CWT',folders_to_check{1},save_name));
+        end
     end
 end
 end

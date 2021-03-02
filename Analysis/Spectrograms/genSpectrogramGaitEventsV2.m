@@ -11,14 +11,28 @@ if ~exist('save_flag','var')
     save_flag = 0;
 end
 
+%% Plotting
 colors = CBMap('GaitEvents',4);
-
 fig_vec = [];
+
+% Left
 if isfield(signal_analysis_data,'Left')
     for i = 1:length(signal_analysis_data.Left.Chan_Names)
         fig_vec(end+1) = figure;
-        pcolor(signal_analysis_data.Left.Time{i},signal_analysis_data.Left.Freq_Values{i},10*log10(abs(signal_analysis_data.Left.PSD{i})));
-        shading flat;
+        if isfield(signal_analysis_data.Left,'PSD')
+            pcolor(signal_analysis_data.Left.Time{i},signal_analysis_data.Left.Freq_Values{i},10*log10(abs(signal_analysis_data.Left.PSD{i})));
+            shading flat;
+            ylim([2.5,50]);
+            A = caxis;
+            caxis(A.*0.80);
+        else
+            ax = pcolor(signal_analysis_data.Left.Time{i},log2(signal_analysis_data.Left.Freq_Values{i}),abs(signal_analysis_data.Left.Values{i}));
+            ax.EdgeAlpha = 0;
+            ticks = logspace(log10(2.5),log10(50),10);
+            ax.Parent.YTick = log2(ticks);
+            ax.Parent.YTickLabel = ticks;
+            ylim([log2(2.5),log2(50)]);
+        end
         
         hold on;
         axes_vec = [];
@@ -36,21 +50,30 @@ if isfield(signal_analysis_data,'Left')
         end
         hold off;
         legend(axes_vec);
-        ylim([2.5,50]);
         xlabel('Time (s)');
         ylabel('Frequency (Hz)');
         title({[subjectID,' Left'];signal_analysis_data.Left.Chan_Names{i}});
-        
-        A = caxis;
-        caxis(A.*0.80);
     end
 end
 
+% Right
 if isfield(signal_analysis_data,'Right')
     for i = 1:length(signal_analysis_data.Right.Chan_Names)
         fig_vec(end+1) = figure;
-        pcolor(signal_analysis_data.Right.Time{i},signal_analysis_data.Right.Freq_Values{i},10*log10(abs(signal_analysis_data.Right.PSD{i})));
-        shading flat;
+        if isfield(signal_analysis_data.Right,'PSD')
+            pcolor(signal_analysis_data.Right.Time{i},signal_analysis_data.Right.Freq_Values{i},10*log10(abs(signal_analysis_data.Right.PSD{i})));
+            shading flat;
+            ylim([2.5,50]);
+            A = caxis;
+            caxis(A.*0.80);
+        else
+            ax = pcolor(signal_analysis_data.Right.Time{i},log2(signal_analysis_data.Right.Freq_Values{i}),abs(signal_analysis_data.Right.Values{i}));
+            ax.EdgeAlpha = 0;
+            ticks = logspace(log10(2.5),log10(50),10);
+            ax.Parent.YTick = log2(ticks);
+            ax.Parent.YTickLabel = ticks;
+            ylim([log2(2.5),log2(50)]);
+        end
         
         hold on;
         axes_vec = [];
@@ -68,16 +91,14 @@ if isfield(signal_analysis_data,'Right')
         end
         hold off;
         legend(axes_vec);
-        ylim([2.5,50]);
         xlabel('Time (s)');
         ylabel('Frequency (Hz)');
         title({[subjectID,' Right'];signal_analysis_data.Right.Chan_Names{i}});
-        
-        A = caxis;
-        caxis(A.*0.80);
     end
 end
 
+
+%% Save plots
 if save_flag
     save_dir = uigetdir();
     
@@ -86,14 +107,26 @@ if save_flag
         mkdir(fullfile(save_dir,'Spectrogram'));
     end
     
-    if ~isfolder(fullfile(save_dir,'Spectrogram','FT'))
-        mkdir(fullfile(save_dir,'Spectrogram','FT'))
+    if isfield(signal_analysis_data,'PSD')
+        if ~isfolder(fullfile(save_dir,'Spectrogram','FT'))
+            mkdir(fullfile(save_dir,'Spectrogram','FT'))
+        end
+    else
+        if ~isfolder(fullfile(save_dir,'Spectrogram','CWT'))
+            mkdir(fullfile(save_dir,'Spectrogram','CWT'))
+        end
     end
     
     folders_to_check = {'FIG_files','PDF_files','TIFF_files'};
     for n = 1:length(folders_to_check)
-        if ~isfolder(fullfile(save_dir,'Spectrogram','FT',folders_to_check{n}))
-            mkdir(fullfile(save_dir,'Spectrogram','FT',folders_to_check{n}));
+        if isfield(signal_analysis_data,'PSD')
+            if ~isfolder(fullfile(save_dir,'Spectrogram','FT',folders_to_check{n}))
+                mkdir(fullfile(save_dir,'Spectrogram','FT',folders_to_check{n}));
+            end
+        else
+            if ~isfolder(fullfile(save_dir,'Spectrogram','CWT',folders_to_check{n}))
+                mkdir(fullfile(save_dir,'Spectrogram','CWT',folders_to_check{n}));
+            end
         end
     end
     
@@ -108,7 +141,11 @@ if save_flag
             end
         end
         
-        savefig(fig_vec(i),fullfile(save_dir,'Spectrogram','FT',folders_to_check{1},save_name));
+        if isfield(signal_analysis_data,'PSD')
+            savefig(fig_vec(i),fullfile(save_dir,'Spectrogram','FT',folders_to_check{1},save_name));
+        else
+            savefig(fig_vec(i),fullfile(save_dir,'Spectrogram','CWT',folders_to_check{1},save_name));
+        end
     end
 end
 end
