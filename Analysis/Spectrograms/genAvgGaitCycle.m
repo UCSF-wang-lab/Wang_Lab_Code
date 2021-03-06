@@ -1,17 +1,17 @@
 function genAvgGaitCycle(aligned_data,signal_analysis_data,cycle_start_event,n_percent_bins,subjectID,save_flag)
-if ~exist('cycle_start_event','var')
+if ~exist('cycle_start_event','var') || isempty(cycle_start_event)
     cycle_start_event = 'LHS';
 end
 
-if ~exist('n_percent_bins','var')
+if ~exist('n_percent_bins','var') || isempty(n_percent_bins)
     n_percent_bins = 100;
 end
 
-if ~exist('subjectID','var')
+if ~exist('subjectID','var') || isempty(subjectID)
     subjectID = 'RCSXX';
 end
 
-if ~exist('save_flag','var')
+if ~exist('save_flag','var') || isempty(save_flag)
     save_flag = 0;
 end
 
@@ -22,6 +22,11 @@ gait_events_sorted = sort_gait_events(aligned_data.gait_events,cycle_start_event
 % Go through all valid gait cycles
 % Left
 if isfield(signal_analysis_data,'Left')
+    if isfield(signal_analysis_data.Right,'PSD')
+        analysis_type = 'FT';
+    else
+        analysis_type = 'CWT';
+    end
     gait_cycle_avg.Left = cell(1,length(signal_analysis_data.Left.Chan_Names));
     for i = 1:length(signal_analysis_data.Left.Chan_Names)
         gait_cycle_mat_left = zeros(length(signal_analysis_data.Left.Freq_Values{i}),n_percent_bins,1);
@@ -37,15 +42,17 @@ if isfield(signal_analysis_data,'Left')
                     data_snip = abs(signal_analysis_data.Left.Values{i}(:,start_ind:end_ind));
                 end
                 
-                percent_inds = round(linspace(1,size(data_snip,2),n_percent_bins+1));
-                for k = 1:length(percent_inds)-1
-                    if k == 1
-                        gait_cycle_mat_left(:,k,count) = mean(data_snip(:,percent_inds(k):percent_inds(k+1)),2);
-                    else
-                        gait_cycle_mat_left(:,k,count) = mean(data_snip(:,percent_inds(k)+1:percent_inds(k+1)),2);
+                if sum(isinf(data_snip),'all') == 0
+                    percent_inds = round(linspace(1,size(data_snip,2),n_percent_bins+1));
+                    for k = 1:length(percent_inds)-1
+                        if k == 1
+                            gait_cycle_mat_left(:,k,count) = mean(data_snip(:,percent_inds(k):percent_inds(k+1)),2);
+                        else
+                            gait_cycle_mat_left(:,k,count) = mean(data_snip(:,percent_inds(k)+1:percent_inds(k+1)),2);
+                        end
                     end
+                    count = count + 1;
                 end
-                count = count + 1;
             end
         end
         gait_cycle_avg.Left{i} = mean(gait_cycle_mat_left,3);
@@ -54,6 +61,11 @@ end
 
 % Right
 if isfield(signal_analysis_data,'Right')
+    if isfield(signal_analysis_data.Right,'PSD')
+        analysis_type = 'FT';
+    else
+        analysis_type = 'CWT';
+    end
     gait_cycle_avg.Right = cell(1,length(signal_analysis_data.Right.Chan_Names));
     for i = 1:length(signal_analysis_data.Right.Chan_Names)
         gait_cycle_mat_right = zeros(length(signal_analysis_data.Right.Freq_Values{i}),n_percent_bins,1);
@@ -67,16 +79,17 @@ if isfield(signal_analysis_data,'Right')
                 else
                     data_snip = abs(signal_analysis_data.Right.Values{i}(:,start_ind:end_ind));
                 end
-                
-                percent_inds = round(linspace(1,size(data_snip,2),n_percent_bins+1));
-                for k = 1:length(percent_inds)-1
-                    if k == 1
-                        gait_cycle_mat_right(:,k,count) = mean(data_snip(:,percent_inds(k):percent_inds(k+1)),2);
-                    else
-                        gait_cycle_mat_right(:,k,count) = mean(data_snip(:,percent_inds(k)+1:percent_inds(k+1)),2);
+                if sum(isinf(data_snip),'all') == 0
+                    percent_inds = round(linspace(1,size(data_snip,2),n_percent_bins+1));
+                    for k = 1:length(percent_inds)-1
+                        if k == 1
+                            gait_cycle_mat_right(:,k,count) = mean(data_snip(:,percent_inds(k):percent_inds(k+1)),2);
+                        else
+                            gait_cycle_mat_right(:,k,count) = mean(data_snip(:,percent_inds(k)+1:percent_inds(k+1)),2);
+                        end
                     end
+                    count = count + 1;
                 end
-                count = count + 1;
             end
         end
         gait_cycle_avg.Right{i} = mean(gait_cycle_mat_right,3);
@@ -125,30 +138,37 @@ end
 if save_flag
     save_dir = uigetdir();
     
+    figure_format(6,6,10);
+    
     % check if saving folders exist
     if ~isfolder(fullfile(save_dir,'AvgGaitCycleSpec'))
         mkdir(fullfile(save_dir,'AvgGaitCycleSpec'));
     end
     
-    if isfield(signal_analysis_data,'PSD')
-        if ~isfolder(fullfile(save_dir,'AvgGaitCycleSpec','FT'))
-            mkdir(fullfile(save_dir,'AvgGaitCycleSpec','FT'))
+    if ~isfolder(fullfile(save_dir,'AvgGaitCycleSpec',aligned_data.stim_condition))
+        mkdir(fullfile(save_dir,'AvgGaitCycleSpec',aligned_data.stim_condition))
+    end
+    
+    if strcmp(analysis_type,'FT')
+        if ~isfolder(fullfile(save_dir,'AvgGaitCycleSpec',aligned_data.stim_condition,'FT'))
+            mkdir(fullfile(save_dir,'AvgGaitCycleSpec',aligned_data.stim_condition,'FT'))
         end
-    else
-        if ~isfolder(fullfile(save_dir,'AvgGaitCycleSpec','CWT'))
-            mkdir(fullfile(save_dir,'AvgGaitCycleSpec','CWT'))
+    elseif strcmp(analysis_type,'CWT')
+        if ~isfolder(fullfile(save_dir,'AvgGaitCycleSpec',aligned_data.stim_condition,'CWT'))
+            mkdir(fullfile(save_dir,'AvgGaitCycleSpec',aligned_data.stim_condition,'CWT'))
         end
     end
     
     folders_to_check = {'FIG_files','PDF_files','TIFF_files'};
+    extension = {'.fig','.pdf','.tiff'};
     for n = 1:length(folders_to_check)
-        if isfield(signal_analysis_data,'PSD')
-            if ~isfolder(fullfile(save_dir,'AvgGaitCycleSpec','FT',folders_to_check{n}))
-                mkdir(fullfile(save_dir,'AvgGaitCycleSpec','FT',folders_to_check{n}));
+        if strcmp(analysis_type,'FT')
+            if ~isfolder(fullfile(save_dir,'AvgGaitCycleSpec',aligned_data.stim_condition,'FT',folders_to_check{n}))
+                mkdir(fullfile(save_dir,'AvgGaitCycleSpec',aligned_data.stim_condition,'FT',folders_to_check{n}));
             end
-        else
-            if ~isfolder(fullfile(save_dir,'AvgGaitCycleSpec','CWT',folders_to_check{n}))
-                mkdir(fullfile(save_dir,'AvgGaitCycleSpec','CWT',folders_to_check{n}));
+        elseif strcmp(analysis_type,'CWT')
+            if ~isfolder(fullfile(save_dir,'AvgGaitCycleSpec',aligned_data.stim_condition,'CWT',folders_to_check{n}))
+                mkdir(fullfile(save_dir,'AvgGaitCycleSpec',aligned_data.stim_condition,'CWT',folders_to_check{n}));
             end
         end
     end
@@ -164,11 +184,19 @@ if save_flag
             end
         end
         
-        if isfield(signal_analysis_data,'PSD')
-            savefig(fig_vec(i),fullfile(save_dir,'AvgGaitCycleSpec','FT',folders_to_check{1},save_name));
-        else
-            savefig(fig_vec(i),fullfile(save_dir,'AvgGaitCycleSpec','CWT',folders_to_check{1},save_name));
+        if strcmp(analysis_type,'FT')
+            savefig(fig_vec(i),fullfile(save_dir,'AvgGaitCycleSpec',aligned_data.stim_condition,'FT',folders_to_check{1},strrep(save_name,' ','_')));
+        elseif strcmp(analysis_type,'CWT')
+            savefig(fig_vec(i),fullfile(save_dir,'AvgGaitCycleSpec',aligned_data.stim_condition,'CWT',folders_to_check{1},strrep(save_name,' ','_')));
         end
+        
+        %         for k = 2:length(folders_to_check)
+        %             if strcmp(analysis_type,'FT')
+        %                 print(fig_vec(i),[fullfile(save_dir,'AvgGaitCycleSpec',aligned_data.stim_condition,'FT',folders_to_check{k},strrep(save_name,' ','_')),extension{k}],'-r300',['-d',extension{k}(2:end)]);
+        %             elseif strcmp(analysis_type,'CWT')
+        %                 print(fig_vec(i),[fullfile(save_dir,'AvgGaitCycleSpec',aligned_data.stim_condition,'CWT',folders_to_check{k},strrep(save_name,' ','_')),extension{k}],'-r300',['-d',extension{k}(2:end)]);
+        %             end
+        %         end
     end
 end
 end

@@ -1,13 +1,13 @@
 function genSpectrogramGaitEventsV2(aligned_data,signal_analysis_data,events_to_mark,subjectID,save_flag)
-if ~exist('events_to_mark','var')
+if ~exist('events_to_mark','var') || isempty(events_to_mark)
     events_to_mark = {'LTO','LHS','RTO','RHS'};
 end
 
-if ~exist('subjectID','var')
+if ~exist('subjectID','var') || isempty(subjectID)
     subjectID = 'RCSXX';
 end
 
-if ~exist('save_flag','var')
+if ~exist('save_flag','var') || isempty(save_flag)
     save_flag = 0;
 end
 
@@ -17,6 +17,11 @@ fig_vec = [];
 
 % Left
 if isfield(signal_analysis_data,'Left')
+    if isfield(signal_analysis_data.Left,'PSD')
+        analysis_type = 'FT';
+    else
+        analysis_type = 'CWT';
+    end
     for i = 1:length(signal_analysis_data.Left.Chan_Names)
         fig_vec(end+1) = figure;
         if isfield(signal_analysis_data.Left,'PSD')
@@ -58,6 +63,11 @@ end
 
 % Right
 if isfield(signal_analysis_data,'Right')
+    if isfield(signal_analysis_data.Right,'PSD')
+        analysis_type = 'FT';
+    else
+        analysis_type = 'CWT';
+    end
     for i = 1:length(signal_analysis_data.Right.Chan_Names)
         fig_vec(end+1) = figure;
         if isfield(signal_analysis_data.Right,'PSD')
@@ -102,30 +112,36 @@ end
 if save_flag
     save_dir = uigetdir();
     
+    figure_format(6,6,10);
+    
     % check if saving folders exist
     if ~isfolder(fullfile(save_dir,'Spectrogram'))
         mkdir(fullfile(save_dir,'Spectrogram'));
     end
     
-    if isfield(signal_analysis_data,'PSD')
-        if ~isfolder(fullfile(save_dir,'Spectrogram','FT'))
-            mkdir(fullfile(save_dir,'Spectrogram','FT'))
+    if ~isfolder(fullfile(save_dir,'Spectrogram',aligned_data.stim_condition))
+        mkdir(fullfile(save_dir,'Spectrogram',aligned_data.stim_condition))
+    end
+    
+    if strcmp(analysis_type,'FT')
+        if ~isfolder(fullfile(save_dir,'Spectrogram',aligned_data.stim_condition,'FT'))
+            mkdir(fullfile(save_dir,'Spectrogram',aligned_data.stim_condition,'FT'))
         end
-    else
-        if ~isfolder(fullfile(save_dir,'Spectrogram','CWT'))
-            mkdir(fullfile(save_dir,'Spectrogram','CWT'))
+    elseif strcmp(analysis_type,'CWT')
+        if ~isfolder(fullfile(save_dir,'Spectrogram',aligned_data.stim_condition,'CWT'))
+            mkdir(fullfile(save_dir,'Spectrogram',aligned_data.stim_condition,'CWT'))
         end
     end
     
     folders_to_check = {'FIG_files','PDF_files','TIFF_files'};
     for n = 1:length(folders_to_check)
-        if isfield(signal_analysis_data,'PSD')
-            if ~isfolder(fullfile(save_dir,'Spectrogram','FT',folders_to_check{n}))
-                mkdir(fullfile(save_dir,'Spectrogram','FT',folders_to_check{n}));
+        if strcmp(analysis_type,'FT')
+            if ~isfolder(fullfile(save_dir,'Spectrogram',aligned_data.stim_condition,'FT',folders_to_check{n}))
+                mkdir(fullfile(save_dir,'Spectrogram',aligned_data.stim_condition,'FT',folders_to_check{n}));
             end
-        else
-            if ~isfolder(fullfile(save_dir,'Spectrogram','CWT',folders_to_check{n}))
-                mkdir(fullfile(save_dir,'Spectrogram','CWT',folders_to_check{n}));
+        elseif strcmp(analysis_type,'CWT')
+            if ~isfolder(fullfile(save_dir,'Spectrogram',aligned_data.stim_condition,'CWT',folders_to_check{n}))
+                mkdir(fullfile(save_dir,'Spectrogram',aligned_data.stim_condition,'CWT',folders_to_check{n}));
             end
         end
     end
@@ -141,10 +157,10 @@ if save_flag
             end
         end
         
-        if isfield(signal_analysis_data,'PSD')
-            savefig(fig_vec(i),fullfile(save_dir,'Spectrogram','FT',folders_to_check{1},save_name));
-        else
-            savefig(fig_vec(i),fullfile(save_dir,'Spectrogram','CWT',folders_to_check{1},save_name));
+        if strcmp(analysis_type,'FT')
+            savefig(fig_vec(i),fullfile(save_dir,'Spectrogram',aligned_data.stim_condition,'FT',folders_to_check{1},strrep(save_name,' ','_')));
+        elseif strcmp(analysis_type,'CWT')
+            savefig(fig_vec(i),fullfile(save_dir,'Spectrogram',aligned_data.stim_condition,'CWT',folders_to_check{1},strrep(save_name,' ','_')));
         end
     end
 end

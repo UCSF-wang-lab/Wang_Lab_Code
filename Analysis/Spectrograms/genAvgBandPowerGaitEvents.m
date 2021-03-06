@@ -19,6 +19,11 @@ end
 
 %% Extract data
 if isfield(signal_analysis_data,'Left')
+    if isfield(signal_analysis_data.Left,'PSD')
+        analysis_type = 'FT';
+    else
+        analysis_type = 'CWT';
+    end
     average_power.Left = {};
     std_power.Left = {};
     [~,band_names] = getFreqBandInd(signal_analysis_data.Left.Freq_Values{1});
@@ -46,11 +51,13 @@ if isfield(signal_analysis_data,'Left')
                         temp = abs(signal_analysis_data.Left.Values{i}(:,min_ind_pre:min_ind_post));
                     end
                     
-                    if sum(temp==0,'all') == 0
-                        for m = 1:length(band_names) 
-                            vals(count,:,m) = mean(temp(band_inds(m,1):band_inds(m,2),:));
+                    if size(temp,2) == 1001
+                        if sum(isinf(temp),'all') == 0
+                            for m = 1:length(band_names)
+                                vals(count,:,m) = mean(temp(band_inds(m,1):band_inds(m,2),:));
+                            end
+                            count = count + 1;
                         end
-                        count = count + 1;
                     end
                 end
             end
@@ -61,6 +68,11 @@ if isfield(signal_analysis_data,'Left')
 end
 
 if isfield(signal_analysis_data,'Right')
+    if isfield(signal_analysis_data.Right,'PSD')
+        analysis_type = 'FT';
+    else
+        analysis_type = 'CWT';
+    end
     average_power.Right = {};
     std_power.Right = {};
     [~,band_names] = getFreqBandInd(signal_analysis_data.Right.Freq_Values{1});
@@ -88,11 +100,13 @@ if isfield(signal_analysis_data,'Right')
                         temp = abs(signal_analysis_data.Right.Values{i}(:,min_ind_pre:min_ind_post));
                     end
                     
-                    if sum(temp==0,'all') == 0
-                        for m = 1:length(band_names) 
-                            vals(count,:,m) = mean(temp(band_inds(m,1):band_inds(m,2),:));
+                    if size(temp,2) == 1001
+                        if sum(isinf(temp),'all') == 0
+                            for m = 1:length(band_names)
+                                vals(count,:,m) = mean(temp(band_inds(m,1):band_inds(m,2),:));
+                            end
+                            count = count + 1;
                         end
-                        count = count + 1;
                     end
                 end
             end
@@ -120,7 +134,13 @@ if isfield(average_power,'Left')
                 xline(0,'--k');
                 hold(ax_hand,'off');
                 xlabel('Time (s)');
-                ylabel('db/Hz');
+                
+                if isfield(signal_analysis_data.Left,'PSD')
+                    ylabel('db/Hz');
+                else
+                    ylabel('Magnitude');
+                end
+                
                 title(band_names{k});
             end
             sgtitle({[subjectID,' Left'];signal_analysis_data.Left.Chan_Names{i};createPlotTitle(event_compare{j})});
@@ -142,7 +162,12 @@ if isfield(average_power,'Right')
                 xline(0,'--k');
                 hold(ax_hand,'off');
                 xlabel('Time (s)');
-                ylabel('db/Hz');
+                
+                if isfield(signal_analysis_data.Right,'PSD')
+                    ylabel('db/Hz');
+                else
+                    ylabel('Magnitude');
+                end
                 title(band_names{k});
             end
             sgtitle({[subjectID,' Right'];signal_analysis_data.Right.Chan_Names{i};createPlotTitle(event_compare{j})});
@@ -154,30 +179,37 @@ end
 if save_flag
     save_dir = uigetdir();
     
+    figure_format(12,8,12);
+    
     % check if saving folders exist
     if ~isfolder(fullfile(save_dir,'AvgEventPower'))
         mkdir(fullfile(save_dir,'AvgEventPower'));
     end
     
-    if isfield(signal_analysis_data,'PSD')
-        if ~isfolder(fullfile(save_dir,'AvgEventPower','FT'))
-            mkdir(fullfile(save_dir,'AvgEventPower','FT'))
+    if ~isfolder(fullfile(save_dir,'AvgEventPower',aligned_data.stim_condition))
+        mkdir(fullfile(save_dir,'AvgEventPower',aligned_data.stim_condition))
+    end
+    
+    if strcmp(analysis_type,'FT')
+        if ~isfolder(fullfile(save_dir,'AvgEventPower',aligned_data.stim_condition,'FT'))
+            mkdir(fullfile(save_dir,'AvgEventPower',aligned_data.stim_condition,'FT'))
         end
-    else
-        if ~isfolder(fullfile(save_dir,'AvgEventPower','CWT'))
-            mkdir(fullfile(save_dir,'AvgEventPower','CWT'))
+    elseif strcmp(analysis_type,'CWT')
+        if ~isfolder(fullfile(save_dir,'AvgEventPower',aligned_data.stim_condition,'CWT'))
+            mkdir(fullfile(save_dir,'AvgEventPower',aligned_data.stim_condition,'CWT'))
         end
     end
     
     folders_to_check = {'FIG_files','PDF_files','TIFF_files'};
+    extension = {'.fig','.pdf','.tiff'};
     for n = 1:length(folders_to_check)
-        if isfield(signal_analysis_data,'PSD')
-            if ~isfolder(fullfile(save_dir,'AvgEventPower','FT',folders_to_check{n}))
-                mkdir(fullfile(save_dir,'AvgEventPower','FT',folders_to_check{n}));
+        if strcmp(analysis_type,'FT')
+            if ~isfolder(fullfile(save_dir,'AvgEventPower',aligned_data.stim_condition,'FT',folders_to_check{n}))
+                mkdir(fullfile(save_dir,'AvgEventPower',aligned_data.stim_condition,'FT',folders_to_check{n}));
             end
-        else
-            if ~isfolder(fullfile(save_dir,'AvgEventPower','CWT',folders_to_check{n}))
-                mkdir(fullfile(save_dir,'AvgEventPower','CWT',folders_to_check{n}));
+        elseif strcmp(analysis_type,'CWT')
+            if ~isfolder(fullfile(save_dir,'AvgEventPower',aligned_data.stim_condition,'CWT',folders_to_check{n}))
+                mkdir(fullfile(save_dir,'AvgEventPower',aligned_data.stim_condition,'CWT',folders_to_check{n}));
             end
         end
     end
@@ -185,18 +217,26 @@ if save_flag
     for i = 1:length(fig_vec)
         curr_axes = gca(fig_vec(i));
         save_name = [];
-        for j = 1:length(curr_axes.Title.String)
+        for j = 1:length(curr_axes.Parent.Children(1).String)
             if isempty(save_name)
-                save_name = curr_axes.Title.String{j};
+                save_name = curr_axes.Parent.Children(1).String{j};
             else
-                save_name = [save_name,' ', curr_axes.Title.String{j}];
+                save_name = [save_name,' ', curr_axes.Parent.Children(1).String{j}];
             end
         end
         
-        if isfield(signal_analysis_data,'PSD')
-            savefig(fig_vec(i),fullfile(save_dir,'Spectrogram','FT',folders_to_check{1},save_name));
-        else
-            savefig(fig_vec(i),fullfile(save_dir,'Spectrogram','CWT',folders_to_check{1},save_name));
+        if strcmp(analysis_type,'FT')
+            savefig(fig_vec(i),fullfile(save_dir,'AvgEventPower',aligned_data.stim_condition,'FT',folders_to_check{1},strrep(strrep(save_name,' ','_'),'.','')));
+        elseif strcmp(analysis_type,'CWT')
+            savefig(fig_vec(i),fullfile(save_dir,'AvgEventPower',aligned_data.stim_condition,'CWT',folders_to_check{1},strrep(strrep(save_name,' ','_'),'.','')));
+        end
+        
+        for k = 2:length(folders_to_check)
+            if strcmp(analysis_type,'FT')
+                print(fig_vec(i),[fullfile(save_dir,'AvgEventPower',aligned_data.stim_condition,'FT',folders_to_check{k},strrep(strrep(save_name,' ','_'),'.','')),extension{k}],'-r300',['-d',extension{k}(2:end)]);
+            elseif strcmp(analysis_type,'CWT')
+                print(fig_vec(i),[fullfile(save_dir,'AvgEventPower',aligned_data.stim_condition,'CWT',folders_to_check{k},strrep(strrep(save_name,' ','_'),'.','')),extension{k}],'-r300',['-d',extension{k}(2:end)]);
+            end
         end
     end
 end

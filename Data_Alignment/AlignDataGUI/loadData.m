@@ -35,6 +35,14 @@ switch src.Tag
         src.Parent.Parent.UserData.Accel_data.Right = data;
         src.Parent.Parent.UserData.indicators.right_accel.Value = true;
         str = sprintf('Loaded RC+S right brain acceleration file: %s',fullfile(path,filename));
+    case 'Left_Device_Settings_button'
+        src.Parent.Parent.UserData.DeviceSettings.Left = data;
+        src.Parent.Parent.UserData.indicators.left_device_settings.Value = true;
+        str = sprintf('Loaded RC+S left brain recording setting file: %s',fullfile(path,filename));
+    case 'Right_Device_Settings_button'
+        src.Parent.Parent.UserData.DeviceSettings.Right = data;
+        src.Parent.Parent.UserData.indicators.right_device_settings.Value = true;
+        str = sprintf('Loaded RC+S right brain recording setting file: %s',fullfile(path,filename));
     case 'Delsys_button'
         src.Parent.Parent.UserData.Delsys_data = data;
         src.Parent.Parent.UserData.indicators.delsys.Value = true;

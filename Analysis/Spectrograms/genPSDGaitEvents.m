@@ -62,7 +62,7 @@ end
 
 %% Plot
 fig_vec = [];
-if isfield(PSD_gait_Events,'Left')
+if isfield(PSD_gait_events,'Left')
     for i = 1:length(signal_analysis_data.Left.Chan_Names)
         fig_vec(end+1) = figure;
         for j = 1:length(aligned_data.gait_events.Properties.VariableNames)
@@ -130,34 +130,45 @@ end
 if save_flag
     save_dir = uigetdir();
     
+    figure_format(6,6,10);
+    
     % check if saving folders exist
     if ~isfolder(fullfile(save_dir,'PSD'))
         mkdir(fullfile(save_dir,'PSD'));
     end
     
-    if ~isfolder(fullfile(save_dir,'PSD','FT'))
-        mkdir(fullfile(save_dir,'PSD','FT'))
+    if ~isfolder(fullfile(save_dir,'PSD',aligned_data.stim_condition))
+        mkdir(fullfile(save_dir,'PSD',aligned_data.stim_condition))
+    end
+    
+    if ~isfolder(fullfile(save_dir,'PSD',aligned_data.stim_condition,'FT'))
+        mkdir(fullfile(save_dir,'PSD',aligned_data.stim_condition,'FT'))
     end
     
     folders_to_check = {'FIG_files','PDF_files','TIFF_files'};
+    extension = {'.fig','.pdf','.tiff'};
     for n = 1:length(folders_to_check)
-        if ~isfolder(fullfile(save_dir,'PSD','FT',folders_to_check{n}))
-            mkdir(fullfile(save_dir,'PSD','FT',folders_to_check{n}));
+        if ~isfolder(fullfile(save_dir,'PSD',aligned_data.stim_condition,'FT',folders_to_check{n}))
+            mkdir(fullfile(save_dir,'PSD',aligned_data.stim_condition,'FT',folders_to_check{n}));
         end
     end
     
     for i = 1:length(fig_vec)
         curr_axes = gca(fig_vec(i));
         save_name = [];
-        for j = 1:length(curr_axes.Title.String)
+        for j = 1:length(curr_axes.Parent.Children(1).String)
             if isempty(save_name)
-                save_name = curr_axes.Title.String{j};
+                save_name = curr_axes.Parent.Children(1).String{j};
             else
-                save_name = [save_name,' ', curr_axes.Title.String{j}];
+                save_name = [save_name,' ', curr_axes.Parent.Children(1).String{j}];
             end
         end
         
-        savefig(fig_vec(i),fullfile(save_dir,'PSD','FT',folders_to_check{1},save_name));
+        savefig(fig_vec(i),fullfile(save_dir,'PSD',aligned_data.stim_condition,'FT',folders_to_check{1},strrep(save_name,' ','_')));
+        for k = 2:length(folders_to_check)
+            print(fig_vec(i),[fullfile(save_dir,'PSD',aligned_data.stim_condition,'FT',folders_to_check{k},strrep(save_name,' ','_')),extension{k}],'-r300',['-d',extension{k}(2:end)]);
+        end
+        
     end
 end
 end
