@@ -33,21 +33,21 @@ if isfield(aligned_data,'left_LFP_table') || isfield(aligned_data,'right_LFP_tab
         end
     end
     
-    if isfield(aligned_data,'Delsys')
-        ax(3) = subplot(4,1,3);
-        left_name_ind = find(cellfun(@(x) contains(x,'Left','IgnoreCase',true) && contains(x,'EMG','IgnoreCase',true),aligned_data.Delsys.Chan_names));
-        if ~isempty(left_name_ind)
-            plot(ax(3),aligned_data.Delsys.Time.(aligned_data.Delsys.Chan_names{left_name_ind}),aligned_data.Delsys.Data.(aligned_data.Delsys.Chan_names{left_name_ind}),'-k');
-            title('Delsys Left EMG');
-        end
-        
-        ax(4) = subplot(4,1,4);
-        right_name_ind = find(cellfun(@(x) contains(x,'Right','IgnoreCase',true) && contains(x,'EMG','IgnoreCase',true),aligned_data.Delsys.Chan_names));
-        if ~isempty(right_name_ind)
-            plot(ax(4),aligned_data.Delsys.Time.(aligned_data.Delsys.Chan_names{right_name_ind}),aligned_data.Delsys.Data.(aligned_data.Delsys.Chan_names{right_name_ind}),'-k');
-            title('Delsys Right EMG');
-        end
-    end
+%     if isfield(aligned_data,'Delsys')
+%         ax(3) = subplot(4,1,3);
+%         left_name_ind = find(cellfun(@(x) contains(x,'Left','IgnoreCase',true) && contains(x,'EMG','IgnoreCase',true),aligned_data.Delsys.Chan_names));
+%         if ~isempty(left_name_ind)
+%             plot(ax(3),aligned_data.Delsys.Time.(aligned_data.Delsys.Chan_names{left_name_ind}),aligned_data.Delsys.Data.(aligned_data.Delsys.Chan_names{left_name_ind}),'-k');
+%             title('Delsys Left EMG');
+%         end
+%         
+%         ax(4) = subplot(4,1,4);
+%         right_name_ind = find(cellfun(@(x) contains(x,'Right','IgnoreCase',true) && contains(x,'EMG','IgnoreCase',true),aligned_data.Delsys.Chan_names));
+%         if ~isempty(right_name_ind)
+%             plot(ax(4),aligned_data.Delsys.Time.(aligned_data.Delsys.Chan_names{right_name_ind}),aligned_data.Delsys.Data.(aligned_data.Delsys.Chan_names{right_name_ind}),'-k');
+%             title('Delsys Right EMG');
+%         end
+%     end
     linkaxes(ax,'x');
 end
 
@@ -83,8 +83,8 @@ if isfield(aligned_data,'left_Accel_table') || isfield(aligned_data,'right_Accel
     
     if isfield(aligned_data,'Delsys')
         ax(3) = subplot(4,1,3);
-        if contains(data_sources{5},'Acc')
-            if contains(data_sources{5},'left','IgnoreCase',true)
+        if contains(data_sources{5},'Acc','IgnoreCase',true)
+            if contains(data_sources{5},'left','IgnoreCase',true) || contains(data_sources{5},'L','IgnoreCase',true) 
                 left_name_ind = find(strcmp(data_sources{5},aligned_data.Delsys.Chan_names));
             else
                 if contains(data_sources{5},'X','IgnoreCase',true)
@@ -111,7 +111,7 @@ if isfield(aligned_data,'left_Accel_table') || isfield(aligned_data,'right_Accel
         
         ax(4) = subplot(4,1,4);
         if contains(data_sources{5},'Acc')
-            if contains(data_sources{5},'right','IgnoreCase',true)
+            if contains(data_sources{5},'right','IgnoreCase',true) || contains(data_sources{5},'R','IgnoreCase',true)
                 right_name_ind = find(strcmp(data_sources{5},aligned_data.Delsys.Chan_names));
             else
                 if contains(data_sources{5},'X','IgnoreCase',true)
@@ -150,9 +150,9 @@ if isfield(aligned_data,'Delsys') && isfield(aligned_data,'Xsens')
     
     if isfield(aligned_data,'Delsys')
         ax(1) = subplot(4,1,1);
-        if contains(data_sources{5},'Acc')
-            if contains(data_sources{5},'left','IgnoreCase',true)
-                left_name_ind = find(strcmp(data_sources{5},aligned_data.Delsys.Chan_names));
+        if contains(data_sources{5},'Acc','IgnoreCase',true)
+            if contains(data_sources{5},'left','IgnoreCase',true) || contains(data_sources{5},'L','IgnoreCase',true)
+                 left_name_ind = find(strcmp(data_sources{5},aligned_data.Delsys.Chan_names));
             else
                 if contains(data_sources{5},'X','IgnoreCase',true)
                     axis_name = 'x';
@@ -177,8 +177,8 @@ if isfield(aligned_data,'Delsys') && isfield(aligned_data,'Xsens')
         
         
         ax(2) = subplot(4,1,2);
-        if contains(data_sources{5},'Acc')
-            if contains(data_sources{5},'right','IgnoreCase',true)
+        if contains(data_sources{5},'Acc','IgnoreCase',true)
+            if contains(data_sources{5},'right','IgnoreCase',true) || contains(data_sources{5},'R','IgnoreCase',true)
                 right_name_ind = find(strcmp(data_sources{5},aligned_data.Delsys.Chan_names));
             else
                 if contains(data_sources{5},'X','IgnoreCase',true)

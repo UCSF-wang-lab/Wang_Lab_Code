@@ -19,6 +19,7 @@ end
 
 %% Extract data
 if isfield(signal_analysis_data,'Left')
+    left_sr = uniquetol(aligned_data.DeviceSettings.Left.timeDomainSettings.samplingRate,1);
     if isfield(signal_analysis_data.Left,'PSD')
         analysis_type = 'FT';
     else
@@ -51,7 +52,7 @@ if isfield(signal_analysis_data,'Left')
                         temp = abs(signal_analysis_data.Left.Values{i}(:,min_ind_pre:min_ind_post));
                     end
                     
-                    if size(temp,2) == 1001
+                    if size(temp,2) == left_sr*2+1
                         if sum(isinf(temp),'all') == 0
                             for m = 1:length(band_names)
                                 vals(count,:,m) = mean(temp(band_inds(m,1):band_inds(m,2),:));
@@ -68,6 +69,8 @@ if isfield(signal_analysis_data,'Left')
 end
 
 if isfield(signal_analysis_data,'Right')
+    right_sr = uniquetol(aligned_data.DeviceSettings.Right.timeDomainSettings.samplingRate,1);
+    
     if isfield(signal_analysis_data.Right,'PSD')
         analysis_type = 'FT';
     else
@@ -100,7 +103,7 @@ if isfield(signal_analysis_data,'Right')
                         temp = abs(signal_analysis_data.Right.Values{i}(:,min_ind_pre:min_ind_post));
                     end
                     
-                    if size(temp,2) == 1001
+                    if size(temp,2) == right_sr*2+1
                         if sum(isinf(temp),'all') == 0
                             for m = 1:length(band_names)
                                 vals(count,:,m) = mean(temp(band_inds(m,1):band_inds(m,2),:));
