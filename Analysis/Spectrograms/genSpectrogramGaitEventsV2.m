@@ -1,5 +1,5 @@
 function genSpectrogramGaitEventsV2(aligned_data,signal_analysis_data,events_to_mark,subjectID,save_flag)
-if ~exist('events_to_mark','var') || isempty(events_to_mark)
+if ~exist('events_to_mark','var')
     events_to_mark = {'LTO','LHS','RTO','RHS'};
 end
 
@@ -112,7 +112,7 @@ end
 if save_flag
     save_dir = uigetdir();
     
-    figure_format(6,6,10);
+%     figure_format(6,6,10);
     
     % check if saving folders exist
     if ~isfolder(fullfile(save_dir,'Spectrogram'))
@@ -148,6 +148,7 @@ if save_flag
     
     for i = 1:length(fig_vec)
         curr_axes = gca(fig_vec(i));
+        legend off;
         save_name = [];
         for j = 1:length(curr_axes.Title.String)
             if isempty(save_name)
