@@ -36,26 +36,32 @@ if isfield(signal_analysis_data,'Left')
         for j = 1:length(aligned_data.gait_events.Properties.VariableNames)
             if ~isfield(average_power.Left,aligned_data.gait_events.Properties.VariableNames{j})
                 average_power.Left.(aligned_data.gait_events.Properties.VariableNames{j}) = cell(1,length(signal_analysis_data.Left.Chan_Names));
+                average_phase.Left.(aligned_data.gait_events.Properties.VariableNames{j}) = cell(1,length(signal_analysis_data.Left.Chan_Names));
                 std_power.Left.(aligned_data.gait_events.Properties.VariableNames{j}) = cell(1,length(signal_analysis_data.Left.Chan_Names));
+                std_phase.Left.(aligned_data.gait_events.Properties.VariableNames{j}) = cell(1,length(signal_analysis_data.Left.Chan_Names));
             end
             vals = [];
+            vals_phase = [];
             count = 1;
             for k = 1:height(aligned_data.gait_events)
                 event_time = aligned_data.gait_events.(aligned_data.gait_events.Properties.VariableNames{j})(k);
                 if ~isnan(event_time)
                     [~,min_ind_pre] = min(abs(signal_analysis_data.Left.Time{i}-(event_time-pre_post_time)));
                     [~,min_ind_post] = min(abs(signal_analysis_data.Left.Time{i}-(event_time+pre_post_time)));
-                    
+                    [~,event_ind] = min(abs(signal_analysis_data.Left.Time{i}-event_time));
                     if isfield(signal_analysis_data.Left,'PSD')
                         temp = 10*log10(abs(signal_analysis_data.Left.PSD{i}(:,min_ind_pre:min_ind_post)));
+                        temp2 = angle(signal_analysis_data.Left.PSD{i}(:,event_ind));
                     else
                         temp = abs(signal_analysis_data.Left.Values{i}(:,min_ind_pre:min_ind_post));
+                        temp2 = angle(signal_analysis_data.Left.Values{i}(:,event_ind));
                     end
                     
                     if size(temp,2) == left_sr*2+1
                         if sum(isinf(temp),'all') == 0
                             for m = 1:length(band_names)
                                 vals(count,:,m) = mean(temp(band_inds(m,1):band_inds(m,2),:));
+                                vals_phase(count,:,m) = mean(temp2(band_inds(m,1):band_inds(m,2),:));
                             end
                             count = count + 1;
                         end
@@ -63,7 +69,9 @@ if isfield(signal_analysis_data,'Left')
                 end
             end
             average_power.Left.(aligned_data.gait_events.Properties.VariableNames{j}){i} = squeeze(mean(vals,1));
-            std_power.Left.(aligned_data.gait_events.Properties.VariableNames{j}){i} = squeeze(std(vals,0,1));
+            average_phase.Left.(aligned_data.gait_events.Properties.VariableNames{j}){i} = squeeze(mean(vals_phase,1));
+            std_power.Left.(aligned_data.gait_events.Properties.VariableNames{j}){i} = squeeze(std(vals,0,1))./size(vals,1);
+            std_phase.Left.(aligned_data.gait_events.Properties.VariableNames{j}){i} = squeeze(std(vals_phase,0,1))./size(vals_phase,1);
         end
     end
 end
@@ -87,7 +95,9 @@ if isfield(signal_analysis_data,'Right')
         for j = 1:length(aligned_data.gait_events.Properties.VariableNames)
             if ~isfield(average_power.Right,aligned_data.gait_events.Properties.VariableNames{j})
                 average_power.Right.(aligned_data.gait_events.Properties.VariableNames{j}) = cell(1,length(signal_analysis_data.Right.Chan_Names));
+                average_phase.Right.(aligned_data.gait_events.Properties.VariableNames{j}) = cell(1,length(signal_analysis_data.Right.Chan_Names));
                 std_power.Right.(aligned_data.gait_events.Properties.VariableNames{j}) = cell(1,length(signal_analysis_data.Right.Chan_Names));
+                std_phase.Right.(aligned_data.gait_events.Properties.VariableNames{j}) = cell(1,length(signal_analysis_data.Right.Chan_Names));
             end
             vals = [];
             count = 1;
@@ -96,17 +106,21 @@ if isfield(signal_analysis_data,'Right')
                 if ~isnan(event_time)
                     [~,min_ind_pre] = min(abs(signal_analysis_data.Right.Time{i}-(event_time-pre_post_time)));
                     [~,min_ind_post] = min(abs(signal_analysis_data.Right.Time{i}-(event_time+pre_post_time)));
+                    [~,event_ind] = min(abs(signal_analysis_data.Right.Time{i}-event_time));
                     
                     if isfield(signal_analysis_data.Right,'PSD')
                         temp = 10*log10(abs(signal_analysis_data.Right.PSD{i}(:,min_ind_pre:min_ind_post)));
+                        temp2 = angle(signal_analysis_data.Right.PSD{i}(:,event_ind));
                     else
                         temp = abs(signal_analysis_data.Right.Values{i}(:,min_ind_pre:min_ind_post));
+                        temp = angle(signal_analysis_data.Right.Values{i}(:,event_ind));
                     end
                     
                     if size(temp,2) == right_sr*2+1
                         if sum(isinf(temp),'all') == 0
                             for m = 1:length(band_names)
                                 vals(count,:,m) = mean(temp(band_inds(m,1):band_inds(m,2),:));
+                                vals_phase(count,:,m) = mean(temp2(band_inds(m,1):band_inds(m,2),:));
                             end
                             count = count + 1;
                         end
@@ -114,7 +128,9 @@ if isfield(signal_analysis_data,'Right')
                 end
             end
             average_power.Right.(aligned_data.gait_events.Properties.VariableNames{j}){i} = squeeze(mean(vals,1));
-            std_power.Right.(aligned_data.gait_events.Properties.VariableNames{j}){i} = squeeze(std(vals,0,1));
+            average_phase.Right.(aligned_data.gait_events.Properties.VariableNames{j}){i} = squeeze(mean(vals_phase,1));
+            std_power.Right.(aligned_data.gait_events.Properties.VariableNames{j}){i} = squeeze(std(vals,0,1))./size(vals,1);
+            std_phase.Right.(aligned_data.gait_events.Properties.VariableNames{j}){i} = squeeze(std(vals_phase,0,1))./size(vals_phase,1);
         end
     end
 end
