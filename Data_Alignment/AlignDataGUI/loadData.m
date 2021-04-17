@@ -5,7 +5,13 @@ if contains(src.Tag,'Xsens') || contains(src.Tag,'Force')
 else
     [filename,path] = uigetfile();
 end
-[~,~,ext] = fileparts(filename);
+
+try
+    [~,~,ext] = fileparts(filename);
+catch
+    addEvent('No file selected.');
+    return;
+end
 
 try
     switch ext

@@ -88,11 +88,11 @@ if isfield(aligned_data,'left_Accel_table') || isfield(aligned_data,'right_Accel
                 left_name_ind = find(strcmp(data_sources{5},aligned_data.Delsys.Chan_names));
             else
                 if contains(data_sources{5},'X','IgnoreCase',true)
-                    axis_name = 'x';
+                    axis_name = 'X_IM';
                 elseif contains(data_sources{5},'Y','IgnoreCase',true)
-                    axis_name = 'y';
+                    axis_name = 'Y_IM';
                 elseif contains(data_sources{5},'Z','IgnoreCase',true)
-                    axis_name = 'z';
+                    axis_name = 'Z_IM';
                 end
                 left_name_ind = find(cellfun(@(x) contains(x,'Left','IgnoreCase',true) && contains(x,'DBS','IgnoreCase',true) && contains(x,'Acc','IgnoreCase',true) && contains(x,axis_name,'IgnoreCase',true),aligned_data.Delsys.Chan_names));
             end
@@ -104,7 +104,7 @@ if isfield(aligned_data,'left_Accel_table') || isfield(aligned_data,'right_Accel
             if exist('axis_name','var')
                 title(['Delsys Left IPG ',axis_name,' Acceleration']);
             else
-                title('Delsys Left IPG Y Acceleration');
+                title('Delsys Left IPG Acceleration');
             end
         end
         
@@ -115,11 +115,11 @@ if isfield(aligned_data,'left_Accel_table') || isfield(aligned_data,'right_Accel
                 right_name_ind = find(strcmp(data_sources{5},aligned_data.Delsys.Chan_names));
             else
                 if contains(data_sources{5},'X','IgnoreCase',true)
-                    axis_name = 'x';
+                    axis_name = 'X_IM';
                 elseif contains(data_sources{5},'Y','IgnoreCase',true)
-                    axis_name = 'y';
+                    axis_name = 'Y_IM';
                 elseif contains(data_sources{5},'Z','IgnoreCase',true)
-                    axis_name = 'z';
+                    axis_name = 'Z_IM';
                 end
                 right_name_ind = find(cellfun(@(x) contains(x,'Right','IgnoreCase',true) && contains(x,'DBS','IgnoreCase',true) && contains(x,'Acc','IgnoreCase',true) && contains(x,axis_name,'IgnoreCase',true),aligned_data.Delsys.Chan_names));
             end
@@ -131,7 +131,7 @@ if isfield(aligned_data,'left_Accel_table') || isfield(aligned_data,'right_Accel
             if exist('axis_name','var')
                 title(['Delsys Right IPG ',axis_name,' Acceleration']);
             else
-                title('Delsys Right IPG Y Acceleration');
+                title('Delsys Right IPG Acceleration');
             end
         end
     end
