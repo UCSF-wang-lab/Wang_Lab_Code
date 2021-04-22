@@ -1,9 +1,9 @@
 function STFT = calcRCS_STFT(aligned_data,gapFillType,percentOverlap)
-if ~exist('gapFillType','var')
+if ~exist('gapFillType','var') || isempty(gapFillType)
     gapFillType = 'blank';
 end
 
-if ~exist('percentOverlap','var')
+if ~exist('percentOverlap','var') || isempty(percentOverlap)
     percentOverlap = 0.9;
 end
 
@@ -47,7 +47,7 @@ if isfield(aligned_data,'right_LFP_table')
     % Spectrogram hyperparameters
     right_sr = aligned_data.DeviceSettings.Right.timeDomainSettings.samplingRate(end);
     WINDOW = right_sr;
-    NOVERLAP = WINDOW-1;
+    NOVERLAP = round(WINDOW*percentOverlap);
     NFFT = 2^nextpow2(WINDOW);
     
     chan_tag_inds = cellfun(@(x) contains(x,'chan'),aligned_data.DeviceSettings.Right.timeDomainSettings.Properties.VariableNames);

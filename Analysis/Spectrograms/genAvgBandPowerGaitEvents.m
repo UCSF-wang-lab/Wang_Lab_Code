@@ -1,4 +1,4 @@
-function genAvgBandPowerGaitEvents(aligned_data,signal_analysis_data,pre_post_time,event_compare,subjectID,save_flag)
+function genAvgBandPowerGaitEvents(aligned_data,signal_analysis_data,pre_post_time,event_compare,spread_type,subjectID,save_flag)
 
 if ~exist('pre_post_time','var') || isempty(pre_post_time)
     pre_post_time = 1;
@@ -7,6 +7,10 @@ end
 if ~exist('event_compare','var') || isempty(event_compare)
     event_compare{1} = {'LTO','RTO'};
     event_compare{2} = {'LHS','RHS'};
+end
+
+if ~exist('spread_type','var') || isempty(spread_type)
+    spread_type = 'STD';
 end
 
 if ~exist('subjectID','var') || isempty(subjectID)
@@ -20,6 +24,7 @@ end
 %% Extract data
 if isfield(signal_analysis_data,'Left')
     left_sr = uniquetol(aligned_data.DeviceSettings.Left.timeDomainSettings.samplingRate,1);
+    time_res_left = uniquetol(diff(signal_analysis_data.Left.Time{1}),1);
     if isfield(signal_analysis_data.Left,'PSD')
         analysis_type = 'FT';
     else
@@ -57,7 +62,8 @@ if isfield(signal_analysis_data,'Left')
                         temp2 = angle(signal_analysis_data.Left.Values{i}(:,event_ind));
                     end
                     
-                    if size(temp,2) == left_sr*2+1
+                    if size(temp,2) == round((pre_post_time*2)/time_res_left)+1
+%                     if size(temp,2) == left_sr*2+1
                         if sum(isinf(temp),'all') == 0
                             for m = 1:length(band_names)
                                 vals(count,:,m) = mean(temp(band_inds(m,1):band_inds(m,2),:));
@@ -70,15 +76,21 @@ if isfield(signal_analysis_data,'Left')
             end
             average_power.Left.(aligned_data.gait_events.Properties.VariableNames{j}){i} = squeeze(mean(vals,1));
             average_phase.Left.(aligned_data.gait_events.Properties.VariableNames{j}){i} = squeeze(mean(vals_phase,1));
-            std_power.Left.(aligned_data.gait_events.Properties.VariableNames{j}){i} = squeeze(std(vals,0,1))./size(vals,1);
-            std_phase.Left.(aligned_data.gait_events.Properties.VariableNames{j}){i} = squeeze(std(vals_phase,0,1))./size(vals_phase,1);
+            
+            if strcmp(spread_type,'SE')
+                std_power.Left.(aligned_data.gait_events.Properties.VariableNames{j}){i} = squeeze(std(vals,0,1))./size(vals,1);
+                std_phase.Left.(aligned_data.gait_events.Properties.VariableNames{j}){i} = squeeze(std(vals_phase,0,1))./size(vals_phase,1);
+            else
+                std_power.Left.(aligned_data.gait_events.Properties.VariableNames{j}){i} = squeeze(std(vals,0,1));
+                std_phase.Left.(aligned_data.gait_events.Properties.VariableNames{j}){i} = squeeze(std(vals_phase,0,1));
+            end
         end
     end
 end
 
 if isfield(signal_analysis_data,'Right')
     right_sr = uniquetol(aligned_data.DeviceSettings.Right.timeDomainSettings.samplingRate,1);
-    
+    time_res_right = uniquetol(diff(signal_analysis_data.Right.Time{1}),1);
     if isfield(signal_analysis_data.Right,'PSD')
         analysis_type = 'FT';
     else
@@ -113,10 +125,11 @@ if isfield(signal_analysis_data,'Right')
                         temp2 = angle(signal_analysis_data.Right.PSD{i}(:,event_ind));
                     else
                         temp = abs(signal_analysis_data.Right.Values{i}(:,min_ind_pre:min_ind_post));
-                        temp = angle(signal_analysis_data.Right.Values{i}(:,event_ind));
+                        temp2 = angle(signal_analysis_data.Right.Values{i}(:,event_ind));
                     end
                     
-                    if size(temp,2) == right_sr*2+1
+                    if size(temp,2) == round((pre_post_time*2)/time_res_right)+1
+%                     if size(temp,2) == right_sr*2+1
                         if sum(isinf(temp),'all') == 0
                             for m = 1:length(band_names)
                                 vals(count,:,m) = mean(temp(band_inds(m,1):band_inds(m,2),:));
@@ -129,8 +142,14 @@ if isfield(signal_analysis_data,'Right')
             end
             average_power.Right.(aligned_data.gait_events.Properties.VariableNames{j}){i} = squeeze(mean(vals,1));
             average_phase.Right.(aligned_data.gait_events.Properties.VariableNames{j}){i} = squeeze(mean(vals_phase,1));
-            std_power.Right.(aligned_data.gait_events.Properties.VariableNames{j}){i} = squeeze(std(vals,0,1))./size(vals,1);
-            std_phase.Right.(aligned_data.gait_events.Properties.VariableNames{j}){i} = squeeze(std(vals_phase,0,1))./size(vals_phase,1);
+            
+            if strcmp(spread_type,'SE')
+                std_power.Right.(aligned_data.gait_events.Properties.VariableNames{j}){i} = squeeze(std(vals,0,1))./size(vals,1);
+                std_phase.Right.(aligned_data.gait_events.Properties.VariableNames{j}){i} = squeeze(std(vals_phase,0,1))./size(vals_phase,1);
+            else
+                std_power.Right.(aligned_data.gait_events.Properties.VariableNames{j}){i} = squeeze(std(vals,0,1));
+                std_phase.Right.(aligned_data.gait_events.Properties.VariableNames{j}){i} = squeeze(std(vals_phase,0,1));
+            end
         end
     end
 end
@@ -140,7 +159,8 @@ fig_vec = [];
 colors = CBMap('GaitEvents',4);
 
 if isfield(average_power,'Left')
-    time_vec = -1:1/unique(aligned_data.DeviceSettings.Left.timeDomainSettings.samplingRate):1;
+%     time_vec = -1:1/unique(aligned_data.DeviceSettings.Left.timeDomainSettings.samplingRate):1;
+    time_vec = -1:time_res_left:1;
     for i = 1:length(signal_analysis_data.Left.Chan_Names)
         for j = 1:length(event_compare)
             fig_vec(end+1) = figure;
@@ -168,7 +188,8 @@ if isfield(average_power,'Left')
 end
 
 if isfield(average_power,'Right')
-    time_vec = -1:1/unique(aligned_data.DeviceSettings.Right.timeDomainSettings.samplingRate):1;
+%     time_vec = -1:1/unique(aligned_data.DeviceSettings.Right.timeDomainSettings.samplingRate):1;
+    time_vec = -1:time_res_right:1;
     for i = 1:length(signal_analysis_data.Right.Chan_Names)
         for j = 1:length(event_compare)
             fig_vec(end+1) = figure;
