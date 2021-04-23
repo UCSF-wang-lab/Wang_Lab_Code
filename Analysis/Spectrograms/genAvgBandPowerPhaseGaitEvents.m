@@ -325,6 +325,46 @@ if strcmp(plot_type,'all') || strcmp(plot_type,'phase')
     end
 end
 
+if strcmp(plot_type,'all') || strcmp(plot_type,'power_boxplot')
+    if isfield(average_phase_time,'Left')
+        for i = 1:length(signal_analysis_data.Left.Chan_Names)
+            for j = 1:length(event_compare)
+                fig_vec(end+1) = figure;
+                for k = 1:length(band_names)
+                    ax_hand = subplot(2,4,k);
+                    box_vals = [];
+                    box_group = {};
+                    for m = 1:length(event_compare{j})
+%                         box_vals = [box_vals;average_power(
+                    end
+                    hold(ax_hand,'on');
+                    xline(0,'--k');
+                    hold(ax_hand,'off');
+                    xlabel('Time (s)');
+                    
+                    if isfield(signal_analysis_data.Left,'PSD')
+                        ylabel('Phase');
+                    else
+                        ylabel('Phase');
+                    end
+                    
+                    title(band_names{k});
+                end
+                sgtitle({[subjectID,' Left'];signal_analysis_data.Left.Chan_Names{i};createPlotTitle(event_compare{j})});
+            end
+        end
+    end
+    Z = average_phase.Left.LHS{1};
+    Y = Z(:);
+    X = transpose(repelem(band_names,size(Z,1)));
+    title('Left LHS');
+    yticklabels({'-\pi','-3\pi/4','-\pi/2','-\pi/4','0','\pi/4','\pi/2','3\pi/4','\pi'})
+    set(gca,'TickLabelInterpreter','tex')
+end
+
+if strcmp(plot_type,'all') || strcmp(plot_type,'phase_boxplot')
+end
+
 %% Save plots
 if save_flag
     save_dir = uigetdir();
