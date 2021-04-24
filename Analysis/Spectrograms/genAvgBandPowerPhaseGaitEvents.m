@@ -34,8 +34,10 @@ if isfield(signal_analysis_data,'Left')
     else
         analysis_type = 'CWT';
     end
+    power_at_event.Left = {};
     average_power.Left = {};
     average_power_time.Left = {};
+    phase_at_event.Left = {};
     average_phase.Left = {};
     average_phase_time.Left = {};
     range_power.Left = {};
@@ -50,8 +52,10 @@ if isfield(signal_analysis_data,'Left')
         end
         for j = 1:length(aligned_data.gait_events.Properties.VariableNames)
             if ~isfield(average_power.Left,aligned_data.gait_events.Properties.VariableNames{j})
+                power_at_event.Left.(aligned_data.gait_events.Properties.VariableNames{j}) = cell(1,length(signal_analysis_data.Left.Chan_Names));
                 average_power.Left.(aligned_data.gait_events.Properties.VariableNames{j}) = cell(1,length(signal_analysis_data.Left.Chan_Names));
                 average_power_time.Left.(aligned_data.gait_events.Properties.VariableNames{j}) = cell(1,length(signal_analysis_data.Left.Chan_Names));
+                phase_at_event.Left.(aligned_data.gait_events.Properties.VariableNames{j}) = cell(1,length(signal_analysis_data.Left.Chan_Names));
                 average_phase.Left.(aligned_data.gait_events.Properties.VariableNames{j}) = cell(1,length(signal_analysis_data.Left.Chan_Names));
                 average_phase_time.Left.(aligned_data.gait_events.Properties.VariableNames{j}) = cell(1,length(signal_analysis_data.Left.Chan_Names));
                 range_power.Left.(aligned_data.gait_events.Properties.VariableNames{j}) = cell(1,length(signal_analysis_data.Left.Chan_Names));
@@ -95,8 +99,10 @@ if isfield(signal_analysis_data,'Left')
                     end
                 end
             end
+            power_at_event.Left.(aligned_data.gait_events.Properties.VariableNames{j}){i} = squeeze(vals_power);
             average_power.Left.(aligned_data.gait_events.Properties.VariableNames{j}){i} = squeeze(mean(vals_power,1));
             average_power_time.Left.(aligned_data.gait_events.Properties.VariableNames{j}){i} = squeeze(mean(vals_power_time,1));
+            phase_at_event.Left.(aligned_data.gait_events.Properties.VariableNames{j}){i} = squeeze(vals_phase);
             average_phase.Left.(aligned_data.gait_events.Properties.VariableNames{j}){i} = squeeze(mean(vals_phase,1));
             average_phase_time.Left.(aligned_data.gait_events.Properties.VariableNames{j}){i} = squeeze(mean(vals_phase_time,1));
             
@@ -123,8 +129,10 @@ if isfield(signal_analysis_data,'Right')
     else
         analysis_type = 'CWT';
     end
+    power_at_event.Right = {};
     average_power.Right = {};
     average_power_time.Right = {};
+    phase_at_event.Right = {};
     average_phase.Right = {};
     average_phase_time.Right = {};
     range_power.Right = {};
@@ -139,8 +147,10 @@ if isfield(signal_analysis_data,'Right')
         end
         for j = 1:length(aligned_data.gait_events.Properties.VariableNames)
             if ~isfield(average_power.Right,aligned_data.gait_events.Properties.VariableNames{j})
+                power_at_event.Right.(aligned_data.gait_events.Properties.VariableNames{j}) = cell(1,length(signal_analysis_data.Right.Chan_Names));
                 average_power.Right.(aligned_data.gait_events.Properties.VariableNames{j}) = cell(1,length(signal_analysis_data.Right.Chan_Names));
                 average_power_time.Right.(aligned_data.gait_events.Properties.VariableNames{j}) = cell(1,length(signal_analysis_data.Right.Chan_Names));
+                phase_at_event.Right.(aligned_data.gait_events.Properties.VariableNames{j}) = cell(1,length(signal_analysis_data.Right.Chan_Names));
                 average_phase.Right.(aligned_data.gait_events.Properties.VariableNames{j}) = cell(1,length(signal_analysis_data.Right.Chan_Names));
                 average_phase_time.Right.(aligned_data.gait_events.Properties.VariableNames{j}) = cell(1,length(signal_analysis_data.Right.Chan_Names));
                 range_power.Right.(aligned_data.gait_events.Properties.VariableNames{j}) = cell(1,length(signal_analysis_data.Right.Chan_Names));
@@ -185,8 +195,10 @@ if isfield(signal_analysis_data,'Right')
                     end
                 end
             end
+            power_at_event.Right.(aligned_data.gait_events.Properties.VariableNames{j}){i} = squeeze(vals_power);
             average_power.Right.(aligned_data.gait_events.Properties.VariableNames{j}){i} = squeeze(mean(vals_power,1));
             average_power_time.Right.(aligned_data.gait_events.Properties.VariableNames{j}){i} = squeeze(mean(vals_power_time,1));
+            phase_at_event.Right.(aligned_data.gait_events.Properties.VariableNames{j}){i} = squeeze(vals_phase);
             average_phase.Right.(aligned_data.gait_events.Properties.VariableNames{j}){i} = squeeze(mean(vals_phase,1));
             average_phase_time.Right.(aligned_data.gait_events.Properties.VariableNames{j}){i} = squeeze(mean(vals_phase_time,1));
             
@@ -326,7 +338,7 @@ if strcmp(plot_type,'all') || strcmp(plot_type,'phase')
 end
 
 if strcmp(plot_type,'all') || strcmp(plot_type,'power_boxplot')
-    if isfield(average_phase_time,'Left')
+    if isfield(power_at_event,'Left')
         for i = 1:length(signal_analysis_data.Left.Chan_Names)
             for j = 1:length(event_compare)
                 fig_vec(end+1) = figure;
@@ -335,25 +347,47 @@ if strcmp(plot_type,'all') || strcmp(plot_type,'power_boxplot')
                     box_vals = [];
                     box_group = {};
                     for m = 1:length(event_compare{j})
-%                         box_vals = [box_vals;average_power(
+                        box_vals = [box_vals;power_at_event.Left.(event_compare{j}{m}){i}(:,k)];
+                        box_group = [box_group;repelem({event_compare{j}{m}},size(power_at_event.Left.(event_compare{j}{m}){i}(:,k),1),1)];
                     end
-                    hold(ax_hand,'on');
-                    xline(0,'--k');
-                    hold(ax_hand,'off');
-                    xlabel('Time (s)');
-                    
+                    boxplot(box_vals,box_group,'Colors',[colors.LHS;colors.RTO;colors.RHS;colors.LTO]);
                     if isfield(signal_analysis_data.Left,'PSD')
-                        ylabel('Phase');
+                        ylabel('dB');
                     else
-                        ylabel('Phase');
+                        ylabel('Magnitude');
                     end
-                    
                     title(band_names{k});
                 end
                 sgtitle({[subjectID,' Left'];signal_analysis_data.Left.Chan_Names{i};createPlotTitle(event_compare{j})});
             end
         end
     end
+    
+    if isfield(power_at_event,'Right')
+        for i = 1:length(signal_analysis_data.Right.Chan_Names)
+            for j = 1:length(event_compare)
+                fig_vec(end+1) = figure;
+                for k = 1:length(band_names)
+                    ax_hand = subplot(2,4,k);
+                    box_vals = [];
+                    box_group = {};
+                    for m = 1:length(event_compare{j})
+                        box_vals = [box_vals;power_at_event.Right.(event_compare{j}{m}){i}(:,k)];
+                        box_group = [box_group;repelem({event_compare{j}{m}},size(power_at_event.Right.(event_compare{j}{m}){i}(:,k),1),1)];
+                    end
+                    boxplot(box_vals,box_group,'Colors',[colors.LHS;colors.RTO;colors.RHS;colors.LTO]);
+                    if isfield(signal_analysis_data.Right,'PSD')
+                        ylabel('dB');
+                    else
+                        ylabel('Magnitude');
+                    end
+                    title(band_names{k});
+                end
+                sgtitle({[subjectID,' Right'];signal_analysis_data.Right.Chan_Names{i};createPlotTitle(event_compare{j})});
+            end
+        end
+    end
+    
     Z = average_phase.Left.LHS{1};
     Y = Z(:);
     X = transpose(repelem(band_names,size(Z,1)));
@@ -363,6 +397,55 @@ if strcmp(plot_type,'all') || strcmp(plot_type,'power_boxplot')
 end
 
 if strcmp(plot_type,'all') || strcmp(plot_type,'phase_boxplot')
+    if isfield(phase_at_event,'Left')
+        for i = 1:length(signal_analysis_data.Left.Chan_Names)
+            for j = 1:length(event_compare)
+                fig_vec(end+1) = figure;
+                for k = 1:length(band_names)
+                    ax_hand = subplot(2,4,k);
+                    box_vals = [];
+                    box_group = {};
+                    for m = 1:length(event_compare{j})
+                        box_vals = [box_vals;phase_at_event.Left.(event_compare{j}{m}){i}(:,k)];
+                        box_group = [box_group;repelem({event_compare{j}{m}},size(phase_at_event.Left.(event_compare{j}{m}){i}(:,k),1),1)];
+                    end
+                    boxplot(box_vals,box_group,'Colors',[colors.LHS;colors.RTO;colors.RHS;colors.LTO]);
+                    ylabel('Phase');
+                    ylim([-pi,pi]);
+                    yticks([-pi:pi/4:pi]);
+                    yticklabels({'-\pi','-3\pi/4','-\pi/2','-\pi/4','0','\pi/4','\pi/2','3\pi/4','\pi'})
+                    set(gca,'TickLabelInterpreter','tex')
+                    title(band_names{k});
+                end
+                sgtitle({[subjectID,' Left'];signal_analysis_data.Left.Chan_Names{i};createPlotTitle(event_compare{j})});
+            end
+        end
+    end
+    
+    if isfield(phase_at_event,'Right')
+        for i = 1:length(signal_analysis_data.Right.Chan_Names)
+            for j = 1:length(event_compare)
+                fig_vec(end+1) = figure;
+                for k = 1:length(band_names)
+                    ax_hand = subplot(2,4,k);
+                    box_vals = [];
+                    box_group = {};
+                    for m = 1:length(event_compare{j})
+                        box_vals = [box_vals;phase_at_event.Right.(event_compare{j}{m}){i}(:,k)];
+                        box_group = [box_group;repelem({event_compare{j}{m}},size(phase_at_event.Right.(event_compare{j}{m}){i}(:,k),1),1)];
+                    end
+                    boxplot(box_vals,box_group,'Colors',[colors.LHS;colors.RTO;colors.RHS;colors.LTO]);
+                    ylabel('Phase');
+                    ylim([-pi,pi]);
+                    yticks([-pi:pi/4:pi]);
+                    yticklabels({'-\pi','-3\pi/4','-\pi/2','-\pi/4','0','\pi/4','\pi/2','3\pi/4','\pi'})
+                    set(gca,'TickLabelInterpreter','tex')
+                    title(band_names{k});
+                end
+                sgtitle({[subjectID,' Right'];signal_analysis_data.Right.Chan_Names{i};createPlotTitle(event_compare{j})});
+            end
+        end
+    end
 end
 
 %% Save plots
