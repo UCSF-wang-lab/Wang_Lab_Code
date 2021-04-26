@@ -10,7 +10,7 @@ if ~exist('event_compare','var') || isempty(event_compare)
 end
 
 if ~exist('spread_type','var') || isempty(spread_type)
-    spread_type = 'STD';
+    spread_type = 'SD';
 end
 
 if ~exist('subjectID','var') || isempty(subjectID)
@@ -18,7 +18,7 @@ if ~exist('subjectID','var') || isempty(subjectID)
 end
 
 if ~exist('plot_type','var') || isempty(plot_type)
-    plot_type = 'all';  % all, power, power_boxplot, phase, phase_boxplot
+    plot_type = 'all';  % all, power, power_boxplot, power_boxplot_scatter, phase, phase_boxplot, phase_boxplot_scatter, phase_polar
 end
 
 if ~exist('save_flag','var') || isempty(save_flag)
@@ -337,7 +337,7 @@ if strcmp(plot_type,'all') || strcmp(plot_type,'phase')
     end
 end
 
-if strcmp(plot_type,'all') || strcmp(plot_type,'power_boxplot')
+if strcmp(plot_type,'all') || contains(plot_type,'power_boxplot')
     if isfield(power_at_event,'Left')
         for i = 1:length(signal_analysis_data.Left.Chan_Names)
             for j = 1:length(event_compare)
@@ -350,7 +350,17 @@ if strcmp(plot_type,'all') || strcmp(plot_type,'power_boxplot')
                         box_vals = [box_vals;power_at_event.Left.(event_compare{j}{m}){i}(:,k)];
                         box_group = [box_group;repelem({event_compare{j}{m}},size(power_at_event.Left.(event_compare{j}{m}){i}(:,k),1),1)];
                     end
-                    boxplot(box_vals,box_group,'Colors',[colors.LHS;colors.RTO;colors.RHS;colors.LTO]);
+                    boxplot(box_vals,box_group,'Colors',[colors.LHS;colors.RTO;colors.RHS;colors.LTO],'Symbol','');
+                    hold on;
+                    if contains(plot_type,'scatter')
+                        for n = 1:length(event_compare{j})
+                            inds = strcmp(box_group,event_compare{j}{n});
+                            scatter_vals = box_vals(inds);
+                            scatter_pos = scatterPointJitter(length(scatter_vals),n-0.3,n+0.3);
+                            scatter(scatter_pos,scatter_vals,'o','MarkerFacecolor',colors.(event_compare{j}{n}),'MarkerFaceAlpha',0.5,'MarkerEdgeColor','none');
+                        end
+                    end
+                    
                     if isfield(signal_analysis_data.Left,'PSD')
                         ylabel('dB');
                     else
@@ -375,7 +385,16 @@ if strcmp(plot_type,'all') || strcmp(plot_type,'power_boxplot')
                         box_vals = [box_vals;power_at_event.Right.(event_compare{j}{m}){i}(:,k)];
                         box_group = [box_group;repelem({event_compare{j}{m}},size(power_at_event.Right.(event_compare{j}{m}){i}(:,k),1),1)];
                     end
-                    boxplot(box_vals,box_group,'Colors',[colors.LHS;colors.RTO;colors.RHS;colors.LTO]);
+                    boxplot(box_vals,box_group,'Colors',[colors.LHS;colors.RTO;colors.RHS;colors.LTO],'Symbol','');
+                    hold on;
+                    if contains(plot_type,'scatter')
+                        for n = 1:length(event_compare{j})
+                            inds = strcmp(box_group,event_compare{j}{n});
+                            scatter_vals = box_vals(inds);
+                            scatter_pos = scatterPointJitter(length(scatter_vals),n-0.3,n+0.3);
+                            scatter(scatter_pos,scatter_vals,'o','MarkerFacecolor',colors.(event_compare{j}{n}),'MarkerFaceAlpha',0.5,'MarkerEdgeColor','none');
+                        end
+                    end
                     if isfield(signal_analysis_data.Right,'PSD')
                         ylabel('dB');
                     else
@@ -387,16 +406,9 @@ if strcmp(plot_type,'all') || strcmp(plot_type,'power_boxplot')
             end
         end
     end
-    
-    Z = average_phase.Left.LHS{1};
-    Y = Z(:);
-    X = transpose(repelem(band_names,size(Z,1)));
-    title('Left LHS');
-    yticklabels({'-\pi','-3\pi/4','-\pi/2','-\pi/4','0','\pi/4','\pi/2','3\pi/4','\pi'})
-    set(gca,'TickLabelInterpreter','tex')
 end
 
-if strcmp(plot_type,'all') || strcmp(plot_type,'phase_boxplot')
+if strcmp(plot_type,'all') || contains(plot_type,'phase_boxplot')
     if isfield(phase_at_event,'Left')
         for i = 1:length(signal_analysis_data.Left.Chan_Names)
             for j = 1:length(event_compare)
@@ -409,7 +421,16 @@ if strcmp(plot_type,'all') || strcmp(plot_type,'phase_boxplot')
                         box_vals = [box_vals;phase_at_event.Left.(event_compare{j}{m}){i}(:,k)];
                         box_group = [box_group;repelem({event_compare{j}{m}},size(phase_at_event.Left.(event_compare{j}{m}){i}(:,k),1),1)];
                     end
-                    boxplot(box_vals,box_group,'Colors',[colors.LHS;colors.RTO;colors.RHS;colors.LTO]);
+                    boxplot(box_vals,box_group,'Colors',[colors.LHS;colors.RTO;colors.RHS;colors.LTO],'Symbol','');
+                    hold on;
+                    if contains(plot_type,'scatter')
+                        for n = 1:length(event_compare{j})
+                            inds = strcmp(box_group,event_compare{j}{n});
+                            scatter_vals = box_vals(inds);
+                            scatter_pos = scatterPointJitter(length(scatter_vals),n-0.3,n+0.3);
+                            scatter(scatter_pos,scatter_vals,'o','MarkerFacecolor',colors.(event_compare{j}{n}),'MarkerFaceAlpha',0.5,'MarkerEdgeColor','none');
+                        end
+                    end
                     ylabel('Phase');
                     ylim([-pi,pi]);
                     yticks([-pi:pi/4:pi]);
@@ -434,12 +455,63 @@ if strcmp(plot_type,'all') || strcmp(plot_type,'phase_boxplot')
                         box_vals = [box_vals;phase_at_event.Right.(event_compare{j}{m}){i}(:,k)];
                         box_group = [box_group;repelem({event_compare{j}{m}},size(phase_at_event.Right.(event_compare{j}{m}){i}(:,k),1),1)];
                     end
-                    boxplot(box_vals,box_group,'Colors',[colors.LHS;colors.RTO;colors.RHS;colors.LTO]);
+                    boxplot(box_vals,box_group,'Colors',[colors.LHS;colors.RTO;colors.RHS;colors.LTO],'Symbol','');
+                    hold on;
+                    if contains(plot_type,'scatter')
+                        for n = 1:length(event_compare{j})
+                            inds = strcmp(box_group,event_compare{j}{n});
+                            scatter_vals = box_vals(inds);
+                            scatter_pos = scatterPointJitter(length(scatter_vals),n-0.3,n+0.3);
+                            scatter(scatter_pos,scatter_vals,'o','MarkerFacecolor',colors.(event_compare{j}{n}),'MarkerFaceAlpha',0.5,'MarkerEdgeColor','none');
+                        end
+                    end
                     ylabel('Phase');
                     ylim([-pi,pi]);
                     yticks([-pi:pi/4:pi]);
                     yticklabels({'-\pi','-3\pi/4','-\pi/2','-\pi/4','0','\pi/4','\pi/2','3\pi/4','\pi'})
                     set(gca,'TickLabelInterpreter','tex')
+                    title(band_names{k});
+                end
+                sgtitle({[subjectID,' Right'];signal_analysis_data.Right.Chan_Names{i};createPlotTitle(event_compare{j})});
+            end
+        end
+    end
+end
+
+if strcmp(plot_type,'all') || strcmp(plot_type,'phase_polar')
+    if isfield(phase_at_event,'Left')
+        for i = 1:length(signal_analysis_data.Left.Chan_Names)
+            for j = 1:length(event_compare)
+                fig_vec(end+1) = figure;
+                for k = 1:length(band_names)
+                    ax_hand = subplot(2,4,k);
+                    polar_handle = polaraxes('Units',ax_hand.Units,'Position',ax_hand.Position);
+                    delete(ax_hand);
+                    hold(polar_handle,'on');
+                    for m = 1:length(event_compare{j})
+                        polarhistogram(polar_handle,wrapTo2Pi(phase_at_event.Left.(event_compare{j}{m}){i}(:,k)),10,'FaceColor',colors.(event_compare{j}{m}),'FaceAlpha',0.3);
+                    end
+                    hold(polar_handle,'off');
+                    title(band_names{k});
+                end
+                sgtitle({[subjectID,' Left'];signal_analysis_data.Left.Chan_Names{i};createPlotTitle(event_compare{j})});
+            end
+        end
+    end
+    
+    if isfield(phase_at_event,'Right')
+        for i = 1:length(signal_analysis_data.Right.Chan_Names)
+            for j = 1:length(event_compare)
+                fig_vec(end+1) = figure;
+                for k = 1:length(band_names)
+                    ax_hand = subplot(2,4,k);
+                    polar_handle = polaraxes('Units',ax_hand.Units,'Position',ax_hand.Position);
+                    delete(ax_hand);
+                    hold(polar_handle,'on');
+                    for m = 1:length(event_compare{j})
+                        polarhistogram(polar_handle,phase_at_event.Right.(event_compare{j}{m}){i}(:,k),10,'FaceColor',colors.(event_compare{j}{m}),'FaceAlpha',0.3);
+                    end
+                    hold(polar_handle,'off');
                     title(band_names{k});
                 end
                 sgtitle({[subjectID,' Right'];signal_analysis_data.Right.Chan_Names{i};createPlotTitle(event_compare{j})});
