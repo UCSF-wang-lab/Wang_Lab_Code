@@ -40,7 +40,11 @@ while ~feof(fid)
                 date_vec{end+1,1} = datetime(year(datetime),str2double(temp{1}),str2double(temp{2}));
             elseif i == 2
                 temp = strsplit(vals{i},':');
-                if length(temp{3})
+                if length(temp{1}) == 1
+                    temp{1} = ['0',temp{1}];
+                end
+                
+                if length(temp{3}) == 1
                     temp{3} = ['0',temp{3}];
                 end
                 time_vec{end+1,1} = temp{1} + ":" + temp{2} + ":" + temp{3};
@@ -61,5 +65,23 @@ end
 
 function time_out = createDateTime(date_vec,time_vec)
 time_out = [];
+
+if length(date_vec) ~= length(time_vec)
+    error('Number of dates and times do not match.');
+end
+
+chunk = date_vec{1};
+for i = 2:length(date_vec)
+    if date_vec{i} == chunk(1)
+        chunk = [chunk;date_vec{i}];
+    else
+        if length(chunk) == 100
+            
+        else
+        end
+        
+        chunk = date_vec{i};
+    end
+end
 
 end
