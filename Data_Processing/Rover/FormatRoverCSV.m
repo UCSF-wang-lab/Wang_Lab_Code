@@ -57,31 +57,48 @@ while ~feof(fid)
 end
 
 time = createDateTime(date_vec,time_vec);
+datetime_vec = datetime(time,'InputFormat','dd-MMM-yyyy HH:mm:ss.SSS');
 out_table = array2table(data_mat);
-out_table = [time,out_table];
-out_table.Properties.VariableNames = header_names{2:end};
+out_table = [array2table(time),array2table(datetime_vec),out_table];
+out_table.Properties.VariableNames = {'RawStringDateTime','DateTime',header_names{3:end}};
+
+[save_file, save_path] = uiputfile('*.*');
+if ~isempty(save_file) && ~isempty(save_path)
+    writetable(out_table,[fullfile(save_path,save_file),'.csv']);
+    save([fullfile(save_path,save_file),'.mat'],'out_table');
+    
+end
 
 end
 
 function time_out = createDateTime(date_vec,time_vec)
+fs = 100;
 time_out = [];
 
 if length(date_vec) ~= length(time_vec)
     error('Number of dates and times do not match.');
 end
 
-chunk = date_vec{1};
-for i = 2:length(date_vec)
-    if date_vec{i} == chunk(1)
-        chunk = [chunk;date_vec{i}];
+chunk_time = time_vec{1};
+chunk_date = date_vec{1};
+for i = 2:length(time_vec)
+    if time_vec{i} == chunk_time(1) && date_vec{i} == chunk_date(1)
+        chunk_time = [chunk_time;time_vec{i}];
+        chunk_date = [chunk_date;date_vec{i}];
     else
-        if length(chunk) == 100
-            
-        else
-        end
+        temp = strsplit(num2str(990-(length(chunk_date)-1)*1000/fs:1000/fs:990,'% 04i')," ")'; % Need one more in field width to account for space
+        mills = "." + temp;
+        time_out = [time_out; datestr(chunk_date)+ " " + chunk_time + mills];
         
-        chunk = date_vec{i};
+        chunk_time = time_vec{i};
+        chunk_date = date_vec{i};
     end
+end
+
+if (length(time_out) ~= length(time_vec))
+    temp = strsplit(num2str(990-(length(chunk_date)-1)*1000/fs:1000/fs:990,'% 04i')," ")'; % Need one more in field width to account for space
+        mills = "." + temp;
+        time_out = [time_out; datestr(chunk_date)+ " " + chunk_time + mills];
 end
 
 end
