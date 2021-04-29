@@ -1,4 +1,4 @@
-function genAvgBandPowerPhaseGaitEvents(aligned_data,signal_analysis_data,pre_post_time,event_compare,spread_type,subjectID,plot_type,save_flag)
+function varargout = genAvgBandPowerPhaseGaitEvents(aligned_data,signal_analysis_data,pre_post_time,event_compare,spread_type,subjectID,plot_type,save_flag)
 
 if ~exist('pre_post_time','var') || isempty(pre_post_time)
     pre_post_time = 1;
@@ -75,8 +75,8 @@ if isfield(signal_analysis_data,'Left')
                     [~,min_ind_post] = min(abs(signal_analysis_data.Left.Time{i}-(event_time+pre_post_time)));
                     [~,event_ind] = min(abs(signal_analysis_data.Left.Time{i}-event_time));
                     if isfield(signal_analysis_data.Left,'PSD')
-                        temp = 10*log10(abs(signal_analysis_data.Left.Values{i}(:,event_ind)));
-                        temp1 = 10*log10(abs(signal_analysis_data.Left.Values{i}(:,min_ind_pre:min_ind_post)));
+                        temp = 20*log10(abs(signal_analysis_data.Left.Values{i}(:,event_ind)));
+                        temp1 = 20*log10(abs(signal_analysis_data.Left.Values{i}(:,min_ind_pre:min_ind_post)));
                         temp2 = angle(signal_analysis_data.Left.Values{i}(:,event_ind));
                         temp3 = angle(signal_analysis_data.Left.Values{i}(:,min_ind_pre:min_ind_post));
                     else
@@ -171,12 +171,12 @@ if isfield(signal_analysis_data,'Right')
                     [~,event_ind] = min(abs(signal_analysis_data.Right.Time{i}-event_time));
                     
                     if isfield(signal_analysis_data.Right,'PSD')
-                        temp = 10*log10(abs(signal_analysis_data.Right.Values{i}(:,event_ind)));
-                        temp1 = 10*log10(abs(signal_analysis_data.Right.Values{i}(:,min_ind_pre:min_ind_post)));
+                        temp = 20*log10(abs(signal_analysis_data.Right.Values{i}(:,event_ind)));
+                        temp1 = 20*log10(abs(signal_analysis_data.Right.Values{i}(:,min_ind_pre:min_ind_post)));
                         temp2 = angle(signal_analysis_data.Right.Values{i}(:,event_ind));
                         temp3 = angle(signal_analysis_data.Right.Values{i}(:,min_ind_pre:min_ind_post));
                     else
-                        temp = 10*log10(abs(signal_analysis_data.Right.Values{i}(:,event_ind)));
+                        temp = 20*log10(abs(signal_analysis_data.Right.Values{i}(:,event_ind)));
                         temp1 = abs(signal_analysis_data.Right.Values{i}(:,min_ind_pre:min_ind_post));
                         temp2 = angle(signal_analysis_data.Right.Values{i}(:,event_ind));
                         temp3 = angle(signal_analysis_data.Right.Values{i}(:,min_ind_pre:min_ind_post));
@@ -239,7 +239,7 @@ if strcmp(plot_type,'all') || strcmp(plot_type,'power')
                     xlabel('Time (s)');
                     
                     if isfield(signal_analysis_data.Left,'PSD')
-                        ylabel('db');
+                        ylabel('db'); %  uV^2
                     else
                         ylabel('Magnitude');
                     end
@@ -267,7 +267,7 @@ if strcmp(plot_type,'all') || strcmp(plot_type,'power')
                     xlabel('Time (s)');
                     
                     if isfield(signal_analysis_data.Right,'PSD')
-                        ylabel('db');
+                        ylabel('db'); % uV^2
                     else
                         ylabel('Magnitude');
                     end
@@ -585,6 +585,11 @@ if save_flag
         end
     end
 end
+
+varargout = {power_at_event, average_power, average_power_time,...
+    phase_at_event, average_phase, average_phase_time,...
+    range_power, range_power_time,...
+    range_phase, range_phase_time};
 end
 
 function plot_title = createPlotTitle(s)

@@ -55,7 +55,7 @@ if isfield(signal_analysis_data,'Left')
                     [~,min_ind_post] = min(abs(signal_analysis_data.Left.Time{i}-(event_time+pre_post_time)));
                     [~,event_ind] = min(abs(signal_analysis_data.Left.Time{i}-event_time));
                     if isfield(signal_analysis_data.Left,'PSD')
-                        temp = 10*log10(abs(signal_analysis_data.Left.PSD{i}(:,min_ind_pre:min_ind_post)));
+                        temp = 20*log10(abs(signal_analysis_data.Left.PSD{i}(:,min_ind_pre:min_ind_post)));
                         temp2 = angle(signal_analysis_data.Left.PSD{i}(:,event_ind));
                     else
                         temp = abs(signal_analysis_data.Left.Values{i}(:,min_ind_pre:min_ind_post));
@@ -121,7 +121,7 @@ if isfield(signal_analysis_data,'Right')
                     [~,event_ind] = min(abs(signal_analysis_data.Right.Time{i}-event_time));
                     
                     if isfield(signal_analysis_data.Right,'PSD')
-                        temp = 10*log10(abs(signal_analysis_data.Right.PSD{i}(:,min_ind_pre:min_ind_post)));
+                        temp = 20*log10(abs(signal_analysis_data.Right.PSD{i}(:,min_ind_pre:min_ind_post)));
                         temp2 = angle(signal_analysis_data.Right.PSD{i}(:,event_ind));
                     else
                         temp = abs(signal_analysis_data.Right.Values{i}(:,min_ind_pre:min_ind_post));
