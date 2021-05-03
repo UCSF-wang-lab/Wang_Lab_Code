@@ -16,6 +16,8 @@ if ~exist('save_flag','var') || isempty(save_flag)
     save_flag = 0;
 end
 
+% searchForGaitBiomarkers(aligned_data,A,[0,50],{{'LHS','RTO','RHS','LTO'}},'RCS03',0)
+
 %% Extract data
 if isfield(signal_analysis_data,'Left')
     left_sr = uniquetol(aligned_data.DeviceSettings.Left.timeDomainSettings.samplingRate,1);
@@ -27,10 +29,12 @@ if isfield(signal_analysis_data,'Left')
     end
     
     event_pairs = nchoosek(aligned_data.gait_events.Properties.VariableNames,2);
-    p_val_matrix.Left = cell(1,length(signal_analysis_data.Left.Chan_Names));
-    freq_bin_inds = genFreqBinPairs(signal_analysis_data.Left.Freq_Values{1},freq_lim);
+    [freq_bin_inds.Left,freq_vals.Left] = genFreqBinPairs(signal_analysis_data.Left.Freq_Values{1},freq_lim);
+    
+    channel_power.Left = cell(1,length(signal_analysis_data.Left.Chan_Names));
+    channel_anova_matrix.Left = cell(1,length(signal_analysis_data.Left.Chan_Names));
+    channel_mult_compare_matrix.Left = cell(1,size(event_pairs,1));
     for i = 1:length(signal_analysis_data.Left.Chan_Names)
-        temp_mat = nan(sum(diff(freq_bin_inds,1,2)==0),sum(diff(freq_bin_inds,1,2)==0),size(event_pairs,1));
         vals_power = [];
         vals_phase = [];
         for j = 1:length(aligned_data.gait_events.Properties.VariableNames)
@@ -51,30 +55,37 @@ if isfield(signal_analysis_data,'Left')
                     end
                     
                     if sum(isinf(temp),'all') == 0
-                        for m = 1:size(freq_bin_inds,1)
-                            vals_power.(aligned_data.gait_events.Properties.VariableNames{j})(count,m) = mean(temp(freq_bin_inds(m,1):freq_bin_inds(m,2)));
-                            vals_phase.(aligned_data.gait_events.Properties.VariableNames{j})(count,m) = mean(temp1(freq_bin_inds(m,1):freq_bin_inds(m,2)));
+                        for m = 1:size(freq_bin_inds.Left,1)
+                            vals_power.(aligned_data.gait_events.Properties.VariableNames{j})(count,m) = mean(temp(freq_bin_inds.Left(m,1):freq_bin_inds.Left(m,2)));
+                            vals_phase.(aligned_data.gait_events.Properties.VariableNames{j})(count,m) = mean(temp1(freq_bin_inds.Left(m,1):freq_bin_inds.Left(m,2)));
                         end
                         count = count + 1;
                     end
                 end
             end
         end
+        channel_power.Left{i} = vals_power;
         
-        for n = 1:size(event_pairs,1)
-            for o = 1:size(freq_bin_inds,1)
-                temp_mat(freq_bin_inds(o,1),freq_bin_inds(o,2),n) = vals_power.(event_pairs{n,1})(:,o);
-%                 A = vals_power.LHS(:,o);
-%                 B = vals_power.RTO(:,o);
-%                 C = vals_power.RHS(:,o);
-%                 D = vals_power.LTO(:,o);
-%                 names = [repelem({'LHS'},length(A),1);repelem({'RTO'},length(B),1);repelem({'RHS'},length(C),1);repelem({'LTO'},length(D),1)];
-%                 [~,~,stats] = anova1([A;B;C;D],names);
-%                 [c,~,~,gnames] = multcompare(stats);
-%                 [gnames(c(:,1)), gnames(c(:,2)), num2cell(c(:,3:6))]
+        channel_anova_matrix.Left{i} = nan(sum(diff(freq_bin_inds.Left,1,2)==0),sum(diff(freq_bin_inds.Left,1,2)==0));
+        for n = 1:size(freq_bin_inds.Left,1)
+            X = [];
+            groups = {};
+            for o = 1:length(fields(vals_power))
+                vals = vals_power.(aligned_data.gait_events.Properties.VariableNames{o})(:,n);
+                X = [X;vals];
+                groups = [groups;repelem(aligned_data.gait_events.Properties.VariableNames(o),length(vals),1)];
+            end
+            [p,~,stats] = anova1(X,groups,'off');
+            [c,~,~,gnames] = multcompare(stats,'Display','off');
+            channel_anova_matrix.Left{i}(freq_bin_inds.Left(n,1),freq_bin_inds.Left(n,2)) = p;
+            for r = 1:size(c,1)
+                mat_ind = find(and(strcmp(gnames(c(r,1)),event_pairs(:,1)),strcmp(gnames(c(r,2)),event_pairs(:,2))));
+                if isempty(channel_mult_compare_matrix.Left{mat_ind})
+                    channel_mult_compare_matrix.Left{mat_ind} = cellmat(6,1,sum(diff(freq_bin_inds.Left,1,2)==0),sum(diff(freq_bin_inds.Left,1,2)==0),nan);
+                end
+                channel_mult_compare_matrix.Left{i}{mat_ind}(freq_bin_inds.Left(n,1),freq_bin_inds.Left(n,2)) = c(r,6);
             end
         end
-        
     end
 end
 
@@ -86,111 +97,213 @@ if isfield(signal_analysis_data,'Right')
     else
         analysis_type = 'CWT';
     end
-    power_at_event.Right = {};
-    average_power.Right = {};
-    average_power_time.Right = {};
-    phase_at_event.Right = {};
-    average_phase.Right = {};
-    average_phase_time.Right = {};
-    range_power.Right = {};
-    range_power_time.Right = {};
-    range_phase.Right = {};
-    range_phase_time.Right = {};
-    [~,band_names] = getFreqBandInd(signal_analysis_data.Right.Freq_Values{1});
+
+    event_pairs = nchoosek(aligned_data.gait_events.Properties.VariableNames,2);
+    [freq_bin_inds.Right,freq_vals.Right] = genFreqBinPairs(signal_analysis_data.Right.Freq_Values{1},freq_lim);
+
+    channel_power.Right = cell(1,length(signal_analysis_data.Right.Chan_Names));
+    channel_anova_matrix.Right = cell(1,length(signal_analysis_data.Right.Chan_Names));
+    channel_mult_compare_matrix.Right = cell(1,size(event_pairs,1));
     for i = 1:length(signal_analysis_data.Right.Chan_Names)
-        band_inds = getFreqBandInd(signal_analysis_data.Right.Freq_Values{i});
-        if band_inds(1,2) < band_inds(1,1)
-            band_inds = fliplr(band_inds);
-        end
+        vals_power = [];
+        vals_phase = [];
         for j = 1:length(aligned_data.gait_events.Properties.VariableNames)
-            if ~isfield(average_power.Right,aligned_data.gait_events.Properties.VariableNames{j})
-                power_at_event.Right.(aligned_data.gait_events.Properties.VariableNames{j}) = cell(1,length(signal_analysis_data.Right.Chan_Names));
-                average_power.Right.(aligned_data.gait_events.Properties.VariableNames{j}) = cell(1,length(signal_analysis_data.Right.Chan_Names));
-                average_power_time.Right.(aligned_data.gait_events.Properties.VariableNames{j}) = cell(1,length(signal_analysis_data.Right.Chan_Names));
-                phase_at_event.Right.(aligned_data.gait_events.Properties.VariableNames{j}) = cell(1,length(signal_analysis_data.Right.Chan_Names));
-                average_phase.Right.(aligned_data.gait_events.Properties.VariableNames{j}) = cell(1,length(signal_analysis_data.Right.Chan_Names));
-                average_phase_time.Right.(aligned_data.gait_events.Properties.VariableNames{j}) = cell(1,length(signal_analysis_data.Right.Chan_Names));
-                range_power.Right.(aligned_data.gait_events.Properties.VariableNames{j}) = cell(1,length(signal_analysis_data.Right.Chan_Names));
-                range_power_time.Right.(aligned_data.gait_events.Properties.VariableNames{j}) = cell(1,length(signal_analysis_data.Right.Chan_Names));
-                range_phase.Right.(aligned_data.gait_events.Properties.VariableNames{j}) = cell(1,length(signal_analysis_data.Right.Chan_Names));
-                range_phase_time.Right.(aligned_data.gait_events.Properties.VariableNames{j}) = cell(1,length(signal_analysis_data.Right.Chan_Names));
+            if ~isfield(vals_power,aligned_data.gait_events.Properties.VariableNames{j})
+                vals_power.(aligned_data.gait_events.Properties.VariableNames{j}) = [];
             end
-            vals_power = [];
-            vals_power_time = [];
-            vals_phase = [];
-            vals_phase_time = [];
             count = 1;
             for k = 1:height(aligned_data.gait_events)
                 event_time = aligned_data.gait_events.(aligned_data.gait_events.Properties.VariableNames{j})(k);
                 if ~isnan(event_time)
-                    [~,min_ind_pre] = min(abs(signal_analysis_data.Right.Time{i}-(event_time-pre_post_time)));
-                    [~,min_ind_post] = min(abs(signal_analysis_data.Right.Time{i}-(event_time+pre_post_time)));
                     [~,event_ind] = min(abs(signal_analysis_data.Right.Time{i}-event_time));
-                    
                     if isfield(signal_analysis_data.Right,'PSD')
                         temp = 20*log10(abs(signal_analysis_data.Right.Values{i}(:,event_ind)));
-                        temp1 = 20*log10(abs(signal_analysis_data.Right.Values{i}(:,min_ind_pre:min_ind_post)));
-                        temp2 = angle(signal_analysis_data.Right.Values{i}(:,event_ind));
-                        temp3 = angle(signal_analysis_data.Right.Values{i}(:,min_ind_pre:min_ind_post));
+                        temp1 = angle(signal_analysis_data.Right.Values{i}(:,event_ind));
                     else
-                        temp = 20*log10(abs(signal_analysis_data.Right.Values{i}(:,event_ind)));
-                        temp1 = abs(signal_analysis_data.Right.Values{i}(:,min_ind_pre:min_ind_post));
-                        temp2 = angle(signal_analysis_data.Right.Values{i}(:,event_ind));
-                        temp3 = angle(signal_analysis_data.Right.Values{i}(:,min_ind_pre:min_ind_post));
+                        temp = abs(signal_analysis_data.Right.Values{i}(:,event_ind));
+                        temp1 = angle(signal_analysis_data.Right.Values{i}(:,event_ind));
                     end
-                    
-                    if size(temp1,2) == round((pre_post_time*2)/time_res_right)+1
-                        if sum(isinf(temp),'all') == 0
-                            for m = 1:length(band_names)
-                                vals_power(count,:,m) = mean(temp(band_inds(m,1):band_inds(m,2),:));
-                                vals_power_time(count,:,m) = mean(temp1(band_inds(m,1):band_inds(m,2),:));
-                                vals_phase(count,:,m) = mean(temp2(band_inds(m,1):band_inds(m,2),:));
-                                vals_phase_time(count,:,m) = mean(temp3(band_inds(m,1):band_inds(m,2),:));
-                            end
-                            count = count + 1;
+
+                    if sum(isinf(temp),'all') == 0
+                        for m = 1:size(freq_bin_inds.Right,1)
+                            vals_power.(aligned_data.gait_events.Properties.VariableNames{j})(count,m) = mean(temp(freq_bin_inds.Right(m,1):freq_bin_inds.Right(m,2)));
+                            vals_phase.(aligned_data.gait_events.Properties.VariableNames{j})(count,m) = mean(temp1(freq_bin_inds.Right(m,1):freq_bin_inds.Right(m,2)));
                         end
+                        count = count + 1;
                     end
                 end
             end
-            power_at_event.Right.(aligned_data.gait_events.Properties.VariableNames{j}){i} = squeeze(vals_power);
-            average_power.Right.(aligned_data.gait_events.Properties.VariableNames{j}){i} = squeeze(mean(vals_power,1));
-            average_power_time.Right.(aligned_data.gait_events.Properties.VariableNames{j}){i} = squeeze(mean(vals_power_time,1));
-            phase_at_event.Right.(aligned_data.gait_events.Properties.VariableNames{j}){i} = squeeze(vals_phase);
-            average_phase.Right.(aligned_data.gait_events.Properties.VariableNames{j}){i} = squeeze(mean(vals_phase,1));
-            average_phase_time.Right.(aligned_data.gait_events.Properties.VariableNames{j}){i} = squeeze(mean(vals_phase_time,1));
-            
-            if strcmp(spread_type,'SE')
-                range_power.Right.(aligned_data.gait_events.Properties.VariableNames{j}){i} = squeeze(std(vals_power,0,1))./size(vals_power,1);
-                range_power_time.Right.(aligned_data.gait_events.Properties.VariableNames{j}){i} = squeeze(std(vals_power_time,0,1))./size(vals_power_time,1);
-                range_phase.Right.(aligned_data.gait_events.Properties.VariableNames{j}){i} = squeeze(std(vals_phase,0,1))./size(vals_phase,1);
-                range_phase_time.Right.(aligned_data.gait_events.Properties.VariableNames{j}){i} = squeeze(std(vals_phase_time,0,1))./size(vals_phase_time,1);
-            else
-                range_power.Right.(aligned_data.gait_events.Properties.VariableNames{j}){i} = squeeze(std(vals_power,0,1));
-                range_power_time.Right.(aligned_data.gait_events.Properties.VariableNames{j}){i} = squeeze(std(vals_power_time,0,1));
-                range_phase.Right.(aligned_data.gait_events.Properties.VariableNames{j}){i} = squeeze(std(vals_phase,0,1));
-                range_phase_time.Right.(aligned_data.gait_events.Properties.VariableNames{j}){i} = squeeze(std(vals_phase_time,0,1));
+        end
+        channel_power.Right{i} = vals_power;
+
+        channel_anova_matrix.Right{i} = nan(sum(diff(freq_bin_inds.Right,1,2)==0),sum(diff(freq_bin_inds.Right,1,2)==0));
+        for n = 1:size(freq_bin_inds.Right,1)
+            X = [];
+            groups = {};
+            for o = 1:length(fields(vals_power))
+                vals = vals_power.(aligned_data.gait_events.Properties.VariableNames{o})(:,n);
+                X = [X;vals];
+                groups = [groups;repelem(aligned_data.gait_events.Properties.VariableNames(o),length(vals),1)];
+            end
+            [p,~,stats] = anova1(X,groups,'off');
+            [c,~,~,gnames] = multcompare(stats,'Display','off');
+            channel_anova_matrix.Right{i}(freq_bin_inds.Right(n,1),freq_bin_inds.Right(n,2)) = p;
+            for r = 1:size(c,1)
+                mat_ind = find(and(strcmp(gnames(c(r,1)),event_pairs(:,1)),strcmp(gnames(c(r,2)),event_pairs(:,2))));
+                if isempty(channel_mult_compare_matrix.Right{mat_ind})
+                    channel_mult_compare_matrix.Right{mat_ind} = cellmat(6,1,sum(diff(freq_bin_inds.Left,1,2)==0),sum(diff(freq_bin_inds.Left,1,2)==0),nan);
+                end
+                channel_mult_compare_matrix.Right{i}{mat_ind}(freq_bin_inds.Left(n,1),freq_bin_inds.Left(n,2)) = c(r,6);
             end
         end
     end
 end
+
+%% Plot to visualize p-vals
+fig_vec = [];
+if isfield(channel_anova_matrix,'Left')
+    for i = 1:length(channel_anova_matrix.Left)
+        fig_vec(end+1) = figure;
+        ax_hand = pcolor(1:52,1:52,channel_anova_matrix.Left{i});
+        colormap(flipud(jet));
+        set(gca,'YDir',"reverse");
+        title({subjectID;'Left';signal_analysis_data.Left.Chan_Names{i};'ANOVA'});
+        xlabel('End bin');
+        ylabel('Start bin');
+        c_hand = colorbar;
+        c_hand.Title.String = 'p-val';
+    end
 end
 
-function freq_bin_inds = genFreqBinPairs(freq_vals,freq_lim)
+if isfield(channel_anova_matrix,'Right')
+    for i = 1:length(channel_anova_matrix.Right)
+        fig_vec(end+1) = figure;
+        pcolor(1:52,1:52,channel_anova_matrix.Right{i});
+        colormap(flipud(jet));
+        set(gca,'YDir',"reverse");
+        title({subjectID;'Right';signal_analysis_data.Right.Chan_Names{i};'ANOVA'});
+        xlabel('End bin');
+        ylabel('Start bin');
+        c_hand = colorbar;
+        c_hand.Title.String = 'p-val';
+    end
+end
+
+if isfield(channel_mult_compare_matrix,'Left')
+    for i = 1:length(signal_analysis_data.Left.Chan_Names)
+        for j = 1:size(event_pairs,1)
+            fig_vec(end+1) = figure;
+            pcolor(1:52,1:52,channel_mult_compare_matrix.Left{i}{j});
+            colormap(flipud(jet));
+            set(gca,'YDir',"reverse");
+            title({subjectID;'Left';signal_analysis_data.Left.Chan_Names{i};[event_pairs{j,1},' vs. ', event_pairs{j,2},' Multiple Comparison']});
+            xlabel('End bin');
+            ylabel('Start bin');
+            c_hand = colorbar;
+            c_hand.Title.String = 'p-val';
+        end
+    end
+end
+
+if isfield(channel_mult_compare_matrix,'Right')
+    for i = 1:length(signal_analysis_data.Right.Chan_Names)
+        for j = 1:size(event_pairs,1)
+            fig_vec(end+1) = figure;
+            pcolor(1:52,1:52,channel_mult_compare_matrix.Right{i}{j});
+            colormap(flipud(jet));
+            set(gca,'YDir',"reverse");
+            title({subjectID;'Right';signal_analysis_data.Right.Chan_Names{i};[event_pairs{j,1},' vs. ', event_pairs{j,2},' Multiple Comparison']});
+            xlabel('End bin');
+            ylabel('Start bin');
+            c_hand = colorbar;
+            c_hand.Title.String = 'p-val';
+        end
+    end
+end
+
+%% Save plots
+if save_flag
+    save_dir = uigetdir();
+    
+    figure_format(12,8,12);
+    
+    % check if saving folders exist
+    if ~isfolder(fullfile(save_dir,'GaitBiomarkerSearch'))
+        mkdir(fullfile(save_dir,'GaitBiomarkerSearch'));
+    end
+    
+    if ~isfolder(fullfile(save_dir,'GaitBiomarkerSearch',aligned_data.stim_condition))
+        mkdir(fullfile(save_dir,'GaitBiomarkerSearch',aligned_data.stim_condition))
+    end
+    
+    if strcmp(analysis_type,'FT')
+        if ~isfolder(fullfile(save_dir,'GaitBiomarkerSearch',aligned_data.stim_condition,'FT'))
+            mkdir(fullfile(save_dir,'GaitBiomarkerSearch',aligned_data.stim_condition,'FT'))
+        end
+    elseif strcmp(analysis_type,'CWT')
+        if ~isfolder(fullfile(save_dir,'GaitBiomarkerSearch',aligned_data.stim_condition,'CWT'))
+            mkdir(fullfile(save_dir,'GaitBiomarkerSearch',aligned_data.stim_condition,'CWT'))
+        end
+    end
+    
+    folders_to_check = {'FIG_files','PDF_files','TIFF_files'};
+    extension = {'.fig','.pdf','.tiff'};
+    for n = 1:length(folders_to_check)
+        if strcmp(analysis_type,'FT')
+            if ~isfolder(fullfile(save_dir,'GaitBiomarkerSearch',aligned_data.stim_condition,'FT',folders_to_check{n}))
+                mkdir(fullfile(save_dir,'GaitBiomarkerSearch',aligned_data.stim_condition,'FT',folders_to_check{n}));
+            end
+        elseif strcmp(analysis_type,'CWT')
+            if ~isfolder(fullfile(save_dir,'GaitBiomarkerSearch',aligned_data.stim_condition,'CWT',folders_to_check{n}))
+                mkdir(fullfile(save_dir,'GaitBiomarkerSearch',aligned_data.stim_condition,'CWT',folders_to_check{n}));
+            end
+        end
+    end
+    
+    for i = 1:length(fig_vec)
+        curr_axes = gca(fig_vec(i));
+        save_name = [];
+        for j = 1:length(curr_axes.Parent.Children(2).Title.String)
+            if isempty(save_name)
+                save_name = curr_axes.Parent.Children(2).Title.String{j};
+            else
+                save_name = [save_name,' ', curr_axes.Parent.Children(2).Title.String{j}];
+            end
+        end
+        
+        if strcmp(analysis_type,'FT')
+            savefig(fig_vec(i),fullfile(save_dir,'GaitBiomarkerSearch',aligned_data.stim_condition,'FT',folders_to_check{1},strrep(strrep(save_name,' ','_'),'.','')));
+        elseif strcmp(analysis_type,'CWT')
+            savefig(fig_vec(i),fullfile(save_dir,'GaitBiomarkerSearch',aligned_data.stim_condition,'CWT',folders_to_check{1},strrep(strrep(save_name,' ','_'),'.','')));
+        end
+        
+        for k = 2:length(folders_to_check)
+            if strcmp(analysis_type,'FT')
+                print(fig_vec(i),[fullfile(save_dir,'GaitBiomarkerSearch',aligned_data.stim_condition,'FT',folders_to_check{k},strrep(strrep(save_name,' ','_'),'.','')),extension{k}],'-r300',['-d',extension{k}(2:end)]);
+            elseif strcmp(analysis_type,'CWT')
+                print(fig_vec(i),[fullfile(save_dir,'GaitBiomarkerSearch',aligned_data.stim_condition,'CWT',folders_to_check{k},strrep(strrep(save_name,' ','_'),'.','')),extension{k}],'-r300',['-d',extension{k}(2:end)]);
+            end
+        end
+    end
+end
+
+varargout = {channel_anova_matrix,channel_mult_compare_matrix,event_pairs,freq_vals};
+end
+
+function [freq_bin_inds,freqs] = genFreqBinPairs(freq_vals,freq_lim)
 ind_start = find(freq_vals >= freq_lim(1),1,'first');
 ind_end = find(freq_vals <= freq_lim(2),1,'last');
 n = ind_end - ind_start + 1;
 skips = 1:n-1;
 tot_pairs = (n^2-n)/2;
+freqs = freq_vals(ind_start:ind_end);
 freq_bin_inds = nan(tot_pairs,2);
 
 % Crazy indexing. Look up triangle numbers to recalculate these equations
 f = @(x) n*(x+1)-(x^2+x)/2;
-freq_bin_inds(1:n,:) = repmat([1:52]',1,2);
+freq_bin_inds(1:n,:) = repmat([1:n]',1,2);
 for i = 1:length(skips)
     freq_bin_inds(f(i-1)+1:f(i),1) = transpose(1:n-skips(i));
     freq_bin_inds(f(i-1)+1:f(i),2) = freq_bin_inds(f(i-1)+1:f(i),1) + skips(i);
-    %         searchForGaitBiomarkers(aligned_data,A,[0,50],{{'LHS','RTO','RHS','LTO'}},'RCS03',0)
 end
-
-
 end

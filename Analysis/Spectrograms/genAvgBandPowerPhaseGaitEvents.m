@@ -520,7 +520,7 @@ if strcmp(plot_type,'all') || strcmp(plot_type,'phase_polar')
     end
 end
 
-%% Save plots
+%% Save plots (NEED TO CHANGE; commented out for now)
 if save_flag
     save_dir = uigetdir();
     
@@ -568,6 +568,12 @@ if save_flag
             else
                 save_name = [save_name,' ', curr_axes.Parent.Children(1).String{j}];
             end
+        end
+        
+        if contains(plot_type,'boxplot') || contains(plot_type,'phase_polar')
+            save_name = [save_name,' ', plot_type];
+        else
+            save_name = [save_name,' ', plot_type, ' ', spread_type];
         end
         
         if strcmp(analysis_type,'FT')
