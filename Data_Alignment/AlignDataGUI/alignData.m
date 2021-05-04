@@ -119,8 +119,10 @@ if ~isempty(main.UserData.Delsys_data)
         align_time = main.UserData.alignment_times(5);
     elseif ~isnan(main.UserData.alignment_times(6))
         align_time = main.UserData.alignment_times(6);
+    elseif ~isnan(main.UserData.ailgnment_times(7))
+        align_time = main.UserData.alignment_times(7);
     else
-        addEvent('Cannot align. Must have Delsys or Xsens alignment point marked.',1);
+        addEvent('Cannot align. Must have Delsys, Xsens, or Force plate alignment point marked.',1);
         return;
     end
     
@@ -147,8 +149,10 @@ if ~isempty(main.UserData.Xsens_data)
         align_time = main.UserData.alignment_times(6);
     elseif ~isnan(main.UserData.alignment_times(5))
         align_time = main.UserData.alignment_times(5);
+    elseif ~isnan(main.UserData.alignment_times(7))
+        align_time = main.UserData.alignment_times(7);
     else
-        addEvent('Cannot align. Must have Delsys or Xsens alignment point marked.',1);
+        addEvent('Cannot align. Must have Delsys, Xsens, or Force plate alignment point marked.',1);
         return;
     end
     
@@ -168,6 +172,9 @@ if ~isempty(main.UserData.FP_data)
         align_time = main.UserData.alignment_times(5);
     elseif ~isnan(main.UserData.alignment_times(6))
         align_time = main.UserData.alignment_times(6);
+    else
+        addEvent('Cannot align. Must have Delsys, Xsens, or Force plate alignment point marked.',1);
+        return;
     end
     
     time_vec = (0:height(main.UserData.FP_data)-1)/1000;
@@ -177,6 +184,20 @@ if ~isempty(main.UserData.FP_data)
     addEvent('Complete!',1);
     
     aligned_data.FP = FP;
+end
+
+% Teensey
+if ~isempty(main.UserData.Teensey_data)
+    addEvent('Teensey...');
+    if ~isnan(main.UserData.alignment_times(8))
+        align_time = main.UserData.alignment_times(8);
+    else
+        addEvent('No alignment point for Teensey data.',1);
+        return;
+    end
+    [~,Teensey] = trimData([],main.UserData.Teensey_data,align_time-pre_align_time);
+    addEvent('Complete!',1);
+    aligned_data.Teensey = Teensey;
 end
 
 %% Add alignment to UserData struct

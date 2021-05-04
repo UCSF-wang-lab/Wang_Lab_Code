@@ -37,6 +37,11 @@ for i = 1:length(main.UserData.plot_axes)
             deletePreviousMarks(main.UserData.plot_axes(i));
             xline(main.UserData.plot_axes(i),main.UserData.alignment_times(7),'--r','Tag','alignment_marker');
         end
+    elseif contains(plot_title,'Teensey')
+        if ~isnan(main.UserData.alignment_times(8))
+            deletePreviousMarks(main.UserData.plot_axes(i));
+            xline(main.UserData.plot_axes(i),main.UserData.alignment_times(8),'--r','Tag','alignment_marker');
+        end
     end
 end
 end

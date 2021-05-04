@@ -1,6 +1,6 @@
 function loadData(src,varargin)
 
-if contains(src.Tag,'Xsens') || contains(src.Tag,'Force')
+if contains(src.Tag,'Xsens') || contains(src.Tag,'Force') || contains(src.Tag,'Teensey')
     [filename,path] = uigetfile('.csv');
 else
     [filename,path] = uigetfile();
@@ -61,6 +61,10 @@ switch src.Tag
         src.Parent.Parent.UserData.FP_data = data;
         src.Parent.Parent.UserData.indicators.fp.Value = true;
         str = sprintf('Loaded gait initiation force plate file: %s',fullfile(path,filename));
+    case 'Teensey_button'
+        src.Parent.Parent.UserData.Teensey_data = data;
+        src.Parent.Parent.UserData.indicators.teensey.Value = true;
+        str = sprintf('Loaded Teensey file: %s',fullfile(path,filename));
 end
 
 src.Parent.Parent.UserData.file_names{end+1} = fullfile(path,filename);

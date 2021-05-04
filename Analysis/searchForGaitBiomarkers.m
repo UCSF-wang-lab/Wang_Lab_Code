@@ -19,6 +19,7 @@ end
 % searchForGaitBiomarkers(aligned_data,A,[0,50],{{'LHS','RTO','RHS','LTO'}},'RCS03',0)
 
 %% Extract data
+tic
 if isfield(signal_analysis_data,'Left')
     left_sr = uniquetol(aligned_data.DeviceSettings.Left.timeDomainSettings.samplingRate,1);
     time_res_left = uniquetol(diff(signal_analysis_data.Left.Time{1}),1);
@@ -164,8 +165,9 @@ fig_vec = [];
 if isfield(channel_anova_matrix,'Left')
     for i = 1:length(channel_anova_matrix.Left)
         fig_vec(end+1) = figure;
-        ax_hand = pcolor(1:52,1:52,channel_anova_matrix.Left{i});
+        ax_hand = pcolor(1:size(channel_anova_matrix.Left{i},1),1:size(channel_anova_matrix.Left{i},2),channel_anova_matrix.Left{i});
         colormap(flipud(jet));
+        caxis([0,1]);
         set(gca,'YDir',"reverse");
         title({subjectID;'Left';signal_analysis_data.Left.Chan_Names{i};'ANOVA'});
         xlabel('End bin');
@@ -178,8 +180,9 @@ end
 if isfield(channel_anova_matrix,'Right')
     for i = 1:length(channel_anova_matrix.Right)
         fig_vec(end+1) = figure;
-        pcolor(1:52,1:52,channel_anova_matrix.Right{i});
+        pcolor(1:size(channel_anova_matrix.Right{i},1),1:size(channel_anova_matrix.Right{i},2),channel_anova_matrix.Right{i});
         colormap(flipud(jet));
+        caxis([0,1]);
         set(gca,'YDir',"reverse");
         title({subjectID;'Right';signal_analysis_data.Right.Chan_Names{i};'ANOVA'});
         xlabel('End bin');
@@ -193,8 +196,9 @@ if isfield(channel_mult_compare_matrix,'Left')
     for i = 1:length(signal_analysis_data.Left.Chan_Names)
         for j = 1:size(event_pairs,1)
             fig_vec(end+1) = figure;
-            pcolor(1:52,1:52,channel_mult_compare_matrix.Left{i}{j});
+            pcolor(1:size(channel_mult_compare_matrix.Left{i}{j},1),1:size(channel_mult_compare_matrix.Left{i}{j},2),channel_mult_compare_matrix.Left{i}{j});
             colormap(flipud(jet));
+            caxis([0,1]);
             set(gca,'YDir',"reverse");
             title({subjectID;'Left';signal_analysis_data.Left.Chan_Names{i};[event_pairs{j,1},' vs. ', event_pairs{j,2},' Multiple Comparison']});
             xlabel('End bin');
@@ -209,8 +213,9 @@ if isfield(channel_mult_compare_matrix,'Right')
     for i = 1:length(signal_analysis_data.Right.Chan_Names)
         for j = 1:size(event_pairs,1)
             fig_vec(end+1) = figure;
-            pcolor(1:52,1:52,channel_mult_compare_matrix.Right{i}{j});
+            pcolor(1:size(channel_mult_compare_matrix.Right{i}{j},1),1:size(channel_mult_compare_matrix.Right{i}{j},2),channel_mult_compare_matrix.Right{i}{j});
             colormap(flipud(jet));
+            caxis([0,1]);
             set(gca,'YDir',"reverse");
             title({subjectID;'Right';signal_analysis_data.Right.Chan_Names{i};[event_pairs{j,1},' vs. ', event_pairs{j,2},' Multiple Comparison']});
             xlabel('End bin');
@@ -225,7 +230,7 @@ end
 if save_flag
     save_dir = uigetdir();
     
-    figure_format(12,8,12);
+%     figure_format(12,8,12);
     
     % check if saving folders exist
     if ~isfolder(fullfile(save_dir,'GaitBiomarkerSearch'))
@@ -287,6 +292,7 @@ if save_flag
     end
 end
 
+toc
 varargout = {channel_anova_matrix,channel_mult_compare_matrix,event_pairs,freq_vals};
 end
 

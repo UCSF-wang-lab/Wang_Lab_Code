@@ -47,6 +47,9 @@ elseif contains(window_data_source,'Xsens')
 elseif contains(window_data_source,'Force')
     time = (0:height(src.Parent.Parent.Parent.UserData.FP_data)-1)/1000;
     data = src.Parent.Parent.Parent.UserData.FP_data.(src.String{src.Value});
+elseif contains(window_data_source,'Teensey')
+    time = src.Parent.Parent.Parent.UserData.Teensey_data.Time;
+    data = src.Parent.Parent.Parent.UserData.Teensey_data.(src.String{src.Value});
 end
 
 % Plot data
