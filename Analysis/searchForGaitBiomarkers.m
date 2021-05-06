@@ -1,4 +1,4 @@
-function varargout = searchForGaitBiomarkers(aligned_data,signal_analysis_data,freq_lim,event_compare,subjectID,save_flag)
+function varargout = searchForGaitBiomarkers(aligned_data,signal_analysis_data,freq_lim,event_compare,subjectID,save_dir,save_flag)
 if ~exist('freq_lim','var') || isempty(freq_lim)
     freq_lim = [0 50];
 end
@@ -152,9 +152,9 @@ if isfield(signal_analysis_data,'Right')
             for r = 1:size(c,1)
                 mat_ind = find(and(strcmp(gnames(c(r,1)),event_pairs(:,1)),strcmp(gnames(c(r,2)),event_pairs(:,2))));
                 if isempty(channel_mult_compare_matrix.Right{mat_ind})
-                    channel_mult_compare_matrix.Right{mat_ind} = cellmat(6,1,sum(diff(freq_bin_inds.Left,1,2)==0),sum(diff(freq_bin_inds.Left,1,2)==0),nan);
+                    channel_mult_compare_matrix.Right{mat_ind} = cellmat(6,1,sum(diff(freq_bin_inds.Right,1,2)==0),sum(diff(freq_bin_inds.Right,1,2)==0),nan);
                 end
-                channel_mult_compare_matrix.Right{i}{mat_ind}(freq_bin_inds.Left(n,1),freq_bin_inds.Left(n,2)) = c(r,6);
+                channel_mult_compare_matrix.Right{i}{mat_ind}(freq_bin_inds.Right(n,1),freq_bin_inds.Right(n,2)) = c(r,6);
             end
         end
     end
@@ -228,7 +228,7 @@ end
 
 %% Save plots
 if save_flag
-    save_dir = uigetdir();
+%     save_dir = uigetdir();
     
 %     figure_format(12,8,12);
     
@@ -297,6 +297,10 @@ varargout = {channel_anova_matrix,channel_mult_compare_matrix,event_pairs,freq_v
 end
 
 function [freq_bin_inds,freqs] = genFreqBinPairs(freq_vals,freq_lim)
+if freq_vals(2) < freq_vals(1)
+    freq_vals = flipud(freq_vals);
+end
+
 ind_start = find(freq_vals >= freq_lim(1),1,'first');
 ind_end = find(freq_vals <= freq_lim(2),1,'last');
 n = ind_end - ind_start + 1;

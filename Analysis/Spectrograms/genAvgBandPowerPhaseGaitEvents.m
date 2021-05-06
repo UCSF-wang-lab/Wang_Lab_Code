@@ -68,6 +68,7 @@ if isfield(signal_analysis_data,'Left')
             vals_phase = [];
             vals_phase_time = [];
             count = 1;
+            count_time = 1;
             for k = 1:height(aligned_data.gait_events)
                 event_time = aligned_data.gait_events.(aligned_data.gait_events.Properties.VariableNames{j})(k);
                 if ~isnan(event_time)
@@ -87,12 +88,18 @@ if isfield(signal_analysis_data,'Left')
                     end
                     
                     if size(temp1,2) == round((pre_post_time*2)/time_res_left)+1
+                        if sum(isinf(temp1),'all') == 0
+                            for m = 1:length(band_names)
+                                vals_power_time(count_time,:,m) = mean(temp1(band_inds(m,1):band_inds(m,2),:));
+                                vals_phase_time(count_time,:,m) = mean(temp3(band_inds(m,1):band_inds(m,2),:));
+                                count_time = count_time + 1;
+                            end
+                            
+                        end
                         if sum(isinf(temp),'all') == 0
                             for m = 1:length(band_names)
                                 vals_power(count,:,m) = mean(temp(band_inds(m,1):band_inds(m,2),:));
-                                vals_power_time(count,:,m) = mean(temp1(band_inds(m,1):band_inds(m,2),:));
                                 vals_phase(count,:,m) = mean(temp2(band_inds(m,1):band_inds(m,2),:));
-                                vals_phase_time(count,:,m) = mean(temp3(band_inds(m,1):band_inds(m,2),:));
                             end
                             count = count + 1;
                         end
@@ -163,6 +170,7 @@ if isfield(signal_analysis_data,'Right')
             vals_phase = [];
             vals_phase_time = [];
             count = 1;
+            count_time = 1;
             for k = 1:height(aligned_data.gait_events)
                 event_time = aligned_data.gait_events.(aligned_data.gait_events.Properties.VariableNames{j})(k);
                 if ~isnan(event_time)
@@ -183,12 +191,18 @@ if isfield(signal_analysis_data,'Right')
                     end
                     
                     if size(temp1,2) == round((pre_post_time*2)/time_res_right)+1
+                        if sum(isinf(temp1),'all') == 0
+                            for m = 1:length(band_names)
+                                vals_power_time(count_time,:,m) = mean(temp1(band_inds(m,1):band_inds(m,2),:));
+                                vals_phase_time(count_time,:,m) = mean(temp3(band_inds(m,1):band_inds(m,2),:));
+                            end
+                            count_time = count_time + 1;
+                        end
+                        
                         if sum(isinf(temp),'all') == 0
                             for m = 1:length(band_names)
                                 vals_power(count,:,m) = mean(temp(band_inds(m,1):band_inds(m,2),:));
-                                vals_power_time(count,:,m) = mean(temp1(band_inds(m,1):band_inds(m,2),:));
                                 vals_phase(count,:,m) = mean(temp2(band_inds(m,1):band_inds(m,2),:));
-                                vals_phase_time(count,:,m) = mean(temp3(band_inds(m,1):band_inds(m,2),:));
                             end
                             count = count + 1;
                         end
@@ -239,7 +253,7 @@ if strcmp(plot_type,'all') || strcmp(plot_type,'power')
                     xlabel('Time (s)');
                     
                     if isfield(signal_analysis_data.Left,'PSD')
-                        ylabel('db'); %  uV^2
+                        ylabel('\muV^2'); %  uV^2
                     else
                         ylabel('Magnitude');
                     end
@@ -267,7 +281,7 @@ if strcmp(plot_type,'all') || strcmp(plot_type,'power')
                     xlabel('Time (s)');
                     
                     if isfield(signal_analysis_data.Right,'PSD')
-                        ylabel('db'); % uV^2
+                        ylabel('\muV^2'); % uV^2
                     else
                         ylabel('Magnitude');
                     end
@@ -362,7 +376,7 @@ if strcmp(plot_type,'all') || contains(plot_type,'power_boxplot')
                     end
                     
                     if isfield(signal_analysis_data.Left,'PSD')
-                        ylabel('dB');
+                        ylabel('\muV^2');
                     else
                         ylabel('Magnitude');
                     end
@@ -396,7 +410,7 @@ if strcmp(plot_type,'all') || contains(plot_type,'power_boxplot')
                         end
                     end
                     if isfield(signal_analysis_data.Right,'PSD')
-                        ylabel('dB');
+                        ylabel('\mV^2');
                     else
                         ylabel('Magnitude');
                     end
