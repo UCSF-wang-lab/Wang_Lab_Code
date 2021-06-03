@@ -13,7 +13,7 @@ end
 
 if ~exist('save_flag','var') || isempty(save_flag)
     save_flag = 0;
-end
+end 
 
 %% Average gait cycle value
 % re-sort gait events with the starting event

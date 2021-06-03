@@ -14,7 +14,7 @@ end
 
 if ~exist('save_flag','var') || isempty(save_flag)
     save_flag = 0;
-end
+end 
 
 % searchForGaitBiomarkers(aligned_data,A,[0,50],{{'LHS','RTO','RHS','LTO'}},'RCS03',0)
 
