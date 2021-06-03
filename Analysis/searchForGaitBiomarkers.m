@@ -1,4 +1,4 @@
-function varargout = searchForGaitBiomarkers(aligned_data,signal_analysis_data,freq_lim,event_compare,subjectID,save_dir,save_flag)
+function varargout = searchForGaitBiomarkers(aligned_data,signal_analysis_data,freq_lim,event_compare,subjectID,save_dir,plot_type,save_flag)
 if ~exist('freq_lim','var') || isempty(freq_lim)
     freq_lim = [0 50];
 end
@@ -10,6 +10,14 @@ end
 
 if ~exist('subjectID','var') || isempty(subjectID)
     subjectID = 'RCSXX';
+end
+
+if ~exist('save_dir','var')
+    save_dir = [];
+end
+
+if ~exist('plot_type','var') || isempty(plot_type)
+    plot_type = 'all'; % all|anova|mult_compare|summed|summed_all|summed_exclude
 end
 
 if ~exist('save_flag','var') || isempty(save_flag)
@@ -162,45 +170,32 @@ end
 
 %% Plot to visualize p-vals
 fig_vec = [];
-if isfield(channel_anova_matrix,'Left')
-    for i = 1:length(channel_anova_matrix.Left)
-        fig_vec(end+1) = figure;
-        ax_hand = pcolor(1:size(channel_anova_matrix.Left{i},1),1:size(channel_anova_matrix.Left{i},2),channel_anova_matrix.Left{i});
-        colormap(flipud(jet));
-        caxis([0,1]);
-        set(gca,'YDir',"reverse");
-        title({subjectID;'Left';signal_analysis_data.Left.Chan_Names{i};'ANOVA'});
-        xlabel('End bin');
-        ylabel('Start bin');
-        c_hand = colorbar;
-        c_hand.Title.String = 'p-val';
-    end
-end
-
-if isfield(channel_anova_matrix,'Right')
-    for i = 1:length(channel_anova_matrix.Right)
-        fig_vec(end+1) = figure;
-        pcolor(1:size(channel_anova_matrix.Right{i},1),1:size(channel_anova_matrix.Right{i},2),channel_anova_matrix.Right{i});
-        colormap(flipud(jet));
-        caxis([0,1]);
-        set(gca,'YDir',"reverse");
-        title({subjectID;'Right';signal_analysis_data.Right.Chan_Names{i};'ANOVA'});
-        xlabel('End bin');
-        ylabel('Start bin');
-        c_hand = colorbar;
-        c_hand.Title.String = 'p-val';
-    end
-end
-
-if isfield(channel_mult_compare_matrix,'Left')
-    for i = 1:length(signal_analysis_data.Left.Chan_Names)
-        for j = 1:size(event_pairs,1)
+% ANOVA Left
+if strcmp(plot_type,'all') || strcmp(plot_type,'anova')
+    if isfield(channel_anova_matrix,'Left')
+        for i = 1:length(channel_anova_matrix.Left)
             fig_vec(end+1) = figure;
-            pcolor(1:size(channel_mult_compare_matrix.Left{i}{j},1),1:size(channel_mult_compare_matrix.Left{i}{j},2),channel_mult_compare_matrix.Left{i}{j});
+            ax_hand = pcolor(1:size(channel_anova_matrix.Left{i},1),1:size(channel_anova_matrix.Left{i},2),channel_anova_matrix.Left{i});
             colormap(flipud(jet));
             caxis([0,1]);
             set(gca,'YDir',"reverse");
-            title({subjectID;'Left';signal_analysis_data.Left.Chan_Names{i};[event_pairs{j,1},' vs. ', event_pairs{j,2},' Multiple Comparison']});
+            title({subjectID;'Left';signal_analysis_data.Left.Chan_Names{i};'ANOVA'});
+            xlabel('End bin');
+            ylabel('Start bin');
+            c_hand = colorbar;
+            c_hand.Title.String = 'p-val';
+        end
+    end
+    
+    % ANOVA Right
+    if isfield(channel_anova_matrix,'Right')
+        for i = 1:length(channel_anova_matrix.Right)
+            fig_vec(end+1) = figure;
+            pcolor(1:size(channel_anova_matrix.Right{i},1),1:size(channel_anova_matrix.Right{i},2),channel_anova_matrix.Right{i});
+            colormap(flipud(jet));
+            caxis([0,1]);
+            set(gca,'YDir',"reverse");
+            title({subjectID;'Right';signal_analysis_data.Right.Chan_Names{i};'ANOVA'});
             xlabel('End bin');
             ylabel('Start bin');
             c_hand = colorbar;
@@ -209,27 +204,145 @@ if isfield(channel_mult_compare_matrix,'Left')
     end
 end
 
-if isfield(channel_mult_compare_matrix,'Right')
-    for i = 1:length(signal_analysis_data.Right.Chan_Names)
-        for j = 1:size(event_pairs,1)
+% Mult-compare Left
+if strcmp(plot_type,'all') || strcmp(plot_type,'mult_compare')
+    if isfield(channel_mult_compare_matrix,'Left')
+        for i = 1:length(signal_analysis_data.Left.Chan_Names)
+            for j = 1:size(event_pairs,1)
+                fig_vec(end+1) = figure;
+                pcolor(1:size(channel_mult_compare_matrix.Left{i}{j},1),1:size(channel_mult_compare_matrix.Left{i}{j},2),channel_mult_compare_matrix.Left{i}{j});
+                colormap(flipud(jet));
+                caxis([0,1]);
+                set(gca,'YDir',"reverse");
+                title({subjectID;'Left';signal_analysis_data.Left.Chan_Names{i};[event_pairs{j,1},' vs. ', event_pairs{j,2},' Multiple Comparison']});
+                xlabel('End bin');
+                ylabel('Start bin');
+                c_hand = colorbar;
+                c_hand.Title.String = 'p-val';
+            end
+        end
+    end
+    
+    % Mult-Compare Right
+    if isfield(channel_mult_compare_matrix,'Right')
+        for i = 1:length(signal_analysis_data.Right.Chan_Names)
+            for j = 1:size(event_pairs,1)
+                fig_vec(end+1) = figure;
+                pcolor(1:size(channel_mult_compare_matrix.Right{i}{j},1),1:size(channel_mult_compare_matrix.Right{i}{j},2),channel_mult_compare_matrix.Right{i}{j});
+                colormap(flipud(jet));
+                caxis([0,1]);
+                set(gca,'YDir',"reverse");
+                title({subjectID;'Right';signal_analysis_data.Right.Chan_Names{i};[event_pairs{j,1},' vs. ', event_pairs{j,2},' Multiple Comparison']});
+                xlabel('End bin');
+                ylabel('Start bin');
+                c_hand = colorbar;
+                c_hand.Title.String = 'p-val';
+            end
+        end
+    end
+end
+
+% Summed Mult-Compare Left (excluding gait events close in time)
+if strcmp(plot_type,'all') || strcmp(plot_type,'summed') || strcmp(plot_type,'summed_exclude')
+    if isfield(channel_mult_compare_matrix,'Left')
+        exclude_inds = findExclusionInds(event_pairs);
+        for i = 1:length(signal_analysis_data.Left.Chan_Names)
             fig_vec(end+1) = figure;
-            pcolor(1:size(channel_mult_compare_matrix.Right{i}{j},1),1:size(channel_mult_compare_matrix.Right{i}{j},2),channel_mult_compare_matrix.Right{i}{j});
+            ind_array = 1:length(channel_mult_compare_matrix.Left{i});
+            ind_array(exclude_inds) = [];
+            extracted_matrix = cell2mat(arrayfun(@(x)permute(x{:},[3 1 2]),channel_mult_compare_matrix.Left{i}(ind_array),'UniformOutput',false));
+            summed_matrix = squeeze(sum(extracted_matrix,1));
+            pcolor(1:size(summed_matrix,1),1:size(summed_matrix,2),summed_matrix);
             colormap(flipud(jet));
-            caxis([0,1]);
             set(gca,'YDir',"reverse");
-            title({subjectID;'Right';signal_analysis_data.Right.Chan_Names{i};[event_pairs{j,1},' vs. ', event_pairs{j,2},' Multiple Comparison']});
             xlabel('End bin');
             ylabel('Start bin');
+            caxis([0.02,1].*length(ind_array));
+            set(gca,'ColorScale','log');
             c_hand = colorbar;
-            c_hand.Title.String = 'p-val';
+            c_hand.Title.String = '\Sigmap-val';
+%             c_hand.Ticks = logspace(log10(0.05*length(ind_array)),log10(1*length(ind_array)),10);
+            c_hand.Ticks = [0.1,0.2,0.4,0.8,1.5,2.5,4];
+            title({subjectID;'Left';signal_analysis_data.Left.Chan_Names{i};'Summed Multiple Comparison Excluding Close Events'});
+        end
+    end
+    
+    % Summed Mult-Compare Right (excluding gait events close in time)
+    if isfield(channel_mult_compare_matrix,'Right')
+        exclude_inds = findExclusionInds(event_pairs);
+        for i = 1:length(signal_analysis_data.Right.Chan_Names)
+            fig_vec(end+1) = figure;
+            ind_array = 1:length(channel_mult_compare_matrix.Left{i});
+            ind_array(exclude_inds) = [];
+            extracted_matrix = cell2mat(arrayfun(@(x)permute(x{:},[3 1 2]),channel_mult_compare_matrix.Right{i}(ind_array),'UniformOutput',false));
+            summed_matrix = squeeze(sum(extracted_matrix,1));
+            pcolor(1:size(summed_matrix,1),1:size(summed_matrix,2),summed_matrix);
+            colormap(flipud(jet));
+            set(gca,'YDir',"reverse");
+            xlabel('End bin');
+            ylabel('Start bin');
+            caxis([0.02,1].*length(ind_array));
+            set(gca,'ColorScale','log');
+            c_hand = colorbar;
+            c_hand.Title.String = '\Sigmap-val';
+%             c_hand.Ticks = logspace(log10(0.05*length(ind_array)),log10(1*length(ind_array)),10);
+            c_hand.Ticks = [0.1,0.2,0.4,0.8,1.5,2.5,4];
+            title({subjectID;'Right';signal_analysis_data.Right.Chan_Names{i};'Summed Multiple Comparison Excluding Close Events'});
+        end
+    end
+end
+
+% Summed Mult-Compare Left (all events)
+if strcmp(plot_type,'all') || strcmp(plot_type,'summed') || strcmp(plot_type,'summed_all')
+    if isfield(channel_mult_compare_matrix,'Left')
+        for i = 1:length(signal_analysis_data.Left.Chan_Names)
+            fig_vec(end+1) = figure;
+            ind_array = 1:length(channel_mult_compare_matrix.Left{i});
+            extracted_matrix = cell2mat(arrayfun(@(x)permute(x{:},[3 1 2]),channel_mult_compare_matrix.Left{i}(ind_array),'UniformOutput',false));
+            summed_matrix = squeeze(sum(extracted_matrix,1));
+            pcolor(1:size(summed_matrix,1),1:size(summed_matrix,2),summed_matrix);
+            colormap(flipud(jet));
+            set(gca,'YDir',"reverse");
+            xlabel('End bin');
+            ylabel('Start bin');
+            caxis([0.022,1].*length(ind_array));
+            set(gca,'ColorScale','log');
+            c_hand = colorbar;
+            c_hand.Title.String = '\Sigmap-val';
+%             c_hand.Ticks = logspace(log10(0.05*length(ind_array)),log10(1*length(ind_array)),10);
+            c_hand.Ticks = [0.2,0.3,0.5,0.8,1.5,2.5,4,6];
+            title({subjectID;'Left';signal_analysis_data.Left.Chan_Names{i};'Summed Multiple Comparison All Events'});
+        end
+    end
+    
+    % Summed Mult-Compare Right (all events)
+    if isfield(channel_mult_compare_matrix,'Right')
+        for i = 1:length(signal_analysis_data.Right.Chan_Names)
+            fig_vec(end+1) = figure;
+            ind_array = 1:length(channel_mult_compare_matrix.Left{i});
+            extracted_matrix = cell2mat(arrayfun(@(x)permute(x{:},[3 1 2]),channel_mult_compare_matrix.Right{i}(ind_array),'UniformOutput',false));
+            summed_matrix = squeeze(sum(extracted_matrix,1));
+            pcolor(1:size(summed_matrix,1),1:size(summed_matrix,2),summed_matrix);
+            colormap(flipud(jet));
+            set(gca,'YDir',"reverse");
+            xlabel('End bin');
+            ylabel('Start bin');
+            caxis([0.022,1].*length(ind_array));
+            set(gca,'ColorScale','log');
+            c_hand = colorbar;
+            c_hand.Title.String = '\Sigmap-val';
+%             c_hand.Ticks = logspace(log10(0.05*length(ind_array)),log10(1*length(ind_array)),10);
+            c_hand.Ticks = [0.2,0.3,0.5,0.8,1.5,2.5,4,6];
+            title({subjectID;'Right';signal_analysis_data.Right.Chan_Names{i};'Summed Multiple Comparison All Events'});
         end
     end
 end
 
 %% Save plots
 if save_flag
-%     save_dir = uigetdir();
-    
+    if isempty(save_dir)
+        save_dir = uigetdir();
+    end
 %     figure_format(12,8,12);
     
     % check if saving folders exist
@@ -316,4 +429,9 @@ for i = 1:length(skips)
     freq_bin_inds(f(i-1)+1:f(i),1) = transpose(1:n-skips(i));
     freq_bin_inds(f(i-1)+1:f(i),2) = freq_bin_inds(f(i-1)+1:f(i),1) + skips(i);
 end
+end
+
+function [exclude_inds] = findExclusionInds(event_pairs)
+exclude_inds(1) = find((strcmp(event_pairs(:,1),'LHS') | strcmp(event_pairs(:,1),'RTO')) & (strcmp(event_pairs(:,2),'LHS') | strcmp(event_pairs(:,2),'RTO')));
+exclude_inds(2) = find((strcmp(event_pairs(:,1),'RHS') | strcmp(event_pairs(:,1),'LTO')) & (strcmp(event_pairs(:,2),'RHS') | strcmp(event_pairs(:,2),'LTO')));
 end
