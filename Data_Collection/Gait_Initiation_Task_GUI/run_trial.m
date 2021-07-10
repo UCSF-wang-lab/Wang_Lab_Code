@@ -29,9 +29,6 @@ switch src.String
         trial_type = 2;
         trial_time = toc(src.Parent.UserData.clock);
         
-        src.Parent.UserData.timer_cue.StartDelay = 3;
-        src.Parent.UserData.timer_cue.TimerFcn = {@change_screen_color,trial_type,3};
-        
     case 'Prepare-and-Go'
         trial_type = 3;
         trial_time = toc(src.Parent.UserData.clock);

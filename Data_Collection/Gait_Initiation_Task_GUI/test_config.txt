@@ -3,5 +3,4 @@ save_path = "/Volumes/klouie1/Gait_Initiation_Task_GUI"
 color_go = "green"
 color_prepare = "yellow"
 color_stop = "red"
-random_time_mean = 4.5
-random_time_std = 2.25
+random_time = "10,8,6,12,9"

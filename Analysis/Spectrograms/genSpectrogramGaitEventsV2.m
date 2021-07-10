@@ -1,5 +1,5 @@
 function genSpectrogramGaitEventsV2(aligned_data,signal_analysis_data,events_to_mark,subjectID,save_flag)
-if ~exist('events_to_mark','var')
+if ~exist('events_to_mark','var') || isempty(events_to_mark)
     events_to_mark = {'LTO','LHS','RTO','RHS'};
 end
 
@@ -25,7 +25,7 @@ if isfield(signal_analysis_data,'Left')
     for i = 1:length(signal_analysis_data.Left.Chan_Names)
         fig_vec(end+1) = figure;
         if isfield(signal_analysis_data.Left,'PSD')
-            pcolor(signal_analysis_data.Left.Time{i},signal_analysis_data.Left.Freq_Values{i},10*log10(abs(signal_analysis_data.Left.PSD{i})));
+            pcolor(signal_analysis_data.Left.Time{i},signal_analysis_data.Left.Freq_Values{i},20*log10(abs(signal_analysis_data.Left.PSD{i})));
             shading flat;
             ylim([2.5,50]);
             A = caxis;
@@ -71,7 +71,7 @@ if isfield(signal_analysis_data,'Right')
     for i = 1:length(signal_analysis_data.Right.Chan_Names)
         fig_vec(end+1) = figure;
         if isfield(signal_analysis_data.Right,'PSD')
-            pcolor(signal_analysis_data.Right.Time{i},signal_analysis_data.Right.Freq_Values{i},10*log10(abs(signal_analysis_data.Right.PSD{i})));
+            pcolor(signal_analysis_data.Right.Time{i},signal_analysis_data.Right.Freq_Values{i},20*log10(abs(signal_analysis_data.Right.PSD{i})));
             shading flat;
             ylim([2.5,50]);
             A = caxis;
@@ -119,29 +119,29 @@ if save_flag
         mkdir(fullfile(save_dir,'Spectrogram'));
     end
     
-    if ~isfolder(fullfile(save_dir,'Spectrogram',aligned_data.stim_condition))
-        mkdir(fullfile(save_dir,'Spectrogram',aligned_data.stim_condition))
+    if ~isfolder(fullfile(save_dir,'Spectrogram',[aligned_data.stim_condition,'_STIM']))
+        mkdir(fullfile(save_dir,'Spectrogram',[aligned_data.stim_condition,'_STIM']))
     end
     
     if strcmp(analysis_type,'FT')
-        if ~isfolder(fullfile(save_dir,'Spectrogram',aligned_data.stim_condition,'FT'))
-            mkdir(fullfile(save_dir,'Spectrogram',aligned_data.stim_condition,'FT'))
+        if ~isfolder(fullfile(save_dir,'Spectrogram',[aligned_data.stim_condition,'_STIM'],'FT'))
+            mkdir(fullfile(save_dir,'Spectrogram',[aligned_data.stim_condition,'_STIM'],'FT'))
         end
     elseif strcmp(analysis_type,'CWT')
-        if ~isfolder(fullfile(save_dir,'Spectrogram',aligned_data.stim_condition,'CWT'))
-            mkdir(fullfile(save_dir,'Spectrogram',aligned_data.stim_condition,'CWT'))
+        if ~isfolder(fullfile(save_dir,'Spectrogram',[aligned_data.stim_condition,'_STIM'],'CWT'))
+            mkdir(fullfile(save_dir,'Spectrogram',[aligned_data.stim_condition,'_STIM'],'CWT'))
         end
     end
     
     folders_to_check = {'FIG_files','PDF_files','TIFF_files'};
     for n = 1:length(folders_to_check)
         if strcmp(analysis_type,'FT')
-            if ~isfolder(fullfile(save_dir,'Spectrogram',aligned_data.stim_condition,'FT',folders_to_check{n}))
-                mkdir(fullfile(save_dir,'Spectrogram',aligned_data.stim_condition,'FT',folders_to_check{n}));
+            if ~isfolder(fullfile(save_dir,'Spectrogram',[aligned_data.stim_condition,'_STIM'],'FT',folders_to_check{n}))
+                mkdir(fullfile(save_dir,'Spectrogram',[aligned_data.stim_condition,'_STIM'],'FT',folders_to_check{n}));
             end
         elseif strcmp(analysis_type,'CWT')
-            if ~isfolder(fullfile(save_dir,'Spectrogram',aligned_data.stim_condition,'CWT',folders_to_check{n}))
-                mkdir(fullfile(save_dir,'Spectrogram',aligned_data.stim_condition,'CWT',folders_to_check{n}));
+            if ~isfolder(fullfile(save_dir,'Spectrogram',[aligned_data.stim_condition,'_STIM'],'CWT',folders_to_check{n}))
+                mkdir(fullfile(save_dir,'Spectrogram',[aligned_data.stim_condition,'_STIM'],'CWT',folders_to_check{n}));
             end
         end
     end
@@ -159,9 +159,9 @@ if save_flag
         end
         
         if strcmp(analysis_type,'FT')
-            savefig(fig_vec(i),fullfile(save_dir,'Spectrogram',aligned_data.stim_condition,'FT',folders_to_check{1},strrep(save_name,' ','_')));
+            savefig(fig_vec(i),fullfile(save_dir,'Spectrogram',[aligned_data.stim_condition,'_STIM'],'FT',folders_to_check{1},strrep(save_name,' ','_')));
         elseif strcmp(analysis_type,'CWT')
-            savefig(fig_vec(i),fullfile(save_dir,'Spectrogram',aligned_data.stim_condition,'CWT',folders_to_check{1},strrep(save_name,' ','_')));
+            savefig(fig_vec(i),fullfile(save_dir,'Spectrogram',[aligned_data.stim_condition,'_STIM'],'CWT',folders_to_check{1},strrep(save_name,' ','_')));
         end
     end
 end

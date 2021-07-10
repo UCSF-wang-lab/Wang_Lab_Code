@@ -27,7 +27,8 @@ if ~exist('n_percent_bins','var')
 end
 
 if ~exist('baseline_data','var')
-    baseline_data = [];
+    baseline_data.Left = [];
+    baseline_data.Right = [];
 end
 
 if ~exist('baseline_normalization','var')
@@ -49,7 +50,7 @@ gait_events_sorted = sort_gait_events(aligned_data.gait_events,cycle_start_event
 % Go through all valid gait cycles
 % Left
 if isfield(signal_analysis_data,'Left')
-    if isfield(signal_analysis_data.Right,'PSD')
+    if isfield(signal_analysis_data.Left,'PSD')
         analysis_type = 'FT';
     else
         analysis_type = 'CWT';
@@ -178,17 +179,17 @@ if save_flag
         mkdir(fullfile(save_dir,'AvgGaitCycleSpec'));
     end
     
-    if ~isfolder(fullfile(save_dir,'AvgGaitCycleSpec',aligned_data.stim_condition))
-        mkdir(fullfile(save_dir,'AvgGaitCycleSpec',aligned_data.stim_condition))
+    if ~isfolder(fullfile(save_dir,'AvgGaitCycleSpec',[aligned_data.stim_condition,'_STIM']))
+        mkdir(fullfile(save_dir,'AvgGaitCycleSpec',[aligned_data.stim_condition,'_STIM']))
     end
     
     if strcmp(analysis_type,'FT')
-        if ~isfolder(fullfile(save_dir,'AvgGaitCycleSpec',aligned_data.stim_condition,'FT'))
-            mkdir(fullfile(save_dir,'AvgGaitCycleSpec',aligned_data.stim_condition,'FT'))
+        if ~isfolder(fullfile(save_dir,'AvgGaitCycleSpec',[aligned_data.stim_condition,'_STIM'],'FT'))
+            mkdir(fullfile(save_dir,'AvgGaitCycleSpec',[aligned_data.stim_condition,'_STIM'],'FT'))
         end
     elseif strcmp(analysis_type,'CWT')
-        if ~isfolder(fullfile(save_dir,'AvgGaitCycleSpec',aligned_data.stim_condition,'CWT'))
-            mkdir(fullfile(save_dir,'AvgGaitCycleSpec',aligned_data.stim_condition,'CWT'))
+        if ~isfolder(fullfile(save_dir,'AvgGaitCycleSpec',[aligned_data.stim_condition,'_STIM'],'CWT'))
+            mkdir(fullfile(save_dir,'AvgGaitCycleSpec',[aligned_data.stim_condition,'_STIM'],'CWT'))
         end
     end
     
@@ -196,12 +197,12 @@ if save_flag
     extension = {'.fig','.pdf','.tiff'};
     for n = 1:length(folders_to_check)
         if strcmp(analysis_type,'FT')
-            if ~isfolder(fullfile(save_dir,'AvgGaitCycleSpec',aligned_data.stim_condition,'FT',folders_to_check{n}))
-                mkdir(fullfile(save_dir,'AvgGaitCycleSpec',aligned_data.stim_condition,'FT',folders_to_check{n}));
+            if ~isfolder(fullfile(save_dir,'AvgGaitCycleSpec',[aligned_data.stim_condition,'_STIM'],'FT',folders_to_check{n}))
+                mkdir(fullfile(save_dir,'AvgGaitCycleSpec',[aligned_data.stim_condition,'_STIM'],'FT',folders_to_check{n}));
             end
         elseif strcmp(analysis_type,'CWT')
-            if ~isfolder(fullfile(save_dir,'AvgGaitCycleSpec',aligned_data.stim_condition,'CWT',folders_to_check{n}))
-                mkdir(fullfile(save_dir,'AvgGaitCycleSpec',aligned_data.stim_condition,'CWT',folders_to_check{n}));
+            if ~isfolder(fullfile(save_dir,'AvgGaitCycleSpec',[aligned_data.stim_condition,'_STIM'],'CWT',folders_to_check{n}))
+                mkdir(fullfile(save_dir,'AvgGaitCycleSpec',[aligned_data.stim_condition,'_STIM'],'CWT',folders_to_check{n}));
             end
         end
     end
@@ -218,18 +219,18 @@ if save_flag
         end
         
         if strcmp(analysis_type,'FT')
-            savefig(fig_vec(i),fullfile(save_dir,'AvgGaitCycleSpec',aligned_data.stim_condition,'FT',folders_to_check{1},strrep(save_name,' ','_')));
+            savefig(fig_vec(i),fullfile(save_dir,'AvgGaitCycleSpec',[aligned_data.stim_condition,'_STIM'],'FT',folders_to_check{1},strrep(save_name,' ','_')));
         elseif strcmp(analysis_type,'CWT')
-            savefig(fig_vec(i),fullfile(save_dir,'AvgGaitCycleSpec',aligned_data.stim_condition,'CWT',folders_to_check{1},strrep(save_name,' ','_')));
+            savefig(fig_vec(i),fullfile(save_dir,'AvgGaitCycleSpec',[aligned_data.stim_condition,'_STIM'],'CWT',folders_to_check{1},strrep(save_name,' ','_')));
         end
         
-        %         for k = 2:length(folders_to_check)
-        %             if strcmp(analysis_type,'FT')
-        %                 print(fig_vec(i),[fullfile(save_dir,'AvgGaitCycleSpec',aligned_data.stim_condition,'FT',folders_to_check{k},strrep(save_name,' ','_')),extension{k}],'-r300',['-d',extension{k}(2:end)]);
-        %             elseif strcmp(analysis_type,'CWT')
-        %                 print(fig_vec(i),[fullfile(save_dir,'AvgGaitCycleSpec',aligned_data.stim_condition,'CWT',folders_to_check{k},strrep(save_name,' ','_')),extension{k}],'-r300',['-d',extension{k}(2:end)]);
-        %             end
-        %         end
+        for k = 2:length(folders_to_check)
+            if strcmp(analysis_type,'FT')
+                print(fig_vec(i),[fullfile(save_dir,'AvgGaitCycleSpec',[aligned_data.stim_condition,'_STIM'],'FT',folders_to_check{k},strrep(save_name,' ','_')),extension{k}],'-r300',['-d',extension{k}(2:end)]);
+            elseif strcmp(analysis_type,'CWT')
+                print(fig_vec(i),[fullfile(save_dir,'AvgGaitCycleSpec',[aligned_data.stim_condition,'_STIM'],'CWT',folders_to_check{k},strrep(save_name,' ','_')),extension{k}],'-r300',['-d',extension{k}(2:end)]);
+            end
+        end
     end
 end
 end
@@ -267,13 +268,15 @@ end
 
 function normalized_data = normalizeWithBaseline(gait_cycle_avg,baseline_data,normalize_type)
 normalized_data = gait_cycle_avg;
-baseline_vals = cellfun(@(x) mean(20*log10(abs(x)),2),baseline_data.Values,'UniformOutput',false);
-assert(length(baseline_data.Values)==length(gait_cycle_avg));
-
-switch normalize_type
-    case 'percent_change'
-        normalized_data = cellfun(@(x,y)(x-y)./abs(y),gait_cycle_avg,baseline_vals,'UniformOutput',false);
-    case 'subtraction'
-        normalized_data = cellfun(@(x,y)x-y,gait_cycle_avg,baseline_vals,'UniformOutput',false);
+if ~strcmp(normalize_type,'none')
+    baseline_vals = cellfun(@(x) mean(20*log10(abs(x)),2),baseline_data.Values,'UniformOutput',false);
+    assert(length(baseline_data.Values)==length(gait_cycle_avg));
+    
+    switch normalize_type
+        case 'percent_change'
+            normalized_data = cellfun(@(x,y)(x-y)./abs(y),gait_cycle_avg,baseline_vals,'UniformOutput',false);
+        case 'subtraction'
+            normalized_data = cellfun(@(x,y)x-y,gait_cycle_avg,baseline_vals,'UniformOutput',false);
+    end
 end
 end

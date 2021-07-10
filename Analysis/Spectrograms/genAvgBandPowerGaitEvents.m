@@ -226,17 +226,17 @@ if save_flag
         mkdir(fullfile(save_dir,'AvgEventPower'));
     end
     
-    if ~isfolder(fullfile(save_dir,'AvgEventPower',aligned_data.stim_condition))
-        mkdir(fullfile(save_dir,'AvgEventPower',aligned_data.stim_condition))
+    if ~isfolder(fullfile(save_dir,'AvgEventPower',[aligned_data.stim_condition,'_STIM']))
+        mkdir(fullfile(save_dir,'AvgEventPower',[aligned_data.stim_condition,'_STIM']))
     end
     
     if strcmp(analysis_type,'FT')
-        if ~isfolder(fullfile(save_dir,'AvgEventPower',aligned_data.stim_condition,'FT'))
-            mkdir(fullfile(save_dir,'AvgEventPower',aligned_data.stim_condition,'FT'))
+        if ~isfolder(fullfile(save_dir,'AvgEventPower',[aligned_data.stim_condition,'_STIM'],'FT'))
+            mkdir(fullfile(save_dir,'AvgEventPower',[aligned_data.stim_condition,'_STIM'],'FT'))
         end
     elseif strcmp(analysis_type,'CWT')
-        if ~isfolder(fullfile(save_dir,'AvgEventPower',aligned_data.stim_condition,'CWT'))
-            mkdir(fullfile(save_dir,'AvgEventPower',aligned_data.stim_condition,'CWT'))
+        if ~isfolder(fullfile(save_dir,'AvgEventPower',[aligned_data.stim_condition,'_STIM'],'CWT'))
+            mkdir(fullfile(save_dir,'AvgEventPower',[aligned_data.stim_condition,'_STIM'],'CWT'))
         end
     end
     
@@ -244,12 +244,12 @@ if save_flag
     extension = {'.fig','.pdf','.tiff'};
     for n = 1:length(folders_to_check)
         if strcmp(analysis_type,'FT')
-            if ~isfolder(fullfile(save_dir,'AvgEventPower',aligned_data.stim_condition,'FT',folders_to_check{n}))
-                mkdir(fullfile(save_dir,'AvgEventPower',aligned_data.stim_condition,'FT',folders_to_check{n}));
+            if ~isfolder(fullfile(save_dir,'AvgEventPower',[aligned_data.stim_condition,'_STIM'],'FT',folders_to_check{n}))
+                mkdir(fullfile(save_dir,'AvgEventPower',[aligned_data.stim_condition,'_STIM'],'FT',folders_to_check{n}));
             end
         elseif strcmp(analysis_type,'CWT')
-            if ~isfolder(fullfile(save_dir,'AvgEventPower',aligned_data.stim_condition,'CWT',folders_to_check{n}))
-                mkdir(fullfile(save_dir,'AvgEventPower',aligned_data.stim_condition,'CWT',folders_to_check{n}));
+            if ~isfolder(fullfile(save_dir,'AvgEventPower',[aligned_data.stim_condition,'_STIM'],'CWT',folders_to_check{n}))
+                mkdir(fullfile(save_dir,'AvgEventPower',[aligned_data.stim_condition,'_STIM'],'CWT',folders_to_check{n}));
             end
         end
     end
@@ -266,16 +266,16 @@ if save_flag
         end
         
         if strcmp(analysis_type,'FT')
-            savefig(fig_vec(i),fullfile(save_dir,'AvgEventPower',aligned_data.stim_condition,'FT',folders_to_check{1},strrep(strrep(save_name,' ','_'),'.','')));
+            savefig(fig_vec(i),fullfile(save_dir,'AvgEventPower',[aligned_data.stim_condition,'_STIM'],'FT',folders_to_check{1},strrep(strrep(save_name,' ','_'),'.','')));
         elseif strcmp(analysis_type,'CWT')
-            savefig(fig_vec(i),fullfile(save_dir,'AvgEventPower',aligned_data.stim_condition,'CWT',folders_to_check{1},strrep(strrep(save_name,' ','_'),'.','')));
+            savefig(fig_vec(i),fullfile(save_dir,'AvgEventPower',[aligned_data.stim_condition,'_STIM'],'CWT',folders_to_check{1},strrep(strrep(save_name,' ','_'),'.','')));
         end
         
         for k = 2:length(folders_to_check)
             if strcmp(analysis_type,'FT')
-                print(fig_vec(i),[fullfile(save_dir,'AvgEventPower',aligned_data.stim_condition,'FT',folders_to_check{k},strrep(strrep(save_name,' ','_'),'.','')),extension{k}],'-r300',['-d',extension{k}(2:end)]);
+                print(fig_vec(i),[fullfile(save_dir,'AvgEventPower',[aligned_data.stim_condition,'_STIM'],'FT',folders_to_check{k},strrep(strrep(save_name,' ','_'),'.','')),extension{k}],'-r300',['-d',extension{k}(2:end)]);
             elseif strcmp(analysis_type,'CWT')
-                print(fig_vec(i),[fullfile(save_dir,'AvgEventPower',aligned_data.stim_condition,'CWT',folders_to_check{k},strrep(strrep(save_name,' ','_'),'.','')),extension{k}],'-r300',['-d',extension{k}(2:end)]);
+                print(fig_vec(i),[fullfile(save_dir,'AvgEventPower',[aligned_data.stim_condition,'_STIM'],'CWT',folders_to_check{k},strrep(strrep(save_name,' ','_'),'.','')),extension{k}],'-r300',['-d',extension{k}(2:end)]);
             end
         end
     end

@@ -9,8 +9,8 @@ end
 
 %% PSD at each gait event
 % Left
-PSD_gait_events.Left = {};
 if isfield(signal_analysis_data,'Left')
+    PSD_gait_events.Left = {};
     for i = 1:length(signal_analysis_data.Left.Chan_Names)
         for j = 1:length(aligned_data.gait_events.Properties.VariableNames)
             if ~isfield(PSD_gait_events.Left,aligned_data.gait_events.Properties.VariableNames{j})
@@ -35,8 +35,8 @@ if isfield(signal_analysis_data,'Left')
 end
 
 % Right
-PSD_gait_events.Right = {};
 if isfield(signal_analysis_data,'Right')
+    PSD_gait_events.Right = {};
     for i = 1:length(signal_analysis_data.Right.Chan_Names)
         for j = 1:length(aligned_data.gait_events.Properties.VariableNames)
             if ~isfield(PSD_gait_events.Right,aligned_data.gait_events.Properties.VariableNames{j})
@@ -137,19 +137,19 @@ if save_flag
         mkdir(fullfile(save_dir,'PSD'));
     end
     
-    if ~isfolder(fullfile(save_dir,'PSD',aligned_data.stim_condition))
-        mkdir(fullfile(save_dir,'PSD',aligned_data.stim_condition))
+    if ~isfolder(fullfile(save_dir,'PSD',[aligned_data.stim_condition,'_STIM']))
+        mkdir(fullfile(save_dir,'PSD',[aligned_data.stim_condition,'_STIM']))
     end
     
-    if ~isfolder(fullfile(save_dir,'PSD',aligned_data.stim_condition,'FT'))
-        mkdir(fullfile(save_dir,'PSD',aligned_data.stim_condition,'FT'))
+    if ~isfolder(fullfile(save_dir,'PSD',[aligned_data.stim_condition,'_STIM'],'FT'))
+        mkdir(fullfile(save_dir,'PSD',[aligned_data.stim_condition,'_STIM'],'FT'))
     end
     
     folders_to_check = {'FIG_files','PDF_files','TIFF_files'};
     extension = {'.fig','.pdf','.tiff'};
     for n = 1:length(folders_to_check)
-        if ~isfolder(fullfile(save_dir,'PSD',aligned_data.stim_condition,'FT',folders_to_check{n}))
-            mkdir(fullfile(save_dir,'PSD',aligned_data.stim_condition,'FT',folders_to_check{n}));
+        if ~isfolder(fullfile(save_dir,'PSD',[aligned_data.stim_condition,'_STIM'],'FT',folders_to_check{n}))
+            mkdir(fullfile(save_dir,'PSD',[aligned_data.stim_condition,'_STIM'],'FT',folders_to_check{n}));
         end
     end
     
@@ -164,9 +164,9 @@ if save_flag
             end
         end
         
-        savefig(fig_vec(i),fullfile(save_dir,'PSD',aligned_data.stim_condition,'FT',folders_to_check{1},strrep(save_name,' ','_')));
+        savefig(fig_vec(i),fullfile(save_dir,'PSD',[aligned_data.stim_condition,'_STIM'],'FT',folders_to_check{1},strrep(save_name,' ','_')));
         for k = 2:length(folders_to_check)
-            print(fig_vec(i),[fullfile(save_dir,'PSD',aligned_data.stim_condition,'FT',folders_to_check{k},strrep(save_name,' ','_')),extension{k}],'-r300',['-d',extension{k}(2:end)]);
+            print(fig_vec(i),[fullfile(save_dir,'PSD',[aligned_data.stim_condition,'_STIM'],'FT',folders_to_check{k},strrep(save_name,' ','_')),extension{k}],'-r300',['-d',extension{k}(2:end)]);
         end
         
     end

@@ -1,19 +1,43 @@
-function STFT = calcRCS_STFT(aligned_data,gapFillType,percentOverlap)
+function STFT = calcRCS_STFT(aligned_data,gapFillType,windowLength,percentOverlap,nfft)
+%% 
+% A = calcRCS_STFT(aligned_data,[],0.1,0.5,[]);
+% A = calcRCS_STFT(aligned_data,[],[],0.996,[]); % Legacy
+
+
+%%
 if ~exist('gapFillType','var') || isempty(gapFillType)
     gapFillType = 'blank';
 end
 
+if ~exist('windowLength','var') || isempty(windowLength)
+    windowLength = inf;
+end
+
 if ~exist('percentOverlap','var') || isempty(percentOverlap)
-    percentOverlap = 0.9;
+    percentOverlap = 0.5;
+end
+
+if ~exist('nfft','var') || isempty(nfft)
+    NFFT = [];
 end
 
 %% Left RCS
 if isfield(aligned_data,'left_LFP_table')
     % Spectrogram hyperparameters
     left_sr = aligned_data.DeviceSettings.Left.timeDomainSettings.samplingRate(end);
-    WINDOW = left_sr;
+    
+    if isinf(windowLength)
+        WINDOW = left_sr;
+    elseif windowLength > 0 && windowLength <= 1
+        WINDOW = left_sr*windowLength;
+        WINDOW = WINDOW + mod(WINDOW,2);
+    end
+    
     NOVERLAP = round(WINDOW*percentOverlap);
-    NFFT = 2^nextpow2(WINDOW);
+    
+    if isempty(NFFT)
+        NFFT = 2^nextpow2(left_sr);
+    end
     
     chan_tag_inds = cellfun(@(x) contains(x,'chan'),aligned_data.DeviceSettings.Left.timeDomainSettings.Properties.VariableNames);
     chan_col_names = aligned_data.DeviceSettings.Left.timeDomainSettings.Properties.VariableNames(chan_tag_inds);
@@ -46,9 +70,19 @@ end
 if isfield(aligned_data,'right_LFP_table')
     % Spectrogram hyperparameters
     right_sr = aligned_data.DeviceSettings.Right.timeDomainSettings.samplingRate(end);
-    WINDOW = right_sr;
+    
+    if isinf(windowLength)
+        WINDOW = right_sr;
+    elseif windowLength > 0 && windowLength <= 1
+        WINDOW = right_sr*windowLength;
+        WINDOW = WINDOW + mod(WINDOW,2);
+    end
+    
     NOVERLAP = round(WINDOW*percentOverlap);
-    NFFT = 2^nextpow2(WINDOW);
+    
+    if isempty(NFFT)
+        NFFT = 2^nextpow2(right_sr);
+    end
     
     chan_tag_inds = cellfun(@(x) contains(x,'chan'),aligned_data.DeviceSettings.Right.timeDomainSettings.Properties.VariableNames);
     chan_col_names = aligned_data.DeviceSettings.Right.timeDomainSettings.Properties.VariableNames(chan_tag_inds);

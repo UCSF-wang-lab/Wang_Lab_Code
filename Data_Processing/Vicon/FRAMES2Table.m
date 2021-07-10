@@ -13,41 +13,53 @@ function FRAMES2Table(filename,savepath)
 data_table = array2table(readmatrix(filename,'Range',[data_blocks(1,1),1,data_blocks(1,2),length(col_names{1})]));
 data_table.Properties.VariableNames = col_names{1};
 
-data_table_per_second = array2table(readmatrix(filename,'Range',[data_blocks(2,1),1,data_blocks(2,2),length(col_names{2})]));
-data_table_per_second.Properties.VariableNames = col_names{2};
-
 % Rotate coordinates so it is in the right directions and magnitude
-temp = data_table.Cx_mm;
-data_table.Cx_mm = data_table.Cy_mm;
-data_table.Cy_mm = -temp;
-data_table.Cz_mm = -data_table.Cz_mm;
-
-temp = data_table.Fx_N;
-data_table.Fx_N = data_table.Fy_N;
-data_table.Fy_N = -temp;
-data_table.Fz_N = -data_table.Fz_N;
-
-temp = data_table_per_second.Cx_mm_s;
-data_table_per_second.Cx_mm_s = data_table_per_second.Cy_mm_s;
-data_table_per_second.Cy_mm_s = -temp;
-data_table_per_second.Cz_mm_s = -data_table_per_second.Cz_mm_s;
-
-temp = data_table_per_second.Fx_N_s;
-data_table_per_second.Fx_N_s = data_table_per_second.Fy_N_s;
-data_table_per_second.Fy_N_s = -temp;
-data_table_per_second.Fz_N_s = -data_table_per_second.Fz_N_s;
+if sum(contains(col_names{1},'FP')) == 0
+    % Single force plate
+    temp = data_table.Cx_mm;
+    data_table.Cx_mm = data_table.Cy_mm;
+    data_table.Cy_mm = -temp;
+    data_table.Cz_mm = -data_table.Cz_mm;
+    
+    temp = data_table.Fx_N;
+    data_table.Fx_N = data_table.Fy_N;
+    data_table.Fy_N = -temp;
+    data_table.Fz_N = -data_table.Fz_N;
+end
 
 [dir,file,ext] = fileparts(filename);
 
 if ~exist('savepath','var') || isempty(savepath)
     save_name = fullfile(dir,['ForcePlateData',ext]);
-    save_name_per_second = fullfile(dir,['ForcePlateData_perSecond',ext]);
 else
     save_name = fullfile(savepath,[file,'_ForcePlateData',ext]);
-    save_name_per_second = fullfile(savepath,[file,'_ForcePlateData_perSecond',ext]);
 end
 writetable(data_table,save_name);
-writetable(data_table_per_second,save_name_per_second);
+
+% if per second variables exist
+if length(col_names) == 2
+    data_table_per_second = array2table(readmatrix(filename,'Range',[data_blocks(2,1),1,data_blocks(2,2),length(col_names{2})]));
+    data_table_per_second.Properties.VariableNames = col_names{2};
+        
+    temp = data_table_per_second.Cx_mm_s;
+    data_table_per_second.Cx_mm_s = data_table_per_second.Cy_mm_s;
+    data_table_per_second.Cy_mm_s = -temp;
+    data_table_per_second.Cz_mm_s = -data_table_per_second.Cz_mm_s;
+    
+    temp = data_table_per_second.Fx_N_s;
+    data_table_per_second.Fx_N_s = data_table_per_second.Fy_N_s;
+    data_table_per_second.Fy_N_s = -temp;
+    data_table_per_second.Fz_N_s = -data_table_per_second.Fz_N_s;
+    
+    if ~exist('savepath','var') || isempty(savepath)
+        save_name_per_second = fullfile(dir,['ForcePlateData_perSecond',ext]);
+    else
+        save_name_per_second = fullfile(savepath,[file,'_ForcePlateData_perSecond',ext]);
+    end
+    
+    writetable(data_table_per_second,save_name_per_second);
+end
+
 end
 
 function [col_names,data_blocks] = getColNames(filename)
@@ -91,9 +103,20 @@ end
 
 col_names{1} = cellfun(@(x) strrep(x,' ',''),col_names{1},'UniformOutput',false);
 col_names{1} = cellfun(@(x) strrep(x,'.','_'),col_names{1},'UniformOutput',false);
+for i = 1:length(col_names{1})
+    repeats =  cellfun(@(x) strcmp(x,col_names{1}{i}),col_names{1});
+    if sum(repeats) > 1
+        rep_inds = find(repeats);
+        for j = 1:length(rep_inds)
+            col_names{1}{rep_inds(j)} = [col_names{1}{rep_inds(j)},'_FP',num2str(j)];
+        end
+    end
+end
 
-col_names{2} = cellfun(@(x) strrep(x,' ',''),col_names{2},'UniformOutput',false);
-col_names{2} = cellfun(@(x) strrep(x,'.','_'),col_names{2},'UniformOutput',false);
-col_names{2} = cellfun(@(x) strrep(x,'/','_'),col_names{2},'UniformOutput',false);
-col_names{2} = cellfun(@(x) strrep(x,'''',''),col_names{2},'UniformOutput',false);
+if length(col_names) > 1
+    col_names{2} = cellfun(@(x) strrep(x,' ',''),col_names{2},'UniformOutput',false);
+    col_names{2} = cellfun(@(x) strrep(x,'.','_'),col_names{2},'UniformOutput',false);
+    col_names{2} = cellfun(@(x) strrep(x,'/','_'),col_names{2},'UniformOutput',false);
+    col_names{2} = cellfun(@(x) strrep(x,'''',''),col_names{2},'UniformOutput',false);
+end
 end
