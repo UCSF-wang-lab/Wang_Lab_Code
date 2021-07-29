@@ -95,6 +95,8 @@ if isfield(signal_analysis_data,'Left')
                                 vals_phase_time(count_time,:,m) = mean(temp3(band_inds(m,1):band_inds(m,2),:));
                             end
                             count_time = count_time + 1;
+                        else
+                            fprintf("dropped packet");
                         end
                         
                         if sum(isinf(temp),'all') == 0
@@ -198,6 +200,8 @@ if isfield(signal_analysis_data,'Right')
                                 vals_phase_time(count_time,:,m) = mean(temp3(band_inds(m,1):band_inds(m,2),:));
                             end
                             count_time = count_time + 1;
+                        else
+                            fprintf("dropped packet");
                         end
                         
                         if sum(isinf(temp),'all') == 0

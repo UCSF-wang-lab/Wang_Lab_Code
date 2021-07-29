@@ -31,12 +31,13 @@ switch src.String
         
     case 'Prepare-and-Go'
         trial_type = 3;
+        src.Parent.UserData.n_pg_trials = src.Parent.UserData.n_pg_trials + 1;
         trial_time = toc(src.Parent.UserData.clock);
         
         src.Parent.UserData.timer_prepare.StartDelay = 3;
         src.Parent.UserData.timer_prepare.TimerFcn = {@change_screen_color,trial_type,2};
         
-        prep_time = round(src.Parent.UserData.random_timer_settings.std * randn + src.Parent.UserData.random_timer_settings.mean,3);
+        prep_time = src.Parent.UserData.random_timer_settings(mod(mod(src.Parent.UserData.n_pg_trials-1,5)+5,5)+1);
         src.Parent.UserData.timer_cue.StartDelay = 3+prep_time;
         src.Parent.UserData.timer_cue.TimerFcn = {@change_screen_color,trial_type,3};
 end

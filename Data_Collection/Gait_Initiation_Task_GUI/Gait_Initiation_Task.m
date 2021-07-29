@@ -43,12 +43,13 @@ main_window = figure('Visible','on','units','normalized','outerposition',[0,0,1,
 main_window.UserData.subid = config_settings.subid;
 main_window.UserData.save_path = config_settings.save_path;
 main_window.UserData.colors = struct('go',config_settings.color_go,'prepare',config_settings.color_prepare,'stop',config_settings.color_stop);
-main_window.UserData.random_timer_settings = struct('mean',config_settings.random_time_mean,'std',config_settings.random_time_std);
+main_window.UserData.random_timer_settings = config_settings.random_time;
 main_window.UserData.clock = tic;
 main_window.UserData.ready = 0;
 main_window.UserData.timer_cue = timer('ExecutionMode','singleShot','TimerFcn',@change_screen_color);
 main_window.UserData.timer_prepare = timer('ExecutionMode','singleShot','TimerFcn',@change_screen_color);
 main_window.UserData.timer_stop = timer('ExecutionMode','singleShot','TimerFcn',@change_screen_color);
+main_window.UserData.n_pg_trials = 0;
 
 
 %% Call play sound to initialize the local variables

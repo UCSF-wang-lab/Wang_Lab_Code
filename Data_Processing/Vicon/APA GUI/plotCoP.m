@@ -17,17 +17,29 @@ vicon_time = (0:height(src.Parent.UserData.Vicon_data)-1)./1000;
 src.Parent.UserData.CoP_startInd = startInd;
 src.Parent.UserData.CoP_endInd = endInd;
 
+if sum(contains(src.Parent.UserData.Vicon_data.Properties.VariableNames,'Fx_N')) == 1
+        single_force_plate = true;
+end
+
+if single_force_plate
+    cop_ml = src.Parent.UserData.Vicon_data.Cx_mm(startInd:endInd);
+    cop_ap = src.Parent.UserData.Vicon_data.Cy_mm(startInd:endInd);
+else
+    cop_init_y = ((src.Parent.UserData.Vicon_data.Cx_mm_FP2(1)-src.Parent.UserData.Vicon_data.Cx_mm_FP1(1))/2) + src.Parent.UserData.Vicon_data.Cx_mm_FP1(1);
+    cop_ap = ((src.Parent.UserData.Vicon_data.Cx_mm_FP2-src.Parent.UserData.Vicon_data.Cx_mm_FP1)/2) + src.Parent.UserData.Vicon_data.Cx_mm_FP1;
+    cop_ap = cop_ap-cop_init;
+    cop_ap_trim_ind = find(src.Parent.UserData.Vicon_data.Cx_mm_FP1>464,1,'first');
+    
+    cop_init_x = mean([src.Parent.UserData.Vicon_data.Cy_mm_FP1(1),src.Parent.UserData.Vicon_data.Cy_mm_FP2(1)]);
+    cop_ml = mean([src.Parent.UserData.Vicon_data.Cy_mm_FP1,src.Parent.UserData.Vicon_data.Cy_mm_FP2],2);
+    cop_ml = cop_ml-cop_init_x;
+end
+
 % Plot
 cla(src.Parent.UserData.plot_axes(2));
 hold(src.Parent.UserData.plot_axes(2),'on');
-plot(src.Parent.UserData.plot_axes(2),...
-    src.Parent.UserData.Vicon_data.Cx_mm(startInd:endInd),...
-    src.Parent.UserData.Vicon_data.Cy_mm(startInd:endInd),...
-    '-k','linewidth',1.5);
-scatter(src.Parent.UserData.plot_axes(2),...
-    src.Parent.UserData.Vicon_data.Cx_mm(startInd),...
-    src.Parent.UserData.Vicon_data.Cy_mm(startInd),...
-    60,'ok','filled');
+plot(src.Parent.UserData.plot_axes(2),cop_ml,cop_ap,'-k','linewidth',1.5);
+scatter(src.Parent.UserData.plot_axes(2),cop_ml(1),cop_ap(1),60,'ok','filled');
 
 src.Parent.UserData.logger.String = [src.Parent.UserData.logger.String;...
     'Plotted CoP data'];

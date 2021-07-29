@@ -22,8 +22,7 @@ config_settings.save_path = [];
 config_settings.color_go = [];
 config_settings.color_prepare = [];
 config_settings.color_stop = [];
-config_settings.random_time_mean = [];
-config_settings.random_time_std = [];
+config_settings.random_time = [];
 
 % Try to open config file
 try
@@ -45,10 +44,8 @@ while val ~= -1
         config_settings.color_prepare = readString(val);
     elseif contains(val,'color_stop')
         config_settings.color_stop = readString(val);
-    elseif contains(val,'random_time_mean')
-        config_settings.random_time_mean = getVal(val);
-    elseif contains(val,'random_time_std')
-        config_settings.random_time_std = getVal(val);
+    elseif contains(val,'random_time')
+        config_settings.random_time = getVal(val);    
     end
     val = fgetl(fid);
 end
@@ -66,9 +63,21 @@ end
 end
 
 function value = getVal(val)
+value = [];
 if contains(val,'=')
     loc = strfind(val,'=');
-    value = str2num(val(loc+2:end));
+    if contains(val,',')
+        loc_comma = strfind(val,',');
+        locs = [loc,loc_comma];
+        for i = 1:length(locs)-1
+            value = [value,str2double(val(locs(i)+1:locs(i+1)-1))];
+        end
+        value = [value,str2double(val(locs(end):end))];
+    else
+        value = str2num(val(loc+2:end));
+    end
+elseif contains(val,',')
+        loc_comma = strfind(val,',');
 else
     value = [];
 end
