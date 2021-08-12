@@ -1,4 +1,4 @@
-function varargout = searchForGaitBiomarkers(aligned_data,signal_analysis_data,freq_lim,event_compare,subjectID,save_dir,plot_type,save_flag)
+function varargout = searchForGaitBiomarkers(aligned_data,signal_analysis_data,freq_lim,event_compare,subjectID,save_dir,save_type,save_flag)
 if ~exist('freq_lim','var') || isempty(freq_lim)
     freq_lim = [0 50];
 end
@@ -16,8 +16,8 @@ if ~exist('save_dir','var')
     save_dir = [];
 end
 
-if ~exist('plot_type','var') || isempty(plot_type)
-    plot_type = 'all'; % all|anova|mult_compare|summed|summed_all|summed_exclude
+if ~exist('save_type','var') || isempty(save_type)
+    save_type = 'all'; % all|anova|mult_compare|summed|summed_all|summed_exclude|stat_table
 end
 
 if ~exist('save_flag','var') || isempty(save_flag)
@@ -42,7 +42,8 @@ if isfield(signal_analysis_data,'Left')
     
     channel_power.Left = cell(1,length(signal_analysis_data.Left.Chan_Names));
     channel_anova_matrix.Left = cell(1,length(signal_analysis_data.Left.Chan_Names));
-    channel_mult_compare_matrix.Left = cell(1,size(event_pairs,1));
+%     channel_mult_compare_matrix.Left = cell(1,size(event_pairs,1));
+    channel_mult_compare_matrix.Left = cell(1,length(signal_analysis_data.Left.Chan_Names));
     for i = 1:length(signal_analysis_data.Left.Chan_Names)
         vals_power = [];
         vals_phase = [];
@@ -89,8 +90,8 @@ if isfield(signal_analysis_data,'Left')
             channel_anova_matrix.Left{i}(freq_bin_inds.Left(n,1),freq_bin_inds.Left(n,2)) = p;
             for r = 1:size(c,1)
                 mat_ind = find(and(strcmp(gnames(c(r,1)),event_pairs(:,1)),strcmp(gnames(c(r,2)),event_pairs(:,2))));
-                if isempty(channel_mult_compare_matrix.Left{mat_ind})
-                    channel_mult_compare_matrix.Left{mat_ind} = cellmat(6,1,sum(diff(freq_bin_inds.Left,1,2)==0),sum(diff(freq_bin_inds.Left,1,2)==0),nan);
+                if isempty(channel_mult_compare_matrix.Left{i})
+                    channel_mult_compare_matrix.Left{i} = cellmat(size(event_pairs,1),1,sum(diff(freq_bin_inds.Left,1,2)==0),sum(diff(freq_bin_inds.Left,1,2)==0),nan);
                 end
                 channel_mult_compare_matrix.Left{i}{mat_ind}(freq_bin_inds.Left(n,1),freq_bin_inds.Left(n,2)) = c(r,6);
             end
@@ -112,7 +113,8 @@ if isfield(signal_analysis_data,'Right')
 
     channel_power.Right = cell(1,length(signal_analysis_data.Right.Chan_Names));
     channel_anova_matrix.Right = cell(1,length(signal_analysis_data.Right.Chan_Names));
-    channel_mult_compare_matrix.Right = cell(1,size(event_pairs,1));
+%     channel_mult_compare_matrix.Right = cell(1,size(event_pairs,1));
+    channel_mult_compare_matrix.Right = cell(1,length(signal_analysis_data.Right.Chan_Names));
     for i = 1:length(signal_analysis_data.Right.Chan_Names)
         vals_power = [];
         vals_phase = [];
@@ -159,8 +161,8 @@ if isfield(signal_analysis_data,'Right')
             channel_anova_matrix.Right{i}(freq_bin_inds.Right(n,1),freq_bin_inds.Right(n,2)) = p;
             for r = 1:size(c,1)
                 mat_ind = find(and(strcmp(gnames(c(r,1)),event_pairs(:,1)),strcmp(gnames(c(r,2)),event_pairs(:,2))));
-                if isempty(channel_mult_compare_matrix.Right{mat_ind})
-                    channel_mult_compare_matrix.Right{mat_ind} = cellmat(6,1,sum(diff(freq_bin_inds.Right,1,2)==0),sum(diff(freq_bin_inds.Right,1,2)==0),nan);
+                if isempty(channel_mult_compare_matrix.Right{i})
+                    channel_mult_compare_matrix.Right{i} = cellmat(size(event_pairs,1),1,sum(diff(freq_bin_inds.Right,1,2)==0),sum(diff(freq_bin_inds.Right,1,2)==0),nan);
                 end
                 channel_mult_compare_matrix.Right{i}{mat_ind}(freq_bin_inds.Right(n,1),freq_bin_inds.Right(n,2)) = c(r,6);
             end
@@ -168,10 +170,62 @@ if isfield(signal_analysis_data,'Right')
     end
 end
 
+%% Create table of statistic output
+subject_ID = [];
+contact = [];
+event1 = []; %repelem({event_pairs{:,1}},n_vals)';
+event2 = []; %repelem({event_pairs{:,2}},n_vals)';
+freq1 = [];
+freq2 = [];
+pVals = [];
+
+if isfield(signal_analysis_data,'Left')
+    n_vals = size(freq_bin_inds.Left,1);
+    for x = 1:length(signal_analysis_data.Left.Chan_Names)
+        inds = strfind(signal_analysis_data.Left.Chan_Names{x},' ');
+        chan_name = {signal_analysis_data.Left.Chan_Names{x}(1:inds(1)-1)};
+        for y = 1:size(event_pairs,1)
+            temp = nan(n_vals,1);
+            for z = 1:n_vals
+                temp(z) = channel_mult_compare_matrix.Left{x}{y}(freq_bin_inds.Left(z,1),freq_bin_inds.Left(z,2));
+            end
+            contact = [contact;repmat(chan_name,n_vals,1)];
+            event1 = [event1;repelem({event_pairs{y,1}},n_vals)'];
+            event2 = [event2;repelem({event_pairs{y,2}},n_vals)'];
+            freq1 = [freq1;signal_analysis_data.Left.Freq_Values{x}(freq_bin_inds.Left(:,1))];
+            freq2 = [freq2;signal_analysis_data.Left.Freq_Values{x}(freq_bin_inds.Left(:,2))];
+            pVals = [pVals;temp];
+        end
+    end
+    subject_ID = [subject_ID;repmat({subjectID},n_vals*size(event_pairs,1)*length(signal_analysis_data.Left.Chan_Names),1)];
+end
+
+if isfield(signal_analysis_data,'Right')
+    n_vals = size(freq_bin_inds.Right,1);
+    for x = 1:length(signal_analysis_data.Right.Chan_Names)
+        inds = strfind(signal_analysis_data.Right.Chan_Names{x},' ');
+        chan_name = {signal_analysis_data.Right.Chan_Names{x}(1:inds(1)-1)};
+        for y = 1:size(event_pairs,1)
+            temp = nan(n_vals,1);
+            for z = 1:n_vals
+                temp(z) = channel_mult_compare_matrix.Right{x}{y}(freq_bin_inds.Right(z,1),freq_bin_inds.Right(z,2));
+            end
+            contact = [contact;repmat(chan_name,n_vals,1)];
+            event1 = [event1;repelem({event_pairs{y,1}},n_vals)'];
+            event2 = [event2;repelem({event_pairs{y,2}},n_vals)'];
+            freq1 = [freq1;signal_analysis_data.Right.Freq_Values{x}(freq_bin_inds.Right(:,1))];
+            freq2 = [freq2;signal_analysis_data.Right.Freq_Values{x}(freq_bin_inds.Right(:,2))];
+            pVals = [pVals;temp];
+        end
+    end
+    subject_ID = [subject_ID;repmat({subjectID},n_vals*size(event_pairs,1)*length(signal_analysis_data.Right.Chan_Names),1)];
+end
+stat_table = table(subject_ID,contact,event1,event2,freq1,freq2,pVals,'VariableNames',{'SubjectID','Contact','GaitEvent1','GaitEvent2','Freq1','Freq2','pVal'});
+
 %% Plot to visualize p-vals
 fig_vec = [];
 % ANOVA Left
-if strcmp(plot_type,'all') || strcmp(plot_type,'anova')
+if strcmp(save_type,'all') || strcmp(save_type,'anova')
     if isfield(channel_anova_matrix,'Left')
         for i = 1:length(channel_anova_matrix.Left)
             fig_vec(end+1) = figure;
@@ -180,6 +234,7 @@ if strcmp(plot_type,'all') || strcmp(plot_type,'anova')
             caxis([0,1]);
             set(gca,'YDir',"reverse");
             title({subjectID;'Left';signal_analysis_data.Left.Chan_Names{i};'ANOVA'});
+%             title({subjectID;['Left Brain: Contact ',signal_analysis_data.Left.Chan_Names{i}(1:4),' ANOVA']}); % For paper figure
             xlabel('End bin');
             ylabel('Start bin');
             c_hand = colorbar;
@@ -205,7 +260,7 @@ if strcmp(plot_type,'all') || strcmp(plot_type,'anova')
 end
 
 % Mult-compare Left
-if strcmp(plot_type,'all') || strcmp(plot_type,'mult_compare')
+if strcmp(save_type,'all') || strcmp(save_type,'mult_compare')
     if isfield(channel_mult_compare_matrix,'Left')
         for i = 1:length(signal_analysis_data.Left.Chan_Names)
             for j = 1:size(event_pairs,1)
@@ -243,7 +298,7 @@ if strcmp(plot_type,'all') || strcmp(plot_type,'mult_compare')
 end
 
 % Summed Mult-Compare Left (excluding gait events close in time)
-if strcmp(plot_type,'all') || strcmp(plot_type,'summed') || strcmp(plot_type,'summed_exclude')
+if strcmp(save_type,'all') || strcmp(save_type,'summed') || strcmp(save_type,'summed_exclude')
     if isfield(channel_mult_compare_matrix,'Left')
         exclude_inds = findExclusionInds(event_pairs);
         for i = 1:length(signal_analysis_data.Left.Chan_Names)
@@ -293,7 +348,7 @@ if strcmp(plot_type,'all') || strcmp(plot_type,'summed') || strcmp(plot_type,'su
 end
 
 % Summed Mult-Compare Left (all events)
-if strcmp(plot_type,'all') || strcmp(plot_type,'summed') || strcmp(plot_type,'summed_all')
+if strcmp(save_type,'all') || strcmp(save_type,'summed') || strcmp(save_type,'summed_all')
     if isfield(channel_mult_compare_matrix,'Left')
         for i = 1:length(signal_analysis_data.Left.Chan_Names)
             fig_vec(end+1) = figure;
@@ -338,12 +393,46 @@ if strcmp(plot_type,'all') || strcmp(plot_type,'summed') || strcmp(plot_type,'su
     end
 end
 
-%% Save plots
-if save_flag
+%% Save stat table
+if save_flag && strcmp(save_type,'stat_table')
     if isempty(save_dir)
         save_dir = uigetdir();
     end
-%     figure_format(12,8,12);
+    
+    % check if saving folders exist
+    if ~isfolder(fullfile(save_dir,'GaitBiomarkerSearch'))
+        mkdir(fullfile(save_dir,'GaitBiomarkerSearch'));
+    end
+    
+    if ~isfolder(fullfile(save_dir,'GaitBiomarkerSearch',aligned_data.stim_condition))
+        mkdir(fullfile(save_dir,'GaitBiomarkerSearch',aligned_data.stim_condition))
+    end
+    
+    if strcmp(analysis_type,'FT')
+        if ~isfolder(fullfile(save_dir,'GaitBiomarkerSearch',aligned_data.stim_condition,'FT'))
+            mkdir(fullfile(save_dir,'GaitBiomarkerSearch',aligned_data.stim_condition,'FT'));
+            writetable(stat_table,[fullfile(save_dir,'GaitBiomarkerSearch',aligned_data.stim_condition,'FT'),'/',subjectID,'_stat_table.csv']);
+        else
+            writetable(stat_table,[fullfile(save_dir,'GaitBiomarkerSearch',aligned_data.stim_condition,'FT'),'/',subjectID,'_stat_table.csv']);
+        end
+    elseif strcmp(analysis_type,'CWT')
+        if ~isfolder(fullfile(save_dir,'GaitBiomarkerSearch',aligned_data.stim_condition,'CWT'))
+            mkdir(fullfile(save_dir,'GaitBiomarkerSearch',aligned_data.stim_condition,'CWT'));
+            writetable(stat_table,[fullfile(save_dir,'GaitBiomarkerSearch',aligned_data.stim_condition,'CWT'),'/',subjectID,'_stat_table.csv']);
+        else
+            writetable(stat_table,[fullfile(save_dir,'GaitBiomarkerSearch',aligned_data.stim_condition,'CWT'),'/',subjectID,'_stat_table.csv']);
+        end
+    end
+end
+
+
+%% Save plots
+if save_flag && ~strcmp(save_type,'stat_table')
+    if isempty(save_dir)
+        save_dir = uigetdir();
+    end
+    figure_format(17.4,15.2,10,'centimeters');
+%     figure_format(12.9,11.2,10,'centimeters'); % For paper figure
     
     % check if saving folders exist
     if ~isfolder(fullfile(save_dir,'GaitBiomarkerSearch'))
