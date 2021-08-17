@@ -172,6 +172,7 @@ end
 
 %% Create table of statistic output
 subject_ID = [];
+side =[];
 contact = [];
 event1 = []; %repelem({event_pairs{:,1}},n_vals)';
 event2 = []; %repelem({event_pairs{:,2}},n_vals)';
@@ -190,6 +191,7 @@ if isfield(signal_analysis_data,'Left')
                 temp(z) = channel_mult_compare_matrix.Left{x}{y}(freq_bin_inds.Left(z,1),freq_bin_inds.Left(z,2));
             end
             contact = [contact;repmat(chan_name,n_vals,1)];
+            side = [side;repmat('L',n_vals,1)];
             event1 = [event1;repelem({event_pairs{y,1}},n_vals)'];
             event2 = [event2;repelem({event_pairs{y,2}},n_vals)'];
             freq1 = [freq1;signal_analysis_data.Left.Freq_Values{x}(freq_bin_inds.Left(:,1))];
@@ -211,6 +213,7 @@ if isfield(signal_analysis_data,'Right')
                 temp(z) = channel_mult_compare_matrix.Right{x}{y}(freq_bin_inds.Right(z,1),freq_bin_inds.Right(z,2));
             end
             contact = [contact;repmat(chan_name,n_vals,1)];
+            side = [side;repmat('R',n_vals,1)];
             event1 = [event1;repelem({event_pairs{y,1}},n_vals)'];
             event2 = [event2;repelem({event_pairs{y,2}},n_vals)'];
             freq1 = [freq1;signal_analysis_data.Right.Freq_Values{x}(freq_bin_inds.Right(:,1))];
@@ -220,7 +223,7 @@ if isfield(signal_analysis_data,'Right')
     end
     subject_ID = [subject_ID;repmat({subjectID},n_vals*size(event_pairs,1)*length(signal_analysis_data.Right.Chan_Names),1)];
 end
-stat_table = table(subject_ID,contact,event1,event2,freq1,freq2,pVals,'VariableNames',{'SubjectID','Contact','GaitEvent1','GaitEvent2','Freq1','Freq2','pVal'});
+stat_table = table(subject_ID,side,contact,event1,event2,freq1,freq2,pVals,'VariableNames',{'SubjectID','Side','Contact','GaitEvent1','GaitEvent2','Freq1','Freq2','pVal'});
 
 %% Plot to visualize p-vals
 fig_vec = [];
