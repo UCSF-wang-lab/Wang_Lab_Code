@@ -71,7 +71,7 @@ for i = 1:size(pairs,1)
     sr = aligned_data.DeviceSettings.Left.timeDomainSettings.samplingRate(end);
     
     % Calculate wavelet coherence and plot
-    [x,~,y] = wcoherence(aligned_data.(side1).(contact1)(1:n_val),aligned_data.(side2).(contact2)(1:n_val),sr);
+    [x,~,y] = wcoherence(aligned_data.(side1).(contact1)(1:n_val),aligned_data.(side2).(contact2)(1:n_val),sr,'VoicesPerOctave',10);
     fig_vec(end+1) = figure();
     h = pcolor(time_vec,log2(y),x);
     h.EdgeColor = 'none';
@@ -84,7 +84,7 @@ end
 
 % Format and save figures
 if save_flag
-    figure_format(6,6,12);
+    figure_format(6,6,12,[],'painters');
     
     % check if saving folders exist
     if ~isfolder(fullfile(save_dir,'Coherence'))
