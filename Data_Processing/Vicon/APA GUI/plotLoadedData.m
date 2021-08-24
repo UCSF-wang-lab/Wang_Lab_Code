@@ -27,6 +27,8 @@ if ~isempty(main_window_handle.UserData.Vicon_data)
 
     if sum(contains(main_window_handle.UserData.Vicon_data.Properties.VariableNames,'Fx_N')) == 1
         single_force_plate = true;
+    else
+        single_force_plate = false;
     end
     
     if single_force_plate
