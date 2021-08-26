@@ -8,10 +8,12 @@ aligned_data.pre_align_time = src.Parent.Parent.UserData.pre_alignment_time;
 aligned_data.DeviceSettings = src.Parent.Parent.UserData.DeviceSettings;
 aligned_data.stim_condition = src.Parent.Parent.UserData.stim_condition;
 aligned_data.med_condition = src.Parent.Parent.UserData.med_condition;
+aligned_data.trial_num = src.Parent.Parent.UserData.trial_num;
 
 [file, path] = uiputfile('*.mat');
+save_filename = fullfile(path,file);
 
-save(fullfile(path,file),'aligned_data');
+save(save_filename,'aligned_data');
 
-addEvent(sprintf('Aligned data saved to: %s',fullfile(path,file)));
+addEvent(sprintf('Aligned data saved to: %s',save_filename));
 end

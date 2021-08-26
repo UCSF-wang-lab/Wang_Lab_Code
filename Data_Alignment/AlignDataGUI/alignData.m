@@ -1,7 +1,19 @@
 function alignData(src,event)
 main = src.Parent.Parent;
 aligned_data = [];
-pre_align_time = main.UserData.pre_alignment_time;
+
+if isfield(main.UserData,'pre_alignment_time')
+    pre_align_time = main.UserData.pre_alignment_time;
+else
+    pre_align_time = 0;
+end
+
+if isfield(main.UserData,'post_alignment_time')
+    post_align_time = main.UserData.post_alignment_time;
+else
+    post_align_time = inf;
+end
+
 
 % Add event
 addEvent('Aligning data using marked points...');
@@ -25,7 +37,7 @@ if ~isempty(main.UserData.LFP_data) && isfield(main.UserData.LFP_data,'Left')
     
     lfp_time = datetime(main.UserData.LFP_data.Left.timeDomainDataTable.DerivedTime,'ConvertFrom','epochtime','TicksPerSecond',1e3,'Format','dd-MMM-yyyy HH:mm:ss.SSS');
     lfp_time = seconds(lfp_time-lfp_time(1));
-    [left_taxis,left_LFP_table] = trimData(lfp_time,main.UserData.LFP_data.Left.timeDomainDataTable,align_time-pre_align_time);
+    [left_taxis,left_LFP_table] = trimData(lfp_time,main.UserData.LFP_data.Left.timeDomainDataTable,[align_time-pre_align_time,align_time+post_align_time]);
         
     aligned_data.left_taxis = left_taxis;
     aligned_data.left_LFP_table = left_LFP_table;
@@ -51,7 +63,7 @@ if ~isempty(main.UserData.Accel_data) && isfield(main.UserData.Accel_data,'Left'
     
     accel_time = datetime(main.UserData.Accel_data.Left.accelDataTable.DerivedTime,'ConvertFrom','epochtime','TicksPerSecond',1e3,'Format','dd-MMM-yyyy HH:mm:ss.SSS');
     accel_time = seconds(accel_time-accel_time(1));
-    [left_accel_taxis,left_Accel_table] = trimData(accel_time,main.UserData.Accel_data.Left.accelDataTable,align_time-pre_align_time);
+    [left_accel_taxis,left_Accel_table] = trimData(accel_time,main.UserData.Accel_data.Left.accelDataTable,[align_time-pre_align_time,align_time+post_align_time]);
         
     aligned_data.left_accel_taxis = left_accel_taxis;
     aligned_data.left_Accel_table = left_Accel_table;
@@ -77,7 +89,7 @@ if ~isempty(main.UserData.LFP_data) && isfield(main.UserData.LFP_data,'Right')
     
     lfp_time = datetime(main.UserData.LFP_data.Right.timeDomainDataTable.DerivedTime,'ConvertFrom','epochtime','TicksPerSecond',1e3,'Format','dd-MMM-yyyy HH:mm:ss.SSS');
     lfp_time = seconds(lfp_time-lfp_time(1));
-    [right_taxis,right_LFP_table] = trimData(lfp_time,main.UserData.LFP_data.Right.timeDomainDataTable,align_time-pre_align_time);
+    [right_taxis,right_LFP_table] = trimData(lfp_time,main.UserData.LFP_data.Right.timeDomainDataTable,[align_time-pre_align_time,align_time+post_align_time]);
         
     aligned_data.right_taxis = right_taxis;
     aligned_data.right_LFP_table = right_LFP_table;
@@ -103,7 +115,7 @@ if ~isempty(main.UserData.Accel_data) && isfield(main.UserData.Accel_data,'Right
     
     accel_time = datetime(main.UserData.Accel_data.Right.accelDataTable.DerivedTime,'ConvertFrom','epochtime','TicksPerSecond',1e3,'Format','dd-MMM-yyyy HH:mm:ss.SSS');
     accel_time = seconds(accel_time-accel_time(1));
-    [right_accel_taxis,right_Accel_table] = trimData(accel_time,main.UserData.Accel_data.Right.accelDataTable,align_time-pre_align_time);
+    [right_accel_taxis,right_Accel_table] = trimData(accel_time,main.UserData.Accel_data.Right.accelDataTable,[align_time-pre_align_time,align_time+post_align_time]);
         
     aligned_data.right_accel_taxis = right_accel_taxis;
     aligned_data.right_Accel_table = right_Accel_table;
@@ -130,7 +142,7 @@ if ~isempty(main.UserData.Delsys_data)
     for i = 1:length(names)
         time_vec = main.UserData.Delsys_data.out_struct.Time.(names{i});
         data = main.UserData.Delsys_data.out_struct.Data.(names{i});
-        [new_time,new_data] = trimData(time_vec,data,align_time-pre_align_time);
+        [new_time,new_data] = trimData(time_vec,data,[align_time-pre_align_time,align_time+post_align_time]);
         Delsys.Time.(names{i}) = new_time;
         Delsys.Data.(names{i}) = new_data;
     end
@@ -156,7 +168,7 @@ if ~isempty(main.UserData.Xsens_data)
         return;
     end
     
-    [~,Xsens] = trimData([],main.UserData.Xsens_data,align_time-pre_align_time);
+    [~,Xsens] = trimData([],main.UserData.Xsens_data,[align_time-pre_align_time,align_time+post_align_time]);
     
     addEvent('Complete!',1);
     
@@ -178,7 +190,7 @@ if ~isempty(main.UserData.FP_data)
     end
     
     time_vec = (0:height(main.UserData.FP_data)-1)/1000;
-    [FP_time,FP] = trimData(time_vec,main.UserData.FP_data,align_time-pre_align_time);
+    [FP_time,FP] = trimData(time_vec,main.UserData.FP_data,[align_time-pre_align_time,align_time+post_align_time]);
     FP.Time = FP_time';
     
     addEvent('Complete!',1);
@@ -195,7 +207,7 @@ if ~isempty(main.UserData.Teensey_data)
         addEvent('No alignment point for Teensey data.',1);
         return;
     end
-    [~,Teensey] = trimData([],main.UserData.Teensey_data,align_time-pre_align_time);
+    [~,Teensey] = trimData([],main.UserData.Teensey_data,[align_time-pre_align_time,align_time+post_align_time]);
     addEvent('Complete!',1);
     aligned_data.Teensey = Teensey;
 end
@@ -209,16 +221,28 @@ end
 function varargout = trimData(time_vec,data,alignment_time)
 
 if ~isempty(time_vec) && ~isempty(data)
-    [~,alignment_ind] = min(abs(time_vec-alignment_time));
+    [~,start_alignment_ind] = min(abs(time_vec-alignment_time(1)));
     
-    aligned_time_vec = time_vec(alignment_ind:end)-alignment_time;
-    aligned_data = data(alignment_ind:end,:);
+    if isinf(alignment_time(2))
+        end_alignment_ind = length(time_vec);
+    else
+        [~,end_alignment_ind] = min(abs(time_vec-alignment_time(2)));
+    end
+    
+    aligned_time_vec = time_vec(start_alignment_ind:end_alignment_ind)-alignment_time(1);
+    aligned_data = data(start_alignment_ind:end_alignment_ind,:);
 elseif isempty(time_vec) && istable(data) && sum(ismember(data.Properties.VariableNames,'Time')) == 1
-    [~,alignment_ind] = min(abs(data.Time-alignment_time));
+    [~,start_alignment_ind] = min(abs(data.Time-alignment_time(1)));
+    
+    if isinf(alignment_time(2))
+        end_alignment_ind = length(time_vec);
+    else
+        [~,end_alignment_ind] = min(abs(data.Time-alignment_time(2)));
+    end
     
     aligned_time_vec = [];
-    aligned_data = data(alignment_ind:end,:);
-    aligned_data.Time = aligned_data.Time-alignment_time;
+    aligned_data = data(start_alignment_ind:end_alignment_ind,:);
+    aligned_data.Time = aligned_data.Time-alignment_time(1);
 end
 
 varargout{1} = aligned_time_vec;

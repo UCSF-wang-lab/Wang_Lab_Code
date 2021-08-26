@@ -49,6 +49,7 @@ main_window.UserData.FP_data = [];
 main_window.UserData.Teensey_data = [];
 main_window.UserData.stim_condition = 'OFF';
 main_window.UserData.med_condition = 'ON';
+main_window.UserData.trial_num = [];
 main_window.UserData.file_names = {};
 main_window.UserData.alignment_times = nan(1,8); % Left LFP|Right LFP|Left Accel|Right Accel|Delsys|Xsens|Force plate|Teensey
 main_window.UserData.alignment_source = cell(1,8); % Left LFP|Right LFP|Left Accel|Right Accel|Delsys|Xsens|Force plate|Teensey
