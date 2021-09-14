@@ -117,10 +117,10 @@ if isfield(signal_analysis_data,'Left')
             average_phase_time.Left.(aligned_data.gait_events.Properties.VariableNames{j}){i} = squeeze(mean(vals_phase_time,1));
             
             if strcmp(spread_type,'SE')
-                range_power.Left.(aligned_data.gait_events.Properties.VariableNames{j}){i} = squeeze(std(vals_power,0,1))./size(vals_power,1);
-                range_power_time.Left.(aligned_data.gait_events.Properties.VariableNames{j}){i} = squeeze(std(vals_power_time,0,1))./size(vals_power_time,1);
-                range_phase.Left.(aligned_data.gait_events.Properties.VariableNames{j}){i} = squeeze(std(vals_phase,0,1))./size(vals_phase,1);
-                range_phase_time.Left.(aligned_data.gait_events.Properties.VariableNames{j}){i} = squeeze(std(vals_phase_time,0,1))./size(vals_phase_time,1);
+                range_power.Left.(aligned_data.gait_events.Properties.VariableNames{j}){i} = squeeze(std(vals_power,0,1))./sqrt(size(vals_power,1));
+                range_power_time.Left.(aligned_data.gait_events.Properties.VariableNames{j}){i} = squeeze(std(vals_power_time,0,1))./sqrt(size(vals_power_time,1));
+                range_phase.Left.(aligned_data.gait_events.Properties.VariableNames{j}){i} = squeeze(std(vals_phase,0,1))./sqrt(size(vals_phase,1));
+                range_phase_time.Left.(aligned_data.gait_events.Properties.VariableNames{j}){i} = squeeze(std(vals_phase_time,0,1))./sqrt(size(vals_phase_time,1));
             else
                 range_power.Left.(aligned_data.gait_events.Properties.VariableNames{j}){i} = squeeze(std(vals_power,0,1));
                 range_power_time.Left.(aligned_data.gait_events.Properties.VariableNames{j}){i} = squeeze(std(vals_power_time,0,1));
@@ -222,10 +222,10 @@ if isfield(signal_analysis_data,'Right')
             average_phase_time.Right.(aligned_data.gait_events.Properties.VariableNames{j}){i} = squeeze(mean(vals_phase_time,1));
             
             if strcmp(spread_type,'SE')
-                range_power.Right.(aligned_data.gait_events.Properties.VariableNames{j}){i} = squeeze(std(vals_power,0,1))./size(vals_power,1);
-                range_power_time.Right.(aligned_data.gait_events.Properties.VariableNames{j}){i} = squeeze(std(vals_power_time,0,1))./size(vals_power_time,1);
-                range_phase.Right.(aligned_data.gait_events.Properties.VariableNames{j}){i} = squeeze(std(vals_phase,0,1))./size(vals_phase,1);
-                range_phase_time.Right.(aligned_data.gait_events.Properties.VariableNames{j}){i} = squeeze(std(vals_phase_time,0,1))./size(vals_phase_time,1);
+                range_power.Right.(aligned_data.gait_events.Properties.VariableNames{j}){i} = squeeze(std(vals_power,0,1))./sqrt(size(vals_power,1));
+                range_power_time.Right.(aligned_data.gait_events.Properties.VariableNames{j}){i} = squeeze(std(vals_power_time,0,1))./sqrt(size(vals_power_time,1));
+                range_phase.Right.(aligned_data.gait_events.Properties.VariableNames{j}){i} = squeeze(std(vals_phase,0,1))./sqrt(size(vals_phase,1));
+                range_phase_time.Right.(aligned_data.gait_events.Properties.VariableNames{j}){i} = squeeze(std(vals_phase_time,0,1))./sqrt(size(vals_phase_time,1));
             else
                 range_power.Right.(aligned_data.gait_events.Properties.VariableNames{j}){i} = squeeze(std(vals_power,0,1));
                 range_power_time.Right.(aligned_data.gait_events.Properties.VariableNames{j}){i} = squeeze(std(vals_power_time,0,1));
@@ -258,7 +258,7 @@ if strcmp(plot_type,'all') || strcmp(plot_type,'power')
                     xlabel('Time (s)');
                     
                     if isfield(signal_analysis_data.Left,'PSD')
-                        ylabel('\muV^2'); %  uV^2
+                        ylabel('mV^2'); % mV^2
                     else
                         ylabel('Magnitude');
                     end
@@ -286,7 +286,7 @@ if strcmp(plot_type,'all') || strcmp(plot_type,'power')
                     xlabel('Time (s)');
                     
                     if isfield(signal_analysis_data.Right,'PSD')
-                        ylabel('\muV^2'); % uV^2
+                        ylabel('mV^2'); % mV^2
                     else
                         ylabel('Magnitude');
                     end
@@ -381,7 +381,7 @@ if strcmp(plot_type,'all') || contains(plot_type,'power_boxplot')
                     end
                     
                     if isfield(signal_analysis_data.Left,'PSD')
-                        ylabel('\muV^2');
+                        ylabel('mV^2');
                     else
                         ylabel('Magnitude');
                     end
@@ -415,7 +415,7 @@ if strcmp(plot_type,'all') || contains(plot_type,'power_boxplot')
                         end
                     end
                     if isfield(signal_analysis_data.Right,'PSD')
-                        ylabel('\mV^2');
+                        ylabel('mV^2');
                     else
                         ylabel('Magnitude');
                     end

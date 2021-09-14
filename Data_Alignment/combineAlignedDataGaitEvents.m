@@ -8,7 +8,10 @@ load(fullfile(path,filename_aligned_data));
 if filename_gait_events == 0
     [filename_gait_events,path2] = uigetfile('*.txt');
 end
-gait_events = readtable(fullfile(path2,filename_gait_events));
+
+opts = detectImportOptions(fullfile(path2,filename_gait_events));
+opts.VariableNamesLine = opts.DataLines(1)-1;
+gait_events = readtable(fullfile(path2,filename_gait_events),opts);
 
 gait_events_aligned = gait_events;
 for i = 1:length(gait_events.Properties.VariableNames)
