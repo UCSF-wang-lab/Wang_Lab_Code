@@ -1,4 +1,4 @@
-function genAvgGaitCycle(aligned_data,signal_analysis_data,varargin)
+function genAvgGaitCycleV2(aligned_data,signal_analysis_data,varargin)
 % cycle_start_event,n_percent_bins,baseline_data,subjectID,save_flag)
 
 for i = 1:2:nargin-2
@@ -7,10 +7,12 @@ for i = 1:2:nargin-2
             cycle_start_event = varargin{i+1};
         case 'n_percent_bins'
             n_percent_bins = varargin{i+1};
+        case 'normalize_by'
+            normalize_by = varargin{i+1};   % Can be none|baseline|average_during_walking
+        case 'normalization_type'
+            normalization_type = varargin{i+1}; % Can be percent_change|zscore
         case 'baseline_data'
-            baseline_data = varargin{i+1};
-        case 'baseline_normalization'
-            baseline_normalization = varargin{i+1};
+            baseline_data = varargin{i+1};  % Only valid if "normalization_by" is set to "baseline"
         case 'subjectID'
             subjectID = varargin{i+1};
         case 'save_flag'
@@ -31,8 +33,12 @@ if ~exist('baseline_data','var')
     baseline_data.Right = [];
 end
 
-if ~exist('baseline_normalization','var')
-    baseline_normalization = 'none'; % none|percent_change|subtraction
+if ~exist('normalize_by','var')
+    normalize_by = 'none';
+end
+
+if strcmp(normalize_by,'baseline') && ~exist('baseline_data','var')
+    error('Normalization by baseline, but no baseline data was passed in.');
 end
 
 if ~exist('subjectID','var')
@@ -124,10 +130,65 @@ if isfield(signal_analysis_data,'Right')
     end
 end
 
+%% Normalize if set
+if ~strcmp(normalize_by,'none')
+    normalization = [];
+    if strcmp(normalize_by,'average_during_walking')
+        if isfield(signal_analysis_data,'Left')
+            normalization.Left = cell(1,length(signal_analysis_data.Left.Chan_Names));
+            walking_start_ind = find(signal_analysis_data.Left.Time{i} >= min(gait_events_sorted{1,:})-1,1,'first');
+            walking_end_ind = find(signal_analysis_data.Left.Time{i} <= max(gait_events_sorted{end,:}),1,'last');
+            for i = 1:length(signal_analysis_data.Left.Chan_Names)
+                normalization.Left{i} = signal_analysis_data.Left.Values{i}(:,walking_start_ind:walking_end_ind);
+            end
+        end
+        if isfield(signal_analysis_data,'Right')
+            normalization.Right = cell(1,length(signal_analysis_data.Right.Chan_Names));
+            walking_start_ind = find(signal_analysis_data.Right.Time{1} >= min(gait_events_sorted{1,:})-1,1,'first');
+            walking_end_ind = find(signal_analysis_data.Right.Time{1} <= max(gait_events_sorted{end,:}),1,'last');
+            for i = 1:length(signal_analysis_data.Right.Chan_Names)
+                normalization.Right{i} = signal_analysis_data.Right.Values{i}(:,walking_start_ind:walking_end_ind);
+            end
+        end
+    end
+elseif strcmp(normalize_by,'baseline')
+end
+
+if strcmp(normalization_type,'percent_change')
+    if isfield(gait_cycle_avg,'Left')
+        for i = 1:length(gait_cycle_avg.Left)
+            mu = mean(abs(normalization.Left{i}),2);
+            gait_cycle_avg.Left{i} = (gait_cycle_avg.Left{i}-mu)./mu;
+        end
+    end
+    
+    if isfield(gait_cycle_avg,'Right')
+        for i = 1:length(gait_cycle_avg.Right)
+            mu = mean(abs(normalization.Right{i}),2);
+            gait_cycle_avg.Right{i} = (gait_cycle_avg.Right{i}-mu)./mu;
+        end
+    end
+elseif strcmp(normalization_type,'zscore')
+    if isfield(gait_cycle_avg,'Left')
+        for i = 1:length(gait_cycle_avg.Left)
+            mu = mean(abs(normalization.Left{i}),2);
+            sigma = std(abs(normalization.Left{i}),0,2);
+            gait_cycle_avg.Left{i} = (gait_cycle_avg.Left{i}-mu)./sigma;
+        end
+    end
+    
+    if isfield(gait_cycle_avg,'Right')
+        for i = 1:length(gait_cycle_avg.Right)
+            mu = mean(abs(normalization.Right{i}),2);
+            sigma = std(abs(normalization.Right{i}),0,2);
+            gait_cycle_avg.Right{i} = (gait_cycle_avg.Right{i}-mu)./sigma;
+        end
+    end
+end
+
 %% Plot
 fig_vec = [];
 if isfield(gait_cycle_avg,'Left')
-    gait_cycle_avg.Left = normalizeWithBaseline(gait_cycle_avg.Left,baseline_data.Left,baseline_normalization);
     for i = 1:length(signal_analysis_data.Left.Chan_Names)
         fig_vec(end+1) = figure;
         if isfield(signal_analysis_data.Left,'PSD')
@@ -148,7 +209,6 @@ if isfield(gait_cycle_avg,'Left')
 end
 
 if isfield(gait_cycle_avg,'Right')
-    gait_cycle_avg.Right = normalizeWithBaseline(gait_cycle_avg.Right,baseline_data.Right,baseline_normalization);
     for i = 1:length(signal_analysis_data.Right.Chan_Names)
         fig_vec(end+1) = figure;
         if isfield(signal_analysis_data.Right,'PSD')
@@ -218,6 +278,10 @@ if save_flag
             end
         end
         
+        if ~strcmp(normalization_type,'none')
+            save_name = [save_name,' ',normalization_type];
+        end
+        
         if strcmp(analysis_type,'FT')
             savefig(fig_vec(i),fullfile(save_dir,'AvgGaitCycleSpec',[aligned_data.stim_condition,'_STIM'],'FT',folders_to_check{1},strrep(save_name,' ','_')));
         elseif strcmp(analysis_type,'CWT')
@@ -231,21 +295,6 @@ if save_flag
                 print(fig_vec(i),[fullfile(save_dir,'AvgGaitCycleSpec',[aligned_data.stim_condition,'_STIM'],'CWT',folders_to_check{k},strrep(save_name,' ','_')),extension{k}],'-r300',['-d',extension{k}(2:end)]);
             end
         end
-    end
-end
-end
-
-function normalized_data = normalizeWithBaseline(gait_cycle_avg,baseline_data,normalize_type)
-normalized_data = gait_cycle_avg;
-if ~strcmp(normalize_type,'none')
-    baseline_vals = cellfun(@(x) mean(20*log10(abs(x)),2),baseline_data.Values,'UniformOutput',false);
-    assert(length(baseline_data.Values)==length(gait_cycle_avg));
-    
-    switch normalize_type
-        case 'percent_change'
-            normalized_data = cellfun(@(x,y)(x-y)./abs(y),gait_cycle_avg,baseline_vals,'UniformOutput',false);
-        case 'subtraction'
-            normalized_data = cellfun(@(x,y)x-y,gait_cycle_avg,baseline_vals,'UniformOutput',false);
     end
 end
 end

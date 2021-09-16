@@ -48,7 +48,7 @@ if ~exist('save_dir','var') && save_flag == 1
     save_dir = uigetdir();
 end
 
-gait_events_sorted = sort_gait_events(aligned_data.gait_events,cycle_start_event);
+gait_events_sorted = sortGaitEvents(aligned_data.gait_events,cycle_start_event);
 
 n_percent_bins = 100;
 
@@ -252,35 +252,4 @@ else
     end
 end
 
-end
-
-function sorted_gait_events = sort_gait_events(gait_events,cycle_start_event)
-if strcmp(gait_events.Properties.VariableNames{1},cycle_start_event)
-    sorted_gait_events = gait_events;
-else
-    gait_event_order = [];
-    switch cycle_start_event
-        case 'LHS'
-            gait_event_order = {'LHS','RTO','RHS','LTO'};
-        case 'LTO'
-            gait_event_order = {'LTO','LHS','RTO','RHS'};
-        case 'RHS'
-            gait_event_order = {'RHS','LTO','LHS','RTO'};
-        case 'RTO'
-            gait_event_order = {'RTO','RHS','LTO','LHS'};
-    end
-    
-    shift_ind = find(cellfun(@(x) strcmp(x,cycle_start_event),gait_events.Properties.VariableNames))-1;
-    
-    sorted_gait_events = nan(1+height(gait_events),4);
-    for i = 1:length(gait_event_order)-shift_ind
-        sorted_gait_events(2:end,i) = gait_events.(gait_event_order{i});
-    end
-    
-    for j = length(gait_event_order)-(shift_ind-1):length(gait_event_order)
-        sorted_gait_events(1:end-1,j) = gait_events.(gait_event_order{j});
-    end
-    
-    sorted_gait_events = array2table(sorted_gait_events,'VariableNames',gait_event_order);
-end
 end
