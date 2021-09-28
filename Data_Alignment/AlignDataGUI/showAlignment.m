@@ -239,13 +239,13 @@ if isfield(aligned_data,'FP') && isfield(aligned_data,'Delsys')
     
     TTL_ind = find(cellfun(@(x) contains(x,'TTL'),aligned_data.Delsys.Chan_names));
     
-    plot(aligned_data.FP.Time,aligned_data.FP.Fx_N);
-    hold on;
-    plot(aligned_data.FP.Time,aligned_data.FP.Fy_N);
-    plot(aligned_data.FP.Time,aligned_data.FP.Fz_N-aligned_data.FP.Fz_N(1));
-    ylim([min(min(aligned_data.FP.Fx_N),min(aligned_data.FP.Fy_N))*1.05,max(max(aligned_data.FP.Fx_N),max(aligned_data.FP.Fy_N))*1.05]);
-    yyaxis right;
-    plot(aligned_data.Delsys.Time.(aligned_data.Delsys.Chan_names{TTL_ind}),aligned_data.Delsys.Data.(aligned_data.Delsys.Chan_names{TTL_ind}),'-k');
+%     plot(aligned_data.FP.Time,aligned_data.FP.Fx_N);
+%     hold on;
+%     plot(aligned_data.FP.Time,aligned_data.FP.Fy_N);
+%     plot(aligned_data.FP.Time,aligned_data.FP.Fz_N-aligned_data.FP.Fz_N(1));
+%     ylim([min(min(aligned_data.FP.Fx_N),min(aligned_data.FP.Fy_N))*1.05,max(max(aligned_data.FP.Fx_N),max(aligned_data.FP.Fy_N))*1.05]);
+%     yyaxis right;
+%     plot(aligned_data.Delsys.Time.(aligned_data.Delsys.Chan_names{TTL_ind}),aligned_data.Delsys.Data.(aligned_data.Delsys.Chan_names{TTL_ind}),'-k');
     
     
 end

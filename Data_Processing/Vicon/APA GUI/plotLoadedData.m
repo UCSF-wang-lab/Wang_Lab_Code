@@ -41,6 +41,10 @@ if ~isempty(main_window_handle.UserData.Vicon_data)
     else
         baseline_Fz_N_FP1 = mean(main_window_handle.UserData.Vicon_data.Fz_N_FP1(1:10000));
         baseline_Fz_N_FP2 = mean(main_window_handle.UserData.Vicon_data.Fz_N_FP2(1:10000));
+        baseline_Fx_N_FP1 = mean(main_window_handle.UserData.Vicon_data.Fx_N_FP1(1:10000));
+        baseline_Fx_N_FP2 = mean(main_window_handle.UserData.Vicon_data.Fx_N_FP2(1:10000));
+        baseline_Fy_N_FP1 = mean(main_window_handle.UserData.Vicon_data.Fy_N_FP1(1:10000));
+        baseline_Fy_N_FP2 = mean(main_window_handle.UserData.Vicon_data.Fy_N_FP2(1:10000));
         
         myYLim = [-50,...
         max([max(main_window_handle.UserData.Vicon_data.Fx_N_FP1,main_window_handle.UserData.Vicon_data.Fx_N_FP2),...
@@ -52,32 +56,42 @@ if ~isempty(main_window_handle.UserData.Vicon_data)
     cla(main_window_handle.UserData.plot_axes(1));
     hold(main_window_handle.UserData.plot_axes(1),'on');
     
+    leg_elem = [];
     if sum(contains(main_window_handle.UserData.Vicon_data.Properties.VariableNames,'Fx_N')) == 1   % Single force plate
-        plot(main_window_handle.UserData.plot_axes(1),...
+        leg_elem(end+1) = plot(main_window_handle.UserData.plot_axes(1),...
             vicon_time,...
             main_window_handle.UserData.Vicon_data.Fx_N,'Color',colors(1,:),...
-            'LineStyle','-');
-        plot(main_window_handle.UserData.plot_axes(1),...
+            'LineStyle','-','DisplayName','Fx');
+        leg_elem(end+1) = plot(main_window_handle.UserData.plot_axes(1),...
             vicon_time,...
             main_window_handle.UserData.Vicon_data.Fy_N,'Color',colors(2,:),...
-            'LineStyle','-');
-        plot(main_window_handle.UserData.plot_axes(1),...
+            'LineStyle','-','DisplayName','Fy');
+        leg_elem(end+1) = plot(main_window_handle.UserData.plot_axes(1),...
             vicon_time,...
             main_window_handle.UserData.Vicon_data.Fz_N-baseline_Fz_N,'Color',colors(3,:),...
-            'LineStyle','-');
+            'LineStyle','-','DisplayName','Fz');
         ylim(main_window_handle.UserData.plot_axes(1),myYLim);
     else % Two force plates
-        plot(main_window_handle.UserData.plot_axes(1),...
+        leg_elem(end+1) = plot(main_window_handle.UserData.plot_axes(1),...
             vicon_time,...
             main_window_handle.UserData.Vicon_data.Fz_N_FP1-baseline_Fz_N_FP1,'Color',colors(1,:),...
-            'LineStyle','-');
+            'LineStyle','-','DisplayName','FP Right - Z');
         
-        plot(main_window_handle.UserData.plot_axes(1),...
+        leg_elem(end+1) = plot(main_window_handle.UserData.plot_axes(1),...
             vicon_time,...
             main_window_handle.UserData.Vicon_data.Fz_N_FP2-baseline_Fz_N_FP2,'Color',colors(2,:),...
-            'LineStyle','-');
+            'LineStyle','-','DisplayName','FP Left - Z');
         
-        ylim(main_window_handle.UserData.plot_axes(1),myYLim);
+        temp = findobj('Tag','Plot_Line_FP1');
+        temp.String = {'X','Y','Z'};
+        temp.Value = 3;
+        temp.Enable = 'on';
+        
+        temp = findobj('Tag','Plot_Line_FP2');
+        temp.String = {'X','Y','Z'};
+        temp.Value = 3;
+        temp.Enable = 'on';
+%         ylim(main_window_handle.UserData.plot_axes(1),myYLim);
     end
 end
 
@@ -89,18 +103,13 @@ if ~isempty(main_window_handle.UserData.Delsys_data)
     yyaxis(main_window_handle.UserData.plot_axes(1),'right');
     cla(main_window_handle.UserData.plot_axes(1));
     
-    plot(main_window_handle.UserData.plot_axes(1),...
+    leg_elem(end+1) = plot(main_window_handle.UserData.plot_axes(1),...
         main_window_handle.UserData.Delsys_data.Time.(chan_name),...
         main_window_handle.UserData.Delsys_data.Data.(chan_name),...
-        'Color',colors(4,:));
+        'Color',colors(4,:),'DisplayName','Delsys TTL Pulse');
 end
 xlabel(main_window_handle.UserData.plot_axes(1),'Time (s)','FontWeight','bold');
-
-if single_force_plate
-    legend(main_window_handle.UserData.plot_axes(1),'Fx','Fy','Fz','Delsys TTL');
-else
-    legend('Fz_FP1','Fz_FP2','Delsys TTL');
-end
+legend(leg_elem);
 
 % Remove y ticks
 yyaxis(main_window_handle.UserData.plot_axes(1),'left');
