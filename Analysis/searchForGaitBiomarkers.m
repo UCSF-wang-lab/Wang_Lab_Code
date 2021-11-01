@@ -42,6 +42,9 @@ if isfield(signal_analysis_data,'Left')
     
     channel_power.Left = cell(1,length(signal_analysis_data.Left.Chan_Names));
     channel_anova_matrix.Left = cell(1,length(signal_analysis_data.Left.Chan_Names));
+    channel_f_matrix.Left = cell(1,length(signal_analysis_data.Left.Chan_Names));
+    channel_df_between_matrix.Left = nan(1,length(signal_analysis_data.Right.Chan_Names));
+    channel_df_within_matrix.Left = nan(1,length(signal_analysis_data.Right.Chan_Names));
 %     channel_mult_compare_matrix.Left = cell(1,size(event_pairs,1));
     channel_mult_compare_matrix.Left = cell(1,length(signal_analysis_data.Left.Chan_Names));
     for i = 1:length(signal_analysis_data.Left.Chan_Names)
@@ -85,9 +88,16 @@ if isfield(signal_analysis_data,'Left')
                 X = [X;vals];
                 groups = [groups;repelem(aligned_data.gait_events.Properties.VariableNames(o),length(vals),1)];
             end
-            [p,~,stats] = anova1(X,groups,'off');
+            [p,anova_table,stats] = anova1(X,groups,'off');
             [c,~,~,gnames] = multcompare(stats,'Display','off');
             channel_anova_matrix.Left{i}(freq_bin_inds.Left(n,1),freq_bin_inds.Left(n,2)) = p;
+            channel_f_matrix.Left{i}(freq_bin_inds.Left(n,1),freq_bin_inds.Left(n,2)) = anova_table{2,5};
+            if isnan(channel_df_between_matrix.Left(i))
+                channel_df_between_matrix.Left(i) = anova_table{2,3};
+            end
+            if isnan(channel_df_within_matrix.Left(i))
+                channel_df_within_matrix.Left(i) = anova_table{3,3};
+            end
             for r = 1:size(c,1)
                 mat_ind = find(and(strcmp(gnames(c(r,1)),event_pairs(:,1)),strcmp(gnames(c(r,2)),event_pairs(:,2))));
                 if isempty(channel_mult_compare_matrix.Left{i})
@@ -113,6 +123,9 @@ if isfield(signal_analysis_data,'Right')
 
     channel_power.Right = cell(1,length(signal_analysis_data.Right.Chan_Names));
     channel_anova_matrix.Right = cell(1,length(signal_analysis_data.Right.Chan_Names));
+    channel_f_matrix.Right = cell(1,length(signal_analysis_data.Right.Chan_Names));
+    channel_df_between_matrix.Right = nan(1,length(signal_analysis_data.Right.Chan_Names));
+    channel_df_within_matrix.Right = nan(1,length(signal_analysis_data.Right.Chan_Names));
 %     channel_mult_compare_matrix.Right = cell(1,size(event_pairs,1));
     channel_mult_compare_matrix.Right = cell(1,length(signal_analysis_data.Right.Chan_Names));
     for i = 1:length(signal_analysis_data.Right.Chan_Names)
@@ -156,9 +169,16 @@ if isfield(signal_analysis_data,'Right')
                 X = [X;vals];
                 groups = [groups;repelem(aligned_data.gait_events.Properties.VariableNames(o),length(vals),1)];
             end
-            [p,~,stats] = anova1(X,groups,'off');
+            [p,anova_table,stats] = anova1(X,groups,'off');
             [c,~,~,gnames] = multcompare(stats,'Display','off');
             channel_anova_matrix.Right{i}(freq_bin_inds.Right(n,1),freq_bin_inds.Right(n,2)) = p;
+            channel_f_matrix.Right{i}(freq_bin_inds.Right(n,1),freq_bin_inds.Right(n,2)) = anova_table{2,5};
+            if isnan(channel_df_between_matrix.Right(i))
+                channel_df_between_matrix.Right(i) = anova_table{2,3};
+            end
+            if isnan(channel_df_within_matrix.Right(i))
+                channel_df_within_matrix.Right(i) = anova_table{3,3};
+            end
             for r = 1:size(c,1)
                 mat_ind = find(and(strcmp(gnames(c(r,1)),event_pairs(:,1)),strcmp(gnames(c(r,2)),event_pairs(:,2))));
                 if isempty(channel_mult_compare_matrix.Right{i})
@@ -171,15 +191,15 @@ if isfield(signal_analysis_data,'Right')
 end
 
 %% Create table of statistic output
+% multiple-comparision table
 subject_ID = [];
 side =[];
 contact = [];
-event1 = []; %repelem({event_pairs{:,1}},n_vals)';
-event2 = []; %repelem({event_pairs{:,2}},n_vals)';
 freq1 = [];
 freq2 = [];
+event1 = []; %repelem({event_pairs{:,1}},n_vals)';
+event2 = []; %repelem({event_pairs{:,2}},n_vals)';
 pVals = [];
-
 if isfield(signal_analysis_data,'Left')
     n_vals = size(freq_bin_inds.Left,1);
     for x = 1:length(signal_analysis_data.Left.Chan_Names)
@@ -223,7 +243,67 @@ if isfield(signal_analysis_data,'Right')
     end
     subject_ID = [subject_ID;repmat({subjectID},n_vals*size(event_pairs,1)*length(signal_analysis_data.Right.Chan_Names),1)];
 end
-stat_table = table(subject_ID,side,contact,event1,event2,freq1,freq2,pVals,'VariableNames',{'SubjectID','Side','Contact','GaitEvent1','GaitEvent2','Freq1','Freq2','pVal'});
+multiple_comp_table = table(subject_ID,side,contact,event1,event2,freq1,freq2,pVals,'VariableNames',{'SubjectID','Side','Contact','GaitEvent1','GaitEvent2','Freq1','Freq2','pVal'});
+
+% ANOVA table
+subject_ID = [];
+side =[];
+contact = [];
+freq1 = [];
+freq2 = [];
+df_between = [];
+df_within = [];
+fStat = [];
+pVals = [];
+
+if isfield(signal_analysis_data,'Left')
+    n_vals = size(freq_bin_inds.Left,1);
+    for x = 1:length(signal_analysis_data.Left.Chan_Names)
+        inds = strfind(signal_analysis_data.Left.Chan_Names{x},' ');
+        chan_name = {signal_analysis_data.Left.Chan_Names{x}(1:inds(1)-1)};
+        temp = nan(n_vals,1);
+        temp2 = nan(n_vals,1);
+        for z = 1:n_vals
+            temp(z) = channel_anova_matrix.Left{x}(freq_bin_inds.Left(z,1),freq_bin_inds.Left(z,2));
+            temp2(z) = channel_f_matrix.Left{x}(freq_bin_inds.Left(z,1),freq_bin_inds.Left(z,2));
+        end
+        contact = [contact;repmat(chan_name,n_vals,1)];
+        side = [side;repmat('L',n_vals,1)];
+        freq1 = [freq1;signal_analysis_data.Left.Freq_Values{x}(freq_bin_inds.Left(:,1))];
+        freq2 = [freq2;signal_analysis_data.Left.Freq_Values{x}(freq_bin_inds.Left(:,2))];
+        pVals = [pVals;temp];
+        fStat = [fStat;temp2];
+        df_between = [df_between;repelem(channel_df_between_matrix(x),n_vals)'];
+        df_within = [df_within;repelem(channel_df_within_matrix(x),n_vals)'];
+    end
+    subject_ID = [subject_ID;repmat({subjectID},n_vals*length(signal_analysis_data.Left.Chan_Names),1)];
+end
+
+if isfield(signal_analysis_data,'Right')
+    n_vals = size(freq_bin_inds.Right,1);
+    for x = 1:length(signal_analysis_data.Right.Chan_Names)
+        inds = strfind(signal_analysis_data.Right.Chan_Names{x},' ');
+        chan_name = {signal_analysis_data.Right.Chan_Names{x}(1:inds(1)-1)};
+        for y = 1:size(event_pairs,1)
+            temp = nan(n_vals,1);
+            temp2 = nan(n_vals,1);
+            for z = 1:n_vals
+                temp(z) = channel_anova_matrix.Right{x}(freq_bin_inds.Right(z,1),freq_bin_inds.Right(z,2));
+                temp2(z) = channel_f_matrix.Right{x}(freq_bin_inds.Right(z,1),freq_bin_inds.Right(z,2));
+            end
+            contact = [contact;repmat(chan_name,n_vals,1)];
+            side = [side;repmat('R',n_vals,1)];
+            freq1 = [freq1;signal_analysis_data.Right.Freq_Values{x}(freq_bin_inds.Right(:,1))];
+            freq2 = [freq2;signal_analysis_data.Right.Freq_Values{x}(freq_bin_inds.Right(:,2))];
+            pVals = [pVals;temp];
+            fStat = [fStat;temp2];
+            df_between = [df_between;repelem(channel_df_between_matrix(x),n_vals)'];
+            df_within = [df_within;repelem(channel_df_within_matrix(x),n_vals)'];
+        end
+    end
+    subject_ID = [subject_ID;repmat({subjectID},n_vals*length(signal_analysis_data.Right.Chan_Names),1)];
+end
+anova_table = table(subject_ID,side,contact,freq1,freq2,df_between,df_within,fStat,pVals,'VariableNames',{'SubjectID','Side','Contact','Freq1','Freq2','DF_Between','DF_Within','fStat','pVal'});
 
 %% Plot to visualize p-vals
 fig_vec = [];
@@ -414,16 +494,20 @@ if save_flag && strcmp(save_type,'stat_table')
     if strcmp(analysis_type,'FT')
         if ~isfolder(fullfile(save_dir,'GaitBiomarkerSearch',aligned_data.stim_condition,'FT'))
             mkdir(fullfile(save_dir,'GaitBiomarkerSearch',aligned_data.stim_condition,'FT'));
-            writetable(stat_table,[fullfile(save_dir,'GaitBiomarkerSearch',aligned_data.stim_condition,'FT'),'/',subjectID,'_stat_table.csv']);
+            writetable(multiple_comp_table,[fullfile(save_dir,'GaitBiomarkerSearch',aligned_data.stim_condition,'FT'),'/',subjectID,'_multi-comp_stat_table.csv']);
+            writetable(anova_table,[fullfile(save_dir,'GaitBiomarkerSearch',aligned_data.stim_condition,'FT'),'/',subjectID,'_anova_stat_table.csv']);
         else
-            writetable(stat_table,[fullfile(save_dir,'GaitBiomarkerSearch',aligned_data.stim_condition,'FT'),'/',subjectID,'_stat_table.csv']);
+            writetable(multiple_comp_table,[fullfile(save_dir,'GaitBiomarkerSearch',aligned_data.stim_condition,'FT'),'/',subjectID,'_multi-comp_stat_table.csv']);
+            writetable(anova_table,[fullfile(save_dir,'GaitBiomarkerSearch',aligned_data.stim_condition,'FT'),'/',subjectID,'_anova_stat_table.csv']);
         end
     elseif strcmp(analysis_type,'CWT')
         if ~isfolder(fullfile(save_dir,'GaitBiomarkerSearch',aligned_data.stim_condition,'CWT'))
             mkdir(fullfile(save_dir,'GaitBiomarkerSearch',aligned_data.stim_condition,'CWT'));
-            writetable(stat_table,[fullfile(save_dir,'GaitBiomarkerSearch',aligned_data.stim_condition,'CWT'),'/',subjectID,'_stat_table.csv']);
+            writetable(multiple_comp_table,[fullfile(save_dir,'GaitBiomarkerSearch',aligned_data.stim_condition,'CWT'),'/',subjectID,'_multi-comp_stat_table.csv']);
+            writetable(anova_table,[fullfile(save_dir,'GaitBiomarkerSearch',aligned_data.stim_condition,'CWT'),'/',subjectID,'_anova_stat_table.csv']);
         else
-            writetable(stat_table,[fullfile(save_dir,'GaitBiomarkerSearch',aligned_data.stim_condition,'CWT'),'/',subjectID,'_stat_table.csv']);
+            writetable(multiple_comp_table,[fullfile(save_dir,'GaitBiomarkerSearch',aligned_data.stim_condition,'CWT'),'/',subjectID,'_multi-comp_stat_table.csv']);
+            writetable(anova_table,[fullfile(save_dir,'GaitBiomarkerSearch',aligned_data.stim_condition,'CWT'),'/',subjectID,'_anova_stat_table.csv']);
         end
     end
 end
