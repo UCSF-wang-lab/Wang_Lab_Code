@@ -43,8 +43,8 @@ if isfield(signal_analysis_data,'Left')
     channel_power.Left = cell(1,length(signal_analysis_data.Left.Chan_Names));
     channel_anova_matrix.Left = cell(1,length(signal_analysis_data.Left.Chan_Names));
     channel_f_matrix.Left = cell(1,length(signal_analysis_data.Left.Chan_Names));
-    channel_df_between_matrix.Left = nan(1,length(signal_analysis_data.Right.Chan_Names));
-    channel_df_within_matrix.Left = nan(1,length(signal_analysis_data.Right.Chan_Names));
+    channel_df_between_matrix.Left = nan(1,length(signal_analysis_data.Left.Chan_Names));
+    channel_df_within_matrix.Left = nan(1,length(signal_analysis_data.Left.Chan_Names));
 %     channel_mult_compare_matrix.Left = cell(1,size(event_pairs,1));
     channel_mult_compare_matrix.Left = cell(1,length(signal_analysis_data.Left.Chan_Names));
     for i = 1:length(signal_analysis_data.Left.Chan_Names)
@@ -60,7 +60,7 @@ if isfield(signal_analysis_data,'Left')
                 if ~isnan(event_time)
                     [~,event_ind] = min(abs(signal_analysis_data.Left.Time{i}-event_time));
                     if isfield(signal_analysis_data.Left,'PSD')
-                        temp = 20*log10(abs(signal_analysis_data.Left.Values{i}(:,event_ind)));
+                        temp = 10*log10(abs(signal_analysis_data.Left.Values{i}(:,event_ind)));
                         temp1 = angle(signal_analysis_data.Left.Values{i}(:,event_ind));
                     else
                         temp = abs(signal_analysis_data.Left.Values{i}(:,event_ind));
@@ -141,7 +141,7 @@ if isfield(signal_analysis_data,'Right')
                 if ~isnan(event_time)
                     [~,event_ind] = min(abs(signal_analysis_data.Right.Time{i}-event_time));
                     if isfield(signal_analysis_data.Right,'PSD')
-                        temp = 20*log10(abs(signal_analysis_data.Right.Values{i}(:,event_ind)));
+                        temp = 10*log10(abs(signal_analysis_data.Right.Values{i}(:,event_ind)));
                         temp1 = angle(signal_analysis_data.Right.Values{i}(:,event_ind));
                     else
                         temp = abs(signal_analysis_data.Right.Values{i}(:,event_ind));
@@ -273,8 +273,8 @@ if isfield(signal_analysis_data,'Left')
         freq2 = [freq2;signal_analysis_data.Left.Freq_Values{x}(freq_bin_inds.Left(:,2))];
         pVals = [pVals;temp];
         fStat = [fStat;temp2];
-        df_between = [df_between;repelem(channel_df_between_matrix(x),n_vals)'];
-        df_within = [df_within;repelem(channel_df_within_matrix(x),n_vals)'];
+        df_between = [df_between;repelem(channel_df_between_matrix.Left(x),n_vals)'];
+        df_within = [df_within;repelem(channel_df_within_matrix.Left(x),n_vals)'];
     end
     subject_ID = [subject_ID;repmat({subjectID},n_vals*length(signal_analysis_data.Left.Chan_Names),1)];
 end
@@ -284,22 +284,20 @@ if isfield(signal_analysis_data,'Right')
     for x = 1:length(signal_analysis_data.Right.Chan_Names)
         inds = strfind(signal_analysis_data.Right.Chan_Names{x},' ');
         chan_name = {signal_analysis_data.Right.Chan_Names{x}(1:inds(1)-1)};
-        for y = 1:size(event_pairs,1)
-            temp = nan(n_vals,1);
-            temp2 = nan(n_vals,1);
-            for z = 1:n_vals
-                temp(z) = channel_anova_matrix.Right{x}(freq_bin_inds.Right(z,1),freq_bin_inds.Right(z,2));
-                temp2(z) = channel_f_matrix.Right{x}(freq_bin_inds.Right(z,1),freq_bin_inds.Right(z,2));
-            end
-            contact = [contact;repmat(chan_name,n_vals,1)];
-            side = [side;repmat('R',n_vals,1)];
-            freq1 = [freq1;signal_analysis_data.Right.Freq_Values{x}(freq_bin_inds.Right(:,1))];
-            freq2 = [freq2;signal_analysis_data.Right.Freq_Values{x}(freq_bin_inds.Right(:,2))];
-            pVals = [pVals;temp];
-            fStat = [fStat;temp2];
-            df_between = [df_between;repelem(channel_df_between_matrix(x),n_vals)'];
-            df_within = [df_within;repelem(channel_df_within_matrix(x),n_vals)'];
+        temp = nan(n_vals,1);
+        temp2 = nan(n_vals,1);
+        for z = 1:n_vals
+            temp(z) = channel_anova_matrix.Right{x}(freq_bin_inds.Right(z,1),freq_bin_inds.Right(z,2));
+            temp2(z) = channel_f_matrix.Right{x}(freq_bin_inds.Right(z,1),freq_bin_inds.Right(z,2));
         end
+        contact = [contact;repmat(chan_name,n_vals,1)];
+        side = [side;repmat('R',n_vals,1)];
+        freq1 = [freq1;signal_analysis_data.Right.Freq_Values{x}(freq_bin_inds.Left(:,1))];
+        freq2 = [freq2;signal_analysis_data.Right.Freq_Values{x}(freq_bin_inds.Left(:,2))];
+        pVals = [pVals;temp];
+        fStat = [fStat;temp2];
+        df_between = [df_between;repelem(channel_df_between_matrix.Right(x),n_vals)'];
+        df_within = [df_within;repelem(channel_df_within_matrix.Right(x),n_vals)'];
     end
     subject_ID = [subject_ID;repmat({subjectID},n_vals*length(signal_analysis_data.Right.Chan_Names),1)];
 end

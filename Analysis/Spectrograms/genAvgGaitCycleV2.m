@@ -10,9 +10,9 @@ for i = 1:2:nargin-2
         case 'normalize_by'
             normalize_by = varargin{i+1};   % Can be none|baseline|average_during_walking
         case 'normalization_type'
-            normalization_type = varargin{i+1}; % Can be percent_change|zscore
-        case 'baseline_data'
-            baseline_data = varargin{i+1};  % Only valid if "normalization_by" is set to "baseline"
+            normalization_type = varargin{i+1}; % Can be none|percent_change|zscore
+        case 'baseline_time'
+            baseline_time = varargin{i+1};  % Only valid if "normalization_by" is set to "baseline"
         case 'subjectID'
             subjectID = varargin{i+1};
         case 'save_flag'
@@ -28,16 +28,21 @@ if ~exist('n_percent_bins','var')
     n_percent_bins = 100;
 end
 
-if ~exist('baseline_data','var')
-    baseline_data.Left = [];
-    baseline_data.Right = [];
+if ~exist('baseline_time','var')
+    baseline_time = [];
 end
 
 if ~exist('normalize_by','var')
     normalize_by = 'none';
 end
 
-if strcmp(normalize_by,'baseline') && ~exist('baseline_data','var')
+if ~exist('normalization_type','var') && ~strcmp(normalize_by,'none')
+    normalization_type = 'zscore';
+else
+    normalization_type = 'none';
+end
+
+if strcmp(normalize_by,'baseline') && ~exist('baseline_time','var')
     error('Normalization by baseline, but no baseline data was passed in.');
 end
 
@@ -150,8 +155,24 @@ if ~strcmp(normalize_by,'none')
                 normalization.Right{i} = signal_analysis_data.Right.Values{i}(:,walking_start_ind:walking_end_ind);
             end
         end
+    elseif strcmp(normalize_by,'baseline')
+        if isfield(signal_analysis_data,'Left')
+            normalization.Left = cell(1,length(signal_analysis_data.Left.Chan_Names));
+            baseline_start_ind = find(signal_analysis_data.Left.Time{i} >= baseline_time(1),1,'first');
+            baseline_end_ind = find(signal_analysis_data.Left.Time{i} <= baseline_time(2),1,'last');
+            for i = 1:length(signal_analysis_data.Left.Chan_Names)
+                normalization.Left{i} = signal_analysis_data.Left.Values{i}(:,baseline_start_ind:baseline_end_ind);
+            end
+        end
+        if isfield(signal_analysis_data,'Right')
+            normalization.Right = cell(1,length(signal_analysis_data.Right.Chan_Names));
+            baseline_start_ind = find(signal_analysis_data.Right.Time{i} >= baseline_time(1),1,'first');
+            baseline_end_ind = find(signal_analysis_data.Right.Time{i} <= baseline_time(2),1,'last');
+            for i = 1:length(signal_analysis_data.Right.Chan_Names)
+                normalization.Right{i} = signal_analysis_data.Right.Values{i}(:,baseline_start_ind:baseline_end_ind);
+            end
+        end
     end
-elseif strcmp(normalize_by,'baseline')
 end
 
 if strcmp(normalization_type,'percent_change')
@@ -187,6 +208,7 @@ elseif strcmp(normalization_type,'zscore')
 end
 
 %% Plot
+
 fig_vec = [];
 if isfield(gait_cycle_avg,'Left')
     for i = 1:length(signal_analysis_data.Left.Chan_Names)
@@ -200,6 +222,9 @@ if isfield(gait_cycle_avg,'Left')
             ax.Parent.YTick = log2(ticks);
             ax.Parent.YTickLabel = ticks;
             ylim([log2(2.5),log2(50)]);
+            if strcmp(normalize_by,'baseline') && strcmp(normalization_type,'zscore')
+                caxis([-2,2]);
+            end
         end
         shading interp;
         title({[subjectID,' Left'];signal_analysis_data.Left.Chan_Names{i}});
@@ -220,6 +245,9 @@ if isfield(gait_cycle_avg,'Right')
             ax.Parent.YTick = log2(ticks);
             ax.Parent.YTickLabel = ticks;
             ylim([log2(2.5),log2(50)]);
+            if strcmp(normalize_by,'baseline') && strcmp(normalization_type,'zscore')
+                caxis([-2,2]);
+            end
         end
         shading interp;
         title({[subjectID,' Right'];signal_analysis_data.Right.Chan_Names{i}});
