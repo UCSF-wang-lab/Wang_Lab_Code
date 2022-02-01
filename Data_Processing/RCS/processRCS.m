@@ -152,6 +152,8 @@ if ~isempty(outtable_Power)
         outtable_Power.packetsizes(:) = 1;
         powerData = assignTime(outtable_Power,shortGaps_systemTick);
     end
+else
+    powerData = [];
 end
 end
 
