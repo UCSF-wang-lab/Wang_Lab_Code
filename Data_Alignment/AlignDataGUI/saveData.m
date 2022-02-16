@@ -5,6 +5,7 @@ aligned_data.alignment_subvariable_source = src.Parent.Parent.UserData.alignment
 aligned_data.alignment_source = {'Left IPG LFP','Right IPG LFP','Left IPG Accel','Right IPG Accel','Delsys','Xsens','Force Plate','Teensey'};
 aligned_data.files_used = src.Parent.Parent.UserData.file_names;
 aligned_data.pre_align_time = src.Parent.Parent.UserData.pre_alignment_time;
+aligned_data.post_align_time = src.Parent.Parent.UserData.post_alignment_time;
 aligned_data.DeviceSettings = src.Parent.Parent.UserData.DeviceSettings;
 aligned_data.stim_condition = src.Parent.Parent.UserData.stim_condition;
 aligned_data.med_condition = src.Parent.Parent.UserData.med_condition;

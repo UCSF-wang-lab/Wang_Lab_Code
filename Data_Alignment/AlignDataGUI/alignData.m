@@ -2,18 +2,19 @@ function alignData(src,event)
 main = src.Parent.Parent;
 aligned_data = [];
 
-if isfield(main.UserData,'pre_alignment_time')
-    pre_align_time = main.UserData.pre_alignment_time;
-else
+if main.UserData.pre_alignment_time < 0
     pre_align_time = 0;
-end
-
-if isfield(main.UserData,'post_alignment_time')
-    post_align_time = main.UserData.post_alignment_time;
+    addEvent('Cannot have a negative pre alignment time. Setting pre alignment time to 0.');
 else
-    post_align_time = inf;
+    pre_align_time = main.UserData.pre_alignment_time;
 end
 
+if main.UserData.post_alignment_time < 0
+    post_align_time = inf;
+    addEvent('Cannot have a negative post alignment time. Setting post alignment time to end of data file.');
+else
+    post_align_time = main.UserData.post_alignment_time;
+end
 
 % Add event
 addEvent('Aligning data using marked points...');

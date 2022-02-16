@@ -162,5 +162,6 @@ alignment_times_text(8) = uicontrol('Parent',alignment_tools_panel,...
 % Save variables
 main_window.UserData.alignment_times_text = alignment_times_text;
 main_window.UserData.pre_alignment_time = 0;
+main_window.UserData.post_alignment_time = inf;
     
 end
