@@ -36,10 +36,18 @@ if ~exist('normalize_by','var')
     normalize_by = 'none';
 end
 
-if ~exist('normalization_type','var') && ~strcmp(normalize_by,'none')
-    normalization_type = 'zscore';
-else
+if ~exist('normalization_type','var')
     normalization_type = 'none';
+end
+
+if strcmp(normalize_by,'none') && ~strcmp(normalization_type,'none')
+    warning('No input for normalize_by. Defauling to average during walking.');
+    normalize_by = 'average_during_walking';
+end
+
+if ~strcmp(normalize_by,'none') && strcmp(normalization_type,'none')
+    warning('No input for normalization_type. Defauling to zscore.');
+    normalization_type = 'zscore';
 end
 
 if strcmp(normalize_by,'baseline') && ~exist('baseline_time','var')
@@ -271,13 +279,17 @@ if save_flag
         mkdir(fullfile(save_dir,'AvgGaitCycleSpec',[aligned_data.stim_condition,'_STIM']))
     end
     
+    if ~isfolder(fullfile(save_dir,'AvgGaitCycleSpec',[aligned_data.stim_condition,'_STIM'],[aligned_data.med_condition,'_MED']))
+        mkdir(fullfile(save_dir,'AvgGaitCycleSpec',[aligned_data.stim_condition,'_STIM'],[aligned_data.med_condition,'_MED']))
+    end
+    
     if strcmp(analysis_type,'FT')
-        if ~isfolder(fullfile(save_dir,'AvgGaitCycleSpec',[aligned_data.stim_condition,'_STIM'],'FT'))
-            mkdir(fullfile(save_dir,'AvgGaitCycleSpec',[aligned_data.stim_condition,'_STIM'],'FT'))
+        if ~isfolder(fullfile(save_dir,'AvgGaitCycleSpec',[aligned_data.stim_condition,'_STIM'],[aligned_data.med_condition,'_MED'],'FT'))
+            mkdir(fullfile(save_dir,'AvgGaitCycleSpec',[aligned_data.stim_condition,'_STIM'],[aligned_data.med_condition,'_MED'],'FT'))
         end
     elseif strcmp(analysis_type,'CWT')
-        if ~isfolder(fullfile(save_dir,'AvgGaitCycleSpec',[aligned_data.stim_condition,'_STIM'],'CWT'))
-            mkdir(fullfile(save_dir,'AvgGaitCycleSpec',[aligned_data.stim_condition,'_STIM'],'CWT'))
+        if ~isfolder(fullfile(save_dir,'AvgGaitCycleSpec',[aligned_data.stim_condition,'_STIM'],[aligned_data.med_condition,'_MED'],'CWT'))
+            mkdir(fullfile(save_dir,'AvgGaitCycleSpec',[aligned_data.stim_condition,'_STIM'],[aligned_data.med_condition,'_MED'],'CWT'))
         end
     end
     
@@ -285,12 +297,12 @@ if save_flag
     extension = {'.fig','.pdf','.tiff'};
     for n = 1:length(folders_to_check)
         if strcmp(analysis_type,'FT')
-            if ~isfolder(fullfile(save_dir,'AvgGaitCycleSpec',[aligned_data.stim_condition,'_STIM'],'FT',folders_to_check{n}))
-                mkdir(fullfile(save_dir,'AvgGaitCycleSpec',[aligned_data.stim_condition,'_STIM'],'FT',folders_to_check{n}));
+            if ~isfolder(fullfile(save_dir,'AvgGaitCycleSpec',[aligned_data.stim_condition,'_STIM'],[aligned_data.med_condition,'_MED'],'FT',folders_to_check{n}))
+                mkdir(fullfile(save_dir,'AvgGaitCycleSpec',[aligned_data.stim_condition,'_STIM'],[aligned_data.med_condition,'_MED'],'FT',folders_to_check{n}));
             end
         elseif strcmp(analysis_type,'CWT')
-            if ~isfolder(fullfile(save_dir,'AvgGaitCycleSpec',[aligned_data.stim_condition,'_STIM'],'CWT',folders_to_check{n}))
-                mkdir(fullfile(save_dir,'AvgGaitCycleSpec',[aligned_data.stim_condition,'_STIM'],'CWT',folders_to_check{n}));
+            if ~isfolder(fullfile(save_dir,'AvgGaitCycleSpec',[aligned_data.stim_condition,'_STIM'],[aligned_data.med_condition,'_MED'],'CWT',folders_to_check{n}))
+                mkdir(fullfile(save_dir,'AvgGaitCycleSpec',[aligned_data.stim_condition,'_STIM'],[aligned_data.med_condition,'_MED'],'CWT',folders_to_check{n}));
             end
         end
     end
@@ -306,21 +318,25 @@ if save_flag
             end
         end
         
+        if isfield(aligned_data,'trial_num')
+            save_name = [save_name,' ',sprintf('Trial%i',aligned_data.trial_num)];
+        end
+        
         if ~strcmp(normalization_type,'none')
             save_name = [save_name,' ',normalization_type];
         end
         
         if strcmp(analysis_type,'FT')
-            savefig(fig_vec(i),fullfile(save_dir,'AvgGaitCycleSpec',[aligned_data.stim_condition,'_STIM'],'FT',folders_to_check{1},strrep(save_name,' ','_')));
+            savefig(fig_vec(i),fullfile(save_dir,'AvgGaitCycleSpec',[aligned_data.stim_condition,'_STIM'],[aligned_data.med_condition,'_MED'],'FT',folders_to_check{1},strrep(save_name,' ','_')));
         elseif strcmp(analysis_type,'CWT')
-            savefig(fig_vec(i),fullfile(save_dir,'AvgGaitCycleSpec',[aligned_data.stim_condition,'_STIM'],'CWT',folders_to_check{1},strrep(save_name,' ','_')));
+            savefig(fig_vec(i),fullfile(save_dir,'AvgGaitCycleSpec',[aligned_data.stim_condition,'_STIM'],[aligned_data.med_condition,'_MED'],'CWT',folders_to_check{1},strrep(save_name,' ','_')));
         end
         
         for k = 2:length(folders_to_check)
             if strcmp(analysis_type,'FT')
-                print(fig_vec(i),[fullfile(save_dir,'AvgGaitCycleSpec',[aligned_data.stim_condition,'_STIM'],'FT',folders_to_check{k},strrep(save_name,' ','_')),extension{k}],'-r300',['-d',extension{k}(2:end)]);
+                print(fig_vec(i),[fullfile(save_dir,'AvgGaitCycleSpec',[aligned_data.stim_condition,'_STIM'],[aligned_data.med_condition,'_MED'],'FT',folders_to_check{k},strrep(save_name,' ','_')),extension{k}],'-r300',['-d',extension{k}(2:end)]);
             elseif strcmp(analysis_type,'CWT')
-                print(fig_vec(i),[fullfile(save_dir,'AvgGaitCycleSpec',[aligned_data.stim_condition,'_STIM'],'CWT',folders_to_check{k},strrep(save_name,' ','_')),extension{k}],'-r300',['-d',extension{k}(2:end)]);
+                print(fig_vec(i),[fullfile(save_dir,'AvgGaitCycleSpec',[aligned_data.stim_condition,'_STIM'],[aligned_data.med_condition,'_MED'],'CWT',folders_to_check{k},strrep(save_name,' ','_')),extension{k}],'-r300',['-d',extension{k}(2:end)]);
             end
         end
     end
