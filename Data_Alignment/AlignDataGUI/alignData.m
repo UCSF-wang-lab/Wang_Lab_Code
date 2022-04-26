@@ -222,7 +222,11 @@ end
 function varargout = trimData(time_vec,data,alignment_time)
 
 if ~isempty(time_vec) && ~isempty(data)
-    [~,start_alignment_ind] = min(abs(time_vec-alignment_time(1)));
+    if alignment_time(1)<0
+        start_alignment_ind = 1;
+    else
+        [~,start_alignment_ind] = min(abs(time_vec-alignment_time(1)));
+    end
     
     if isinf(alignment_time(2))
         end_alignment_ind = length(time_vec);
@@ -233,10 +237,18 @@ if ~isempty(time_vec) && ~isempty(data)
     aligned_time_vec = time_vec(start_alignment_ind:end_alignment_ind)-alignment_time(1);
     aligned_data = data(start_alignment_ind:end_alignment_ind,:);
 elseif isempty(time_vec) && istable(data) && sum(ismember(data.Properties.VariableNames,'Time')) == 1
-    [~,start_alignment_ind] = min(abs(data.Time-alignment_time(1)));
+    if alignment_time(1)<0
+        start_alignment_ind = 1;
+    else
+        [~,start_alignment_ind] = min(abs(data.Time-alignment_time(1)));
+    end
     
     if isinf(alignment_time(2))
-        end_alignment_ind = length(time_vec);
+        if ~isempty(time_vec) && ~isempty(data)
+            end_alignment_ind = length(time_vec);
+        else
+            end_alignment_ind = length(data.Time);
+        end
     else
         [~,end_alignment_ind] = min(abs(data.Time-alignment_time(2)));
     end

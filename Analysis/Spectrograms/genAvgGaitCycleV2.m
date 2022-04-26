@@ -318,7 +318,7 @@ if save_flag
             end
         end
         
-        if isfield(aligned_data,'trial_num')
+        if isfield(aligned_data,'trial_num') && ~isempty(aligned_data.trial_num)
             save_name = [save_name,' ',sprintf('Trial%i',aligned_data.trial_num)];
         end
         
