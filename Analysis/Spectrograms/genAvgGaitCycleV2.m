@@ -222,16 +222,20 @@ if isfield(gait_cycle_avg,'Left')
     for i = 1:length(signal_analysis_data.Left.Chan_Names)
         fig_vec(end+1) = figure;
         if isfield(signal_analysis_data.Left,'PSD')
-            pcolor(1:100,signal_analysis_data.Left.Freq_Values{i},gait_cycle_avg.Left{i});
-            ylim([2.5,50]);
+            if sum(isnan(gait_cycle_avg.Left{i}),'all') == 0
+                pcolor(1:100,signal_analysis_data.Left.Freq_Values{i},gait_cycle_avg.Left{i});
+                ylim([2.5,50]);
+            end
         else
-            ax = pcolor(1:100,log2(signal_analysis_data.Left.Freq_Values{i}),gait_cycle_avg.Left{i});
-            ticks = logspace(log10(2.5),log10(50),10);
-            ax.Parent.YTick = log2(ticks);
-            ax.Parent.YTickLabel = ticks;
-            ylim([log2(2.5),log2(50)]);
-            if strcmp(normalize_by,'baseline') && strcmp(normalization_type,'zscore')
-                caxis([-2,2]);
+            if sum(isnan(gait_cycle_avg.Left{i}),'all') == 0
+                ax = pcolor(1:100,log2(signal_analysis_data.Left.Freq_Values{i}),gait_cycle_avg.Left{i});
+                ticks = logspace(log10(2.5),log10(50),10);
+                ax.Parent.YTick = log2(ticks);
+                ax.Parent.YTickLabel = ticks;
+                ylim([log2(2.5),log2(50)]);
+                if strcmp(normalize_by,'baseline') && strcmp(normalization_type,'zscore')
+                    caxis([-2,2]);
+                end
             end
         end
         shading interp;
@@ -245,16 +249,20 @@ if isfield(gait_cycle_avg,'Right')
     for i = 1:length(signal_analysis_data.Right.Chan_Names)
         fig_vec(end+1) = figure;
         if isfield(signal_analysis_data.Right,'PSD')
-            pcolor(1:100,signal_analysis_data.Right.Freq_Values{i},gait_cycle_avg.Right{i});
-            ylim([2.5,50]);
+            if sum(isnan(gait_cycle_avg.Right{i}),'all') == 0
+                pcolor(1:100,signal_analysis_data.Right.Freq_Values{i},gait_cycle_avg.Right{i});
+                ylim([2.5,50]);
+            end
         else
-            ax = pcolor(1:100,log2(signal_analysis_data.Right.Freq_Values{i}),gait_cycle_avg.Right{i});
-            ticks = logspace(log10(2.5),log10(50),10);
-            ax.Parent.YTick = log2(ticks);
-            ax.Parent.YTickLabel = ticks;
-            ylim([log2(2.5),log2(50)]);
-            if strcmp(normalize_by,'baseline') && strcmp(normalization_type,'zscore')
-                caxis([-2,2]);
+            if sum(isnan(gait_cycle_avg.Right{i}),'all') == 0
+                ax = pcolor(1:100,log2(signal_analysis_data.Right.Freq_Values{i}),gait_cycle_avg.Right{i});
+                ticks = logspace(log10(2.5),log10(50),10);
+                ax.Parent.YTick = log2(ticks);
+                ax.Parent.YTickLabel = ticks;
+                ylim([log2(2.5),log2(50)]);
+                if strcmp(normalize_by,'baseline') && strcmp(normalization_type,'zscore')
+                    caxis([-2,2]);
+                end
             end
         end
         shading interp;

@@ -7,6 +7,9 @@ end
 if isfield(aligned_data,'left_LFP_table')
     % Spectrogram hyperparameters
     left_sr = aligned_data.DeviceSettings.Left.timeDomainSettings.samplingRate(end);
+    if ~isnumeric(left_sr)
+        left_sr = 500;
+    end
     
     chan_tag_inds = cellfun(@(x) contains(x,'chan'),aligned_data.DeviceSettings.Left.timeDomainSettings.Properties.VariableNames);
     chan_col_names = aligned_data.DeviceSettings.Left.timeDomainSettings.Properties.VariableNames(chan_tag_inds);
@@ -20,7 +23,13 @@ if isfield(aligned_data,'left_LFP_table')
         same_chan = cellfun(@(x) strcmp(left_chan_names{i},x),left_chan_names(1:i-1));
         if sum(same_chan) == 0  % Not a duplicate channel recording
             [data,left_cwt_time{end+1}] = addEmptyData(aligned_data.left_taxis,aligned_data.left_LFP_table.(['key',num2str(i-1)]),left_sr,gapFillType);
-            [left_cwt{end+1},left_cwt_freq{end+1}]=cwt(data,left_sr);
+
+            if sum(isnan(data)) == 0
+                [left_cwt{end+1},left_cwt_freq{end+1}]=cwt(data,left_sr);
+            else
+                left_cwt{end+1} = nan(length(left_cwt_freq{end}),length(data));
+                left_cwt_freq{end+1} = nan(length(left_cwt_freq{end}),1);
+            end
         else
             remove_ind = [remove_ind,i];
         end
@@ -37,6 +46,9 @@ end
 if isfield(aligned_data,'right_LFP_table')
     % Spectrogram hyperparameters
     right_sr = aligned_data.DeviceSettings.Right.timeDomainSettings.samplingRate(end);
+    if ~isnumeric(right_sr)
+        right_sr = 500;
+    end
     
     chan_tag_inds = cellfun(@(x) contains(x,'chan'),aligned_data.DeviceSettings.Right.timeDomainSettings.Properties.VariableNames);
     chan_col_names = aligned_data.DeviceSettings.Right.timeDomainSettings.Properties.VariableNames(chan_tag_inds);
@@ -50,7 +62,13 @@ if isfield(aligned_data,'right_LFP_table')
         same_chan = cellfun(@(x) strcmp(right_chan_names{i},x),right_chan_names(1:i-1));
         if sum(same_chan) == 0  % Not a duplicate channel recording
             [data,right_cwt_time{end+1}] = addEmptyData(aligned_data.right_taxis,aligned_data.right_LFP_table.(['key',num2str(i-1)]),right_sr,gapFillType);
-            [right_cwt{end+1},right_cwt_freq{end+1}]=cwt(data,right_sr);
+
+            if sum(isnan(data)) == 0
+                [right_cwt{end+1},right_cwt_freq{end+1}]=cwt(data,right_sr);
+            else
+                right_cwt{end+1} = nan(length(right_cwt_freq{end}),length(data));
+                right_cwt_freq{end+1} = nan(length(right_cwt_freq{end}),1);
+            end
         else
             remove_ind = [remove_ind,i];
         end
