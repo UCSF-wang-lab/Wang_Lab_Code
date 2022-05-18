@@ -45,8 +45,8 @@ for i = 1:2:nargin-3
             remove_nan = varargin{i+1};
         case 'n_percent_bins'
             n_percent_bins = varargin{i+1};
-        case 'cycle_start_event'
-            cycle_start_event = varargin{i+1};
+        case 'gcStartEvent'
+            gcStartEvent = varargin{i+1};
         case 'geRangeTable'
             geRangeTable = varargin{i+1};
     end
@@ -64,8 +64,8 @@ if ~exist('n_percent_bins','var')
     n_percent_bins = 100;
 end
 
-if ~exist('cycle_start_event','var')
-    cycle_start_event = 'LHS';
+if ~exist('gcStartEvent','var')
+    gcStartEvent = 'LHS';
 end
 
 if ~exist('geRangeTable','var') || isempty(geRangeTable)
@@ -88,7 +88,7 @@ for i = 1:length(files)
     load(files{i});
     
     % Sort gait events and calculate CWT
-    gaitEventsSorted = sortGaitEvents(aligned_data.gait_events,'LHS');
+    gaitEventsSorted = sortGaitEvents(aligned_data.gait_events,gcStartEvent);
     signalAnalysisData = calcRCS_CWT(aligned_data);
     
     % Gait event search range
@@ -118,9 +118,9 @@ for i = 1:length(files)
             average_power_temp = [];
             count = 1;
             for k = geRange(1):geRange(2)-1
-                if ~isnan(gaitEventsSorted.(cycle_start_event)(k)) && ~isnan(gaitEventsSorted.(cycle_start_event)(k+1)) && (diff(gaitEventsSorted.(cycle_start_event)([k,k+1])) < 2)
-                    [~,start_ind] = min(abs(signalAnalysisData.Left.Time{j}-gaitEventsSorted.(cycle_start_event)(k)));
-                    [~,end_ind] = min(abs(signalAnalysisData.Left.Time{j}-gaitEventsSorted.(cycle_start_event)(k+1)));
+                if ~isnan(gaitEventsSorted.(gcStartEvent)(k)) && ~isnan(gaitEventsSorted.(gcStartEvent)(k+1)) && (diff(gaitEventsSorted.(gcStartEvent)([k,k+1])) < 2)
+                    [~,start_ind] = min(abs(signalAnalysisData.Left.Time{j}-gaitEventsSorted.(gcStartEvent)(k)));
+                    [~,end_ind] = min(abs(signalAnalysisData.Left.Time{j}-gaitEventsSorted.(gcStartEvent)(k+1)));
                     data_snip = abs(signalAnalysisData.Left.Values{j}(:,start_ind:end_ind));
                     
                     if sum(isinf(data_snip),'all') == 0
@@ -189,9 +189,9 @@ for i = 1:length(files)
             average_power_temp = [];
             count = 1;
             for k = geRange(1):geRange(2)-1
-                if ~isnan(gaitEventsSorted.(cycle_start_event)(k)) && ~isnan(gaitEventsSorted.(cycle_start_event)(k+1)) && (diff(gaitEventsSorted.(cycle_start_event)([k,k+1])) < 2)
-                    [~,start_ind] = min(abs(signalAnalysisData.Right.Time{j}-gaitEventsSorted.(cycle_start_event)(k)));
-                    [~,end_ind] = min(abs(signalAnalysisData.Right.Time{j}-gaitEventsSorted.(cycle_start_event)(k+1)));
+                if ~isnan(gaitEventsSorted.(gcStartEvent)(k)) && ~isnan(gaitEventsSorted.(gcStartEvent)(k+1)) && (diff(gaitEventsSorted.(gcStartEvent)([k,k+1])) < 2)
+                    [~,start_ind] = min(abs(signalAnalysisData.Right.Time{j}-gaitEventsSorted.(gcStartEvent)(k)));
+                    [~,end_ind] = min(abs(signalAnalysisData.Right.Time{j}-gaitEventsSorted.(gcStartEvent)(k+1)));
                     data_snip = abs(signalAnalysisData.Right.Values{j}(:,start_ind:end_ind));
                     
                     if sum(isinf(data_snip),'all') == 0
