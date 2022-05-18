@@ -5,6 +5,8 @@ function data_table = extractGaitCyclePercentPower(files,subject_ID,stim_target,
 %   walking and the average power at a given frequency for each gait cycle.
 %
 
+% extractGaitCyclePercentPower(allFiles,subject_ID,stim_target,'geRangeTable',geRangeTable);
+
 %% EXAMPLE FUNCTION RUN
 % % GPi
 % RCS03 = '/Volumes/dwang3_shared/Patient Data/RC+S Data/RCS03/Gait/2020-10-05/Data/Aligned Data/RCS03_OG_after_task_OFF_STIM_w_Gait_Events_Julia.mat'; % Using "after task" but the task had a lot of issues. Unlikely they learned.
@@ -45,6 +47,8 @@ for i = 1:2:nargin-3
             n_percent_bins = varargin{i+1};
         case 'cycle_start_event'
             cycle_start_event = varargin{i+1};
+        case 'geRangeTable'
+            geRangeTable = varargin{i+1};
     end
 end
 
@@ -64,6 +68,10 @@ if ~exist('cycle_start_event','var')
     cycle_start_event = 'LHS';
 end
 
+if ~exist('geRangeTable','var') || isempty(geRangeTable)
+    geRangeTable = [];
+end
+
 %% Data extraction
 state = {};
 power = [];
@@ -80,48 +88,40 @@ for i = 1:length(files)
     load(files{i});
     
     % Sort gait events and calculate CWT
-    gait_events_sorted = sortGaitEvents(aligned_data.gait_events,'LHS');
-    signal_analysis_data = calcRCS_CWT(aligned_data);
+    gaitEventsSorted = sortGaitEvents(aligned_data.gait_events,'LHS');
+    signalAnalysisData = calcRCS_CWT(aligned_data);
     
     % Gait event search range
-    gait_event_range = [];
-    if contains(files{i},'RCS07')
-        gait_event_range(1) = 1;
-        gait_event_range(2) = height(gait_events_sorted);
-    elseif contains(files{i},'RCS12')
-        gait_event_range(1) = find(gait_events_sorted.LHS > 51,1,'first');
-        gait_event_range(2) = find(gait_events_sorted.LHS < 234,1,'last');
-    elseif contains(files{i},'RCS15')
-        gait_event_range(1) = 1;
-        gait_event_range(2) = height(gait_events_sorted);
-    elseif contains(files{i},'RCS03')
-        gait_event_range(1) = 1;
-        gait_event_range(2) = height(gait_events_sorted);
-    elseif contains(files{i},'RCS14')
-        gait_event_range(1) = 1;
-        gait_event_range(2) = height(gait_events_sorted);
+    if isempty(geRangeTable)
+        geRange = [1,height(gaitEventsSorted)];
+    elseif isinf(geRangeTable(i,2)) && geRangeTable(i,1) == 1
+        geRange = [1,height(gaitEventsSorted)];
+    else
+        start_ind = find(gaitEventsSorted.(gcStartEvent) > geRangeTable(i,1),1,'first');
+        end_ind = find(gaitEventsSorted.(gcStartEvent) < geRangeTable(i,2),1,'last');
+        geRange = [start_ind,end_ind];
     end
     
-    if isfield(signal_analysis_data,'Left')
-        walking_start_ind = find(signal_analysis_data.Left.Time{1} >= min(gait_events_sorted{1,:})-1,1,'first');
-        walking_end_ind = find(signal_analysis_data.Left.Time{1} <= max(gait_events_sorted{end,:}),1,'last');
-        contact_names = createContactVariableName(signal_analysis_data.Left.Chan_Names);
+    if isfield(signalAnalysisData,'Left')
+        walking_start_ind = find(signalAnalysisData.Left.Time{1} >= min(gaitEventsSorted{1,:})-1,1,'first');
+        walking_end_ind = find(signalAnalysisData.Left.Time{1} <= max(gaitEventsSorted{end,:}),1,'last');
+        contact_names = createContactVariableName(signalAnalysisData.Left.Chan_Names);
         
         printStatus('Extracting data from left contacts.');
         for j = 1:length(contact_names)
             printStatus(sprintf('Extracting data from left %s.',contact_names{j}));
             
             % Walking power
-            gait_cycle_mat_left = zeros(length(signal_analysis_data.Left.Freq_Values{j}),n_percent_bins,1);
+            gait_cycle_mat_left = zeros(length(signalAnalysisData.Left.Freq_Values{j}),n_percent_bins,1);
             power_temp = [];
-            average_gait_cycle_power_mat = zeros(length(signal_analysis_data.Left.Freq_Values{j}),1);
+            average_gait_cycle_power_mat = zeros(length(signalAnalysisData.Left.Freq_Values{j}),1);
             average_power_temp = [];
             count = 1;
-            for k = gait_event_range(1):gait_event_range(2)-1
-                if ~isnan(gait_events_sorted.(cycle_start_event)(k)) && ~isnan(gait_events_sorted.(cycle_start_event)(k+1)) && (diff(gait_events_sorted.(cycle_start_event)([k,k+1])) < 2)
-                    [~,start_ind] = min(abs(signal_analysis_data.Left.Time{j}-gait_events_sorted.(cycle_start_event)(k)));
-                    [~,end_ind] = min(abs(signal_analysis_data.Left.Time{j}-gait_events_sorted.(cycle_start_event)(k+1)));
-                    data_snip = abs(signal_analysis_data.Left.Values{j}(:,start_ind:end_ind));
+            for k = geRange(1):geRange(2)-1
+                if ~isnan(gaitEventsSorted.(cycle_start_event)(k)) && ~isnan(gaitEventsSorted.(cycle_start_event)(k+1)) && (diff(gaitEventsSorted.(cycle_start_event)([k,k+1])) < 2)
+                    [~,start_ind] = min(abs(signalAnalysisData.Left.Time{j}-gaitEventsSorted.(cycle_start_event)(k)));
+                    [~,end_ind] = min(abs(signalAnalysisData.Left.Time{j}-gaitEventsSorted.(cycle_start_event)(k+1)));
+                    data_snip = abs(signalAnalysisData.Left.Values{j}(:,start_ind:end_ind));
                     
                     if sum(isinf(data_snip),'all') == 0
                         average_gait_cycle_power_mat(:,1,count) = mean(data_snip,2);
@@ -146,14 +146,14 @@ for i = 1:length(files)
                 end
             end
             power = [power;power_temp];
-            frequency = [frequency;repmat(repmat(round(signal_analysis_data.Left.Freq_Values{j},4),n_percent_bins,1),n_gait_cycles,1)];
-            gait_cycle_num = [gait_cycle_num;repelem(1:n_gait_cycles,length(signal_analysis_data.Left.Freq_Values{j})*n_percent_bins)'];
-            gait_cycle_percent = [gait_cycle_percent;repmat(repelem(1:100,length(signal_analysis_data.Left.Freq_Values{j}))',n_gait_cycles,1)];
-            state = [state;repmat({'Walking'},length(signal_analysis_data.Left.Freq_Values{j})*n_percent_bins*n_gait_cycles,1)];
-            contact = [contact;repmat(contact_names(j),length(signal_analysis_data.Left.Freq_Values{j})*n_percent_bins*n_gait_cycles,1)];
-            side = [side;repmat({'L'},length(signal_analysis_data.Left.Freq_Values{j})*n_percent_bins*n_gait_cycles,1)];
-            dbs_target = [dbs_target;repmat(stim_target(i),length(signal_analysis_data.Left.Freq_Values{j})*n_percent_bins*n_gait_cycles,1)];
-            subject = [subject;repmat(subject_ID(i),length(signal_analysis_data.Left.Freq_Values{j})*n_percent_bins*n_gait_cycles,1)];
+            frequency = [frequency;repmat(repmat(round(signalAnalysisData.Left.Freq_Values{j},4),n_percent_bins,1),n_gait_cycles,1)];
+            gait_cycle_num = [gait_cycle_num;repelem(1:n_gait_cycles,length(signalAnalysisData.Left.Freq_Values{j})*n_percent_bins)'];
+            gait_cycle_percent = [gait_cycle_percent;repmat(repelem(1:100,length(signalAnalysisData.Left.Freq_Values{j}))',n_gait_cycles,1)];
+            state = [state;repmat({'Walking'},length(signalAnalysisData.Left.Freq_Values{j})*n_percent_bins*n_gait_cycles,1)];
+            contact = [contact;repmat(contact_names(j),length(signalAnalysisData.Left.Freq_Values{j})*n_percent_bins*n_gait_cycles,1)];
+            side = [side;repmat({'L'},length(signalAnalysisData.Left.Freq_Values{j})*n_percent_bins*n_gait_cycles,1)];
+            dbs_target = [dbs_target;repmat(stim_target(i),length(signalAnalysisData.Left.Freq_Values{j})*n_percent_bins*n_gait_cycles,1)];
+            subject = [subject;repmat(subject_ID(i),length(signalAnalysisData.Left.Freq_Values{j})*n_percent_bins*n_gait_cycles,1)];
             
             % Store average power at each frequency per gait cycle
             n_gait_cycles = size(average_gait_cycle_power_mat,3);
@@ -161,38 +161,38 @@ for i = 1:length(files)
                 average_power_temp = [average_power_temp;average_gait_cycle_power_mat(:,1,x)];
             end
             power = [power;average_power_temp];
-            frequency = [frequency;repmat(round(signal_analysis_data.Left.Freq_Values{j},4),n_gait_cycles,1)];
-            gait_cycle_num = [gait_cycle_num;repelem(1:n_gait_cycles,length(signal_analysis_data.Left.Freq_Values{j}))'];
-            gait_cycle_percent = [gait_cycle_percent;nan(length(signal_analysis_data.Left.Freq_Values{j})*n_gait_cycles,1)];
-            state = [state;repmat({'Average'},length(signal_analysis_data.Left.Freq_Values{j})*n_gait_cycles,1)];
-            contact = [contact;repmat(contact_names(j),length(signal_analysis_data.Left.Freq_Values{j})*n_gait_cycles,1)];
-            side = [side;repmat({'L'},length(signal_analysis_data.Left.Freq_Values{j})*n_gait_cycles,1)];
-            dbs_target = [dbs_target;repmat(stim_target(i),length(signal_analysis_data.Left.Freq_Values{j})*n_gait_cycles,1)];
-            subject = [subject;repmat(subject_ID(i),length(signal_analysis_data.Left.Freq_Values{j})*n_gait_cycles,1)];
+            frequency = [frequency;repmat(round(signalAnalysisData.Left.Freq_Values{j},4),n_gait_cycles,1)];
+            gait_cycle_num = [gait_cycle_num;repelem(1:n_gait_cycles,length(signalAnalysisData.Left.Freq_Values{j}))'];
+            gait_cycle_percent = [gait_cycle_percent;nan(length(signalAnalysisData.Left.Freq_Values{j})*n_gait_cycles,1)];
+            state = [state;repmat({'Average'},length(signalAnalysisData.Left.Freq_Values{j})*n_gait_cycles,1)];
+            contact = [contact;repmat(contact_names(j),length(signalAnalysisData.Left.Freq_Values{j})*n_gait_cycles,1)];
+            side = [side;repmat({'L'},length(signalAnalysisData.Left.Freq_Values{j})*n_gait_cycles,1)];
+            dbs_target = [dbs_target;repmat(stim_target(i),length(signalAnalysisData.Left.Freq_Values{j})*n_gait_cycles,1)];
+            subject = [subject;repmat(subject_ID(i),length(signalAnalysisData.Left.Freq_Values{j})*n_gait_cycles,1)];
         end
         printStatus(' ');
     end
     
-    if isfield(signal_analysis_data,'Right')
-        walking_start_ind = find(signal_analysis_data.Right.Time{1} >= min(gait_events_sorted{1,:})-1,1,'first');
-        walking_end_ind = find(signal_analysis_data.Right.Time{1} <= max(gait_events_sorted{end,:}),1,'last');
-        contact_names = createContactVariableName(signal_analysis_data.Right.Chan_Names);
+    if isfield(signalAnalysisData,'Right')
+        walking_start_ind = find(signalAnalysisData.Right.Time{1} >= min(gaitEventsSorted{1,:})-1,1,'first');
+        walking_end_ind = find(signalAnalysisData.Right.Time{1} <= max(gaitEventsSorted{end,:}),1,'last');
+        contact_names = createContactVariableName(signalAnalysisData.Right.Chan_Names);
         
         printStatus('Extracting data from right contacts.');
         for j = 1:length(contact_names)
             printStatus(sprintf('Extracting data from right %s.',contact_names{j}));
             
             % Walking power
-            gait_cycle_mat_right = zeros(length(signal_analysis_data.Right.Freq_Values{j}),n_percent_bins,1);
+            gait_cycle_mat_right = zeros(length(signalAnalysisData.Right.Freq_Values{j}),n_percent_bins,1);
             power_temp = [];
-            average_gait_cycle_power_mat = zeros(length(signal_analysis_data.Right.Freq_Values{j}),1);
+            average_gait_cycle_power_mat = zeros(length(signalAnalysisData.Right.Freq_Values{j}),1);
             average_power_temp = [];
             count = 1;
-            for k = gait_event_range(1):gait_event_range(2)-1
-                if ~isnan(gait_events_sorted.(cycle_start_event)(k)) && ~isnan(gait_events_sorted.(cycle_start_event)(k+1)) && (diff(gait_events_sorted.(cycle_start_event)([k,k+1])) < 2)
-                    [~,start_ind] = min(abs(signal_analysis_data.Right.Time{j}-gait_events_sorted.(cycle_start_event)(k)));
-                    [~,end_ind] = min(abs(signal_analysis_data.Right.Time{j}-gait_events_sorted.(cycle_start_event)(k+1)));
-                    data_snip = abs(signal_analysis_data.Right.Values{j}(:,start_ind:end_ind));
+            for k = geRange(1):geRange(2)-1
+                if ~isnan(gaitEventsSorted.(cycle_start_event)(k)) && ~isnan(gaitEventsSorted.(cycle_start_event)(k+1)) && (diff(gaitEventsSorted.(cycle_start_event)([k,k+1])) < 2)
+                    [~,start_ind] = min(abs(signalAnalysisData.Right.Time{j}-gaitEventsSorted.(cycle_start_event)(k)));
+                    [~,end_ind] = min(abs(signalAnalysisData.Right.Time{j}-gaitEventsSorted.(cycle_start_event)(k+1)));
+                    data_snip = abs(signalAnalysisData.Right.Values{j}(:,start_ind:end_ind));
                     
                     if sum(isinf(data_snip),'all') == 0
                         average_gait_cycle_power_mat(:,1,count) = mean(data_snip,2);
@@ -217,14 +217,14 @@ for i = 1:length(files)
                 end
             end
             power = [power;power_temp];
-            frequency = [frequency;repmat(repmat(round(signal_analysis_data.Right.Freq_Values{j},4),n_percent_bins,1),n_gait_cycles,1)];
-            gait_cycle_num = [gait_cycle_num;repelem(1:n_gait_cycles,length(signal_analysis_data.Right.Freq_Values{j})*n_percent_bins)'];
-            gait_cycle_percent = [gait_cycle_percent;repmat(repelem(1:100,length(signal_analysis_data.Right.Freq_Values{j}))',n_gait_cycles,1)];
-            state = [state;repmat({'Walking'},length(signal_analysis_data.Right.Freq_Values{j})*n_percent_bins*n_gait_cycles,1)];
-            contact = [contact;repmat(contact_names(j),length(signal_analysis_data.Right.Freq_Values{j})*n_percent_bins*n_gait_cycles,1)];
-            side = [side;repmat({'R'},length(signal_analysis_data.Right.Freq_Values{j})*n_percent_bins*n_gait_cycles,1)];
-            dbs_target = [dbs_target;repmat(stim_target(i),length(signal_analysis_data.Right.Freq_Values{j})*n_percent_bins*n_gait_cycles,1)];
-            subject = [subject;repmat(subject_ID(i),length(signal_analysis_data.Right.Freq_Values{j})*n_percent_bins*n_gait_cycles,1)];
+            frequency = [frequency;repmat(repmat(round(signalAnalysisData.Right.Freq_Values{j},4),n_percent_bins,1),n_gait_cycles,1)];
+            gait_cycle_num = [gait_cycle_num;repelem(1:n_gait_cycles,length(signalAnalysisData.Right.Freq_Values{j})*n_percent_bins)'];
+            gait_cycle_percent = [gait_cycle_percent;repmat(repelem(1:100,length(signalAnalysisData.Right.Freq_Values{j}))',n_gait_cycles,1)];
+            state = [state;repmat({'Walking'},length(signalAnalysisData.Right.Freq_Values{j})*n_percent_bins*n_gait_cycles,1)];
+            contact = [contact;repmat(contact_names(j),length(signalAnalysisData.Right.Freq_Values{j})*n_percent_bins*n_gait_cycles,1)];
+            side = [side;repmat({'R'},length(signalAnalysisData.Right.Freq_Values{j})*n_percent_bins*n_gait_cycles,1)];
+            dbs_target = [dbs_target;repmat(stim_target(i),length(signalAnalysisData.Right.Freq_Values{j})*n_percent_bins*n_gait_cycles,1)];
+            subject = [subject;repmat(subject_ID(i),length(signalAnalysisData.Right.Freq_Values{j})*n_percent_bins*n_gait_cycles,1)];
             
             % Store average power at each frequency per gait cycle
             n_gait_cycles = size(average_gait_cycle_power_mat,3);
@@ -232,14 +232,14 @@ for i = 1:length(files)
                 average_power_temp = [average_power_temp;average_gait_cycle_power_mat(:,1,x)];
             end
             power = [power;average_power_temp];
-            frequency = [frequency;repmat(round(signal_analysis_data.Right.Freq_Values{j},4),n_gait_cycles,1)];
-            gait_cycle_num = [gait_cycle_num;repelem(1:n_gait_cycles,length(signal_analysis_data.Right.Freq_Values{j}))'];
-            gait_cycle_percent = [gait_cycle_percent;nan(length(signal_analysis_data.Right.Freq_Values{j})*n_gait_cycles,1)];
-            state = [state;repmat({'Average'},length(signal_analysis_data.Right.Freq_Values{j})*n_gait_cycles,1)];
-            contact = [contact;repmat(contact_names(j),length(signal_analysis_data.Right.Freq_Values{j})*n_gait_cycles,1)];
-            side = [side;repmat({'R'},length(signal_analysis_data.Right.Freq_Values{j})*n_gait_cycles,1)];
-            dbs_target = [dbs_target;repmat(stim_target(i),length(signal_analysis_data.Right.Freq_Values{j})*n_gait_cycles,1)];
-            subject = [subject;repmat(subject_ID(i),length(signal_analysis_data.Right.Freq_Values{j})*n_gait_cycles,1)];
+            frequency = [frequency;repmat(round(signalAnalysisData.Right.Freq_Values{j},4),n_gait_cycles,1)];
+            gait_cycle_num = [gait_cycle_num;repelem(1:n_gait_cycles,length(signalAnalysisData.Right.Freq_Values{j}))'];
+            gait_cycle_percent = [gait_cycle_percent;nan(length(signalAnalysisData.Right.Freq_Values{j})*n_gait_cycles,1)];
+            state = [state;repmat({'Average'},length(signalAnalysisData.Right.Freq_Values{j})*n_gait_cycles,1)];
+            contact = [contact;repmat(contact_names(j),length(signalAnalysisData.Right.Freq_Values{j})*n_gait_cycles,1)];
+            side = [side;repmat({'R'},length(signalAnalysisData.Right.Freq_Values{j})*n_gait_cycles,1)];
+            dbs_target = [dbs_target;repmat(stim_target(i),length(signalAnalysisData.Right.Freq_Values{j})*n_gait_cycles,1)];
+            subject = [subject;repmat(subject_ID(i),length(signalAnalysisData.Right.Freq_Values{j})*n_gait_cycles,1)];
         end
     end
     
@@ -284,9 +284,10 @@ if export_data
     [save_file,save_path] = uiputfile({'*.csv'});
     save_name = fullfile(save_path,save_file);
     
-    writetable(data_table,save_name);
-    save(strrep(save_name,'.csv','.mat'),'data_table');
-    printStatus(sprintf('Gait Cycle Power table saved to: %s',save_path));
+    % Need to figure out how to save in the expanded memory format
+%     writetable(data_table,save_name);
+%     save(strrep(save_name,'.csv','.mat'),'data_table');
+%     printStatus(sprintf('Gait Cycle Power table saved to: %s',save_path));
 end
 
 printStatus('Save successful.');
