@@ -166,9 +166,6 @@ grandAverage.Right.key1 = [];
 grandAverage.Right.key2 = [];
 grandAverage.Right.key3 = [];
 
-leftImplant = zeros(1,length(fileList));
-rightImplant = zeros(1,length(fileList));
-
 %% Go through all files and extract data
 for i = 1:length(fileList)
     load(fileList{i});
@@ -213,7 +210,6 @@ for i = 1:length(fileList)
     end
     
     if isfield(signalAnalysisData,'Left')
-        leftImplant(i) = 1;
         nChannels = length(signalAnalysisData.Left.Time);
         for j = 1:nChannels
             if sum(contains(keys,sprintf('key%i',j-1))) ~= 0
@@ -256,7 +252,6 @@ for i = 1:length(fileList)
     end
     
     if isfield(signalAnalysisData,'Right')
-        rightImplant(i) = 1;
         nChannels = length(signalAnalysisData.Right.Time);
         for j = 1:nChannels
             if sum(contains(keys,sprintf('key%i',j-1))) ~= 0
