@@ -1,6 +1,6 @@
-function calcGrandAvgGaitCycleCoherence(fileList,varargin)
-%% calcGrandAvgGaitCycleCoherence
-% Calculates the grand average gait cycle average spectrogram from all the
+function GaitCycleGrandAvgCoherogram(fileList,varargin)
+%% GaitCycleGrandAvgCoherogram
+% Calculates the grand average gait cycle average coherogram from all the
 % files passed into this function. Multiple optional inputs allows
 % customization of the computation including resolution of the gait cycle,
 % and normalization strategy.
@@ -52,7 +52,15 @@ function calcGrandAvgGaitCycleCoherence(fileList,varargin)
 %                               Default is false.
 %
 %   Example call:
-%
+%           RCS03 = '/Users/klouie/Documents/Backup Data/RCS03_OG_after_task_OFF_STIM_w_Gait_Events_Julia.mat';
+%           RCS14 = '/Users/klouie/Documents/Backup Data/RCS14_OG_OFF_STIM_ON_MEDS_w_Gait_Events_Julia.mat';
+%           gRCS01 = '/Users/klouie/Documents/Backup Data/gait_RCS_01_OG_ON_Meds_Trial1_w_Gait_Events_Ken.mat';
+%           gRCS02 = '/Users/klouie/Documents/Backup Data/gait_RCS_02_OG_OFF_STIM_ON_MEDS_w_Gait_Events_Julia.mat';
+%           gRCS03 = '/Users/klouie/Documents/Backup Data/gait_RCS_03_OG_OFF_Stim_ON_Meds_Trial1_w_Gait_Events_Julia.mat';
+%           fileList = {RCS03,RCS14,gRCS01,gRCS02,gRCS03};
+%           keys = {'key0','key1','key2'};
+%           swapKeys = {{'key2','key3'},{'key2','key3'},{},{},{}};
+%           calcGrandAvgGaitCycleCoherence(fileList,'gcStartEvent','LHS','normBy','average_during_walking','normType','zscore','keys',keys,'swapKeys',swapKeys)
 %
 % Date:     05/17/2022
 % Author:   Kenneth H. Louie (kenneth.louie@ucsf.edu)

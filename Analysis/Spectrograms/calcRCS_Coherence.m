@@ -1,5 +1,49 @@
-function calcRCS_Coherence(aligned_data,save_dir,save_flag)
+function calcRCS_Coherence(aligned_data,varargin)
+%% RCSCoherogram
+% Calculate the coherogram for the entire file. The coherogram will be
+% between all possible recorded areas. This function can only take in one
+% file at a time. 
+%
+% INPUTS:  Required
+%               aligned_data        [=] Struct containing all the aligned
+%                                       data from the trial of interests. 
+%
+%          Optional
+%               saveDir             [=] Directory to save generated plots.
+%                                       Default is an empty variable
+%
+%               savePlot            [=] Boolean option to save the 
+%                                       resulting plot. Default is false.
+%
+%   Example call:
+%           load(<filename>)
+%           A = calcRCS_STFT(aligned_data,[],1,0.9,[]);
+%           GaitEventSpectrogram(aligned_data,[],0);
+%
+% Date:     05/25/2022
+% Author:   Kenneth H. Louie (kenneth.louie@ucsf.edu)
+% Project:  MJFF aDBS Gait
 
+%% Option variables
+for i = 1:2:nargin-2
+    switch varargin{i}
+        case 'saveDir'
+            saveDir = varargin{i+1};
+        case 'savePlot'
+            savePlot = varargin{i+1};
+    end
+end
+
+% Set default options if not passed in by user
+if ~exist('saveDir','var') || isempty(saveDir)
+    saveDir = [];
+end
+
+if ~exist('savePlot','var') || isempty(savePlot)
+    savePlot = 0;
+end
+
+%% Run 
 elements_to_compare = [];
 if isfield(aligned_data,'left_LFP_table')
     elements_to_compare = [elements_to_compare,1:4];
@@ -83,33 +127,33 @@ for i = 1:size(pairs,1)
 end
 
 % Format and save figures
-if save_flag
+if savePlot
     figure_format(6,6,12,[],'painters');
     
     % check if saving folders exist
-    if ~isfolder(fullfile(save_dir,'Coherence'))
-        mkdir(fullfile(save_dir,'Coherence'));
+    if ~isfolder(fullfile(saveDir,'Coherence'))
+        mkdir(fullfile(saveDir,'Coherence'));
     end
     
-    if ~isfolder(fullfile(save_dir,'Coherence',[aligned_data.stim_condition,'_STIM']))
-        mkdir(fullfile(save_dir,'Coherence',[aligned_data.stim_condition,'_STIM']))
+    if ~isfolder(fullfile(saveDir,'Coherence',[aligned_data.stim_condition,'_STIM']))
+        mkdir(fullfile(saveDir,'Coherence',[aligned_data.stim_condition,'_STIM']))
     end
     
     folders_to_check = {'FIG_files','PDF_files','TIFF_files'};
     extension = {'.fig','.pdf','.tiff'};
     for n = 1:length(folders_to_check)
-        if ~isfolder(fullfile(save_dir,'Coherence',[aligned_data.stim_condition,'_STIM'],'CWT',folders_to_check{n}))
-            mkdir(fullfile(save_dir,'Coherence',[aligned_data.stim_condition,'_STIM'],'CWT',folders_to_check{n}));
+        if ~isfolder(fullfile(saveDir,'Coherence',[aligned_data.stim_condition,'_STIM'],'CWT',folders_to_check{n}))
+            mkdir(fullfile(saveDir,'Coherence',[aligned_data.stim_condition,'_STIM'],'CWT',folders_to_check{n}));
         end
     end
     
     for j = 1:length(fig_vec)
         curr_axes = gca(fig_vec(j));
         save_name = curr_axes.Parent.Children(1).Title.String;
-        savefig(fig_vec(i),fullfile(save_dir,'Coherence',[aligned_data.stim_condition,'_STIM'],'CWT',folders_to_check{1},strrep(save_name,' ','_')));
+        savefig(fig_vec(i),fullfile(saveDir,'Coherence',[aligned_data.stim_condition,'_STIM'],'CWT',folders_to_check{1},strrep(save_name,' ','_')));
         
         for m = 2:length(folders_to_check)
-            print(fig_vec(j),[fullfile(save_dir,'Coherence',[aligned_data.stim_condition,'_STIM'],'CWT',folders_to_check{m},strrep(save_name,' ','_')),extension{m}],'-r300',['-d',extension{m}(2:end)]);
+            print(fig_vec(j),[fullfile(saveDir,'Coherence',[aligned_data.stim_condition,'_STIM'],'CWT',folders_to_check{m},strrep(save_name,' ','_')),extension{m}],'-r300',['-d',extension{m}(2:end)]);
         end
     end
 end

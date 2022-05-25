@@ -1,14 +1,64 @@
-function genSpectrogramGaitEventsV2(aligned_data,signal_analysis_data,events_to_mark,subjectID,save_flag)
-if ~exist('events_to_mark','var') || isempty(events_to_mark)
-    events_to_mark = {'LTO','LHS','RTO','RHS'};
+function GaitEventSpectrogram(aligned_data,signalAnalysisData,varargin)
+%% GaitEventSpectrogram
+% Calculates the spectrogram of the entire aligned data passed in. Then,
+% the spectrogram will be marked for gait events, denoted by a vertical
+% line at the time of the gait event. The aligned data must have a
+% "gait_events" field.
+%
+% INPUTS:  Required
+%               aligned_data        [=] Struct containing all the aligned
+%                                       data from the trial of interests. 
+%
+%               signalAnalysisData  [=] Processed aligned data above.
+%                                       Can be either processed using the
+%                                       short time Fourier transform
+%                                       (calcRCS_STFT function) or
+%                                       continuous wavelet transformation
+%                                       (calcRCS_CWT function).
+%
+%          Optional
+%               eventsToMark        [=] Cell array of gait events to mark
+%                                       on the spectrogram. Default is to
+%                                       plot all gait events.
+%
+%               subjectID           [=] String variable of the name of the
+%                                       subject being analyzed.
+%
+%               savePlot            [=] Boolean option to save the 
+%                                       resulting plot. Default is false.
+%
+%   Example call:
+%           load(<filename>)
+%           A = calcRCS_STFT(aligned_data,[],1,0.9,[]);
+%           GaitEventSpectrogram(aligned_data,A);
+%
+% Date:     05/25/2022
+% Author:   Kenneth H. Louie (kenneth.louie@ucsf.edu)
+% Project:  MJFF aDBS Gait
+
+%% Option variables
+for i = 1:2:nargin-2
+    switch varargin{i}
+        case 'eventsToMark'
+            eventsToMark = varargin{i+1};
+        case 'subjectID'
+            subjectID = varargin{i+1};
+        case 'savePlot'
+            savePlot = varargin{i+1};
+    end
+end
+
+% Set default options if not passed in by user
+if ~exist('eventsToMark','var') || isempty(eventsToMark)
+    eventsToMark = {'LTO','LHS','RTO','RHS'};
 end
 
 if ~exist('subjectID','var') || isempty(subjectID)
     subjectID = 'RCSXX';
 end
 
-if ~exist('save_flag','var') || isempty(save_flag)
-    save_flag = 0;
+if ~exist('savePlot','var') || isempty(savePlot)
+    savePlot = 0;
 end
 
 %% Plotting
@@ -16,22 +66,22 @@ colors = CBMap('GaitEvents',4);
 fig_vec = [];
 
 % Left
-if isfield(signal_analysis_data,'Left')
-    if isfield(signal_analysis_data.Left,'PSD')
+if isfield(signalAnalysisData,'Left')
+    if isfield(signalAnalysisData.Left,'PSD')
         analysis_type = 'FT';
     else
         analysis_type = 'CWT';
     end
-    for i = 1:length(signal_analysis_data.Left.Chan_Names)
+    for i = 1:length(signalAnalysisData.Left.Chan_Names)
         fig_vec(end+1) = figure;
-        if isfield(signal_analysis_data.Left,'PSD')
-            pcolor(signal_analysis_data.Left.Time{i},signal_analysis_data.Left.Freq_Values{i},20*log10(abs(signal_analysis_data.Left.PSD{i})));
+        if isfield(signalAnalysisData.Left,'PSD')
+            pcolor(signalAnalysisData.Left.Time{i},signalAnalysisData.Left.Freq_Values{i},20*log10(abs(signalAnalysisData.Left.PSD{i})));
             shading flat;
             ylim([2.5,50]);
             A = caxis;
             caxis(A.*0.80);
         else
-            ax = pcolor(signal_analysis_data.Left.Time{i},log2(signal_analysis_data.Left.Freq_Values{i}),abs(signal_analysis_data.Left.Values{i}));
+            ax = pcolor(signalAnalysisData.Left.Time{i},log2(signalAnalysisData.Left.Freq_Values{i}),abs(signalAnalysisData.Left.Values{i}));
             ax.EdgeAlpha = 0;
             ticks = logspace(log10(2.5),log10(50),10);
             ax.Parent.YTick = log2(ticks);
@@ -41,14 +91,14 @@ if isfield(signal_analysis_data,'Left')
         
         hold on;
         axes_vec = [];
-        for j = 1:length(events_to_mark)
+        for j = 1:length(eventsToMark)
             for k = 1:height(aligned_data.gait_events)
-                temp = aligned_data.gait_events.(events_to_mark{j})(k);
+                temp = aligned_data.gait_events.(eventsToMark{j})(k);
                 if ~isnan(temp)
                     if length(axes_vec) < j
-                        axes_vec(j) = xline(temp,'Color',colors.(events_to_mark{j}),'DisplayName',events_to_mark{j});
+                        axes_vec(j) = xline(temp,'Color',colors.(eventsToMark{j}),'DisplayName',eventsToMark{j});
                     else
-                        xline(temp,'Color',colors.(events_to_mark{j}));
+                        xline(temp,'Color',colors.(eventsToMark{j}));
                     end
                 end
             end
@@ -57,27 +107,27 @@ if isfield(signal_analysis_data,'Left')
         legend(axes_vec);
         xlabel('Time (s)');
         ylabel('Frequency (Hz)');
-        title({[subjectID,' Left'];signal_analysis_data.Left.Chan_Names{i}});
+        title({[subjectID,' Left'];signalAnalysisData.Left.Chan_Names{i}});
     end
 end
 
 % Right
-if isfield(signal_analysis_data,'Right')
-    if isfield(signal_analysis_data.Right,'PSD')
+if isfield(signalAnalysisData,'Right')
+    if isfield(signalAnalysisData.Right,'PSD')
         analysis_type = 'FT';
     else
         analysis_type = 'CWT';
     end
-    for i = 1:length(signal_analysis_data.Right.Chan_Names)
+    for i = 1:length(signalAnalysisData.Right.Chan_Names)
         fig_vec(end+1) = figure;
-        if isfield(signal_analysis_data.Right,'PSD')
-            pcolor(signal_analysis_data.Right.Time{i},signal_analysis_data.Right.Freq_Values{i},20*log10(abs(signal_analysis_data.Right.PSD{i})));
+        if isfield(signalAnalysisData.Right,'PSD')
+            pcolor(signalAnalysisData.Right.Time{i},signalAnalysisData.Right.Freq_Values{i},20*log10(abs(signalAnalysisData.Right.PSD{i})));
             shading flat;
             ylim([2.5,50]);
             A = caxis;
             caxis(A.*0.80);
         else
-            ax = pcolor(signal_analysis_data.Right.Time{i},log2(signal_analysis_data.Right.Freq_Values{i}),abs(signal_analysis_data.Right.Values{i}));
+            ax = pcolor(signalAnalysisData.Right.Time{i},log2(signalAnalysisData.Right.Freq_Values{i}),abs(signalAnalysisData.Right.Values{i}));
             ax.EdgeAlpha = 0;
             ticks = logspace(log10(2.5),log10(50),10);
             ax.Parent.YTick = log2(ticks);
@@ -87,14 +137,14 @@ if isfield(signal_analysis_data,'Right')
         
         hold on;
         axes_vec = [];
-        for j = 1:length(events_to_mark)
+        for j = 1:length(eventsToMark)
             for k = 1:height(aligned_data.gait_events)
-                temp = aligned_data.gait_events.(events_to_mark{j})(k);
+                temp = aligned_data.gait_events.(eventsToMark{j})(k);
                 if ~isnan(temp)
                     if length(axes_vec) < j
-                        axes_vec(j) = xline(temp,'Color',colors.(events_to_mark{j}),'DisplayName',events_to_mark{j});
+                        axes_vec(j) = xline(temp,'Color',colors.(eventsToMark{j}),'DisplayName',eventsToMark{j});
                     else
-                        xline(temp,'Color',colors.(events_to_mark{j}));
+                        xline(temp,'Color',colors.(eventsToMark{j}));
                     end
                 end
             end
@@ -103,13 +153,13 @@ if isfield(signal_analysis_data,'Right')
         legend(axes_vec);
         xlabel('Time (s)');
         ylabel('Frequency (Hz)');
-        title({[subjectID,' Right'];signal_analysis_data.Right.Chan_Names{i}});
+        title({[subjectID,' Right'];signalAnalysisData.Right.Chan_Names{i}});
     end
 end
 
 
 %% Save plots
-if save_flag
+if savePlot
     save_dir = uigetdir();
     
 %     figure_format(6,6,10);

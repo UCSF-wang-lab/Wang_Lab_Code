@@ -1,26 +1,69 @@
-function genPSDGaitEvents(aligned_data,signal_analysis_data,subjectID,save_flag)
-if ~exist('save_flag','var')
-    save_flag = 0;
+function GaitEventPSD(aligned_data,signalAnalysisData,varargin)
+%% GaitEventPSD
+% Calculates the average PSD for each gait event in each recorded area. The
+% resulting plots show the average PSD value in a thicker line, and also
+% shows the PSD values for each gait event in a lighter shade.
+%
+% INPUTS:  Required
+%               aligned_data        [=] Struct containing all the aligned
+%                                       data from the trial of interests. 
+%
+%               signalAnalysisData  [=] Processed aligned data above.
+%                                       Can be either processed using the
+%                                       short time Fourier transform
+%                                       (calcRCS_STFT function) or
+%                                       continuous wavelet transformation
+%                                       (calcRCS_CWT function).
+%
+%          Optional
+%               subjectID           [=] String variable of the name of the
+%                                       subject being analyzed.
+%
+%               savePlot            [=] Boolean option to save the 
+%                                       resulting plot. Default is false.
+%
+%   Example call:
+%           load(<filename>)
+%           A = calcRCS_STFT(aligned_data,[],1,0.9,[]);
+%           GaitEventsPSD(aligned_data,A);
+%
+% Date:     05/25/2022
+% Author:   Kenneth H. Louie (kenneth.louie@ucsf.edu)
+% Project:  MJFF aDBS Gait
+
+%% Option variables
+for i = 1:2:nargin-2
+    switch varargin{i}
+        case 'subjectID'
+            subjectID = varargin{i+1};
+        case 'savePlot'
+            savePlot = varargin{i+1};
+    end
 end
 
-if ~exist('subjectID','var')
+% Set default options if not passed in by user
+if ~exist('subjectID','var') || isempty(subjectID)
     subjectID = 'RCSXX';
+end
+
+if ~exist('savePlot','var') || isempty(savePlot)
+    savePlot = 0;
 end
 
 %% PSD at each gait event
 % Left
-if isfield(signal_analysis_data,'Left')
+if isfield(signalAnalysisData,'Left')
     PSD_gait_events.Left = {};
-    for i = 1:length(signal_analysis_data.Left.Chan_Names)
+    for i = 1:length(signalAnalysisData.Left.Chan_Names)
         for j = 1:length(aligned_data.gait_events.Properties.VariableNames)
             if ~isfield(PSD_gait_events.Left,aligned_data.gait_events.Properties.VariableNames{j})
-                PSD_gait_events.Left.(aligned_data.gait_events.Properties.VariableNames{j}) = cell(1,length(signal_analysis_data.Left.Chan_Names));
+                PSD_gait_events.Left.(aligned_data.gait_events.Properties.VariableNames{j}) = cell(1,length(signalAnalysisData.Left.Chan_Names));
             end
             for k = 1:height(aligned_data.gait_events)
                 event_time = aligned_data.gait_events.(aligned_data.gait_events.Properties.VariableNames{j})(k);
                 if ~isnan(event_time)
-                    [~,min_ind] = min(abs(signal_analysis_data.Left.Time{i}-event_time));
-                    power_values = signal_analysis_data.Left.PSD{i}(:,min_ind);
+                    [~,min_ind] = min(abs(signalAnalysisData.Left.Time{i}-event_time));
+                    power_values = signalAnalysisData.Left.PSD{i}(:,min_ind);
                     if sum(power_values == 0) == 0
                         if isempty(PSD_gait_events.Left.(aligned_data.gait_events.Properties.VariableNames{j}))
                             PSD_gait_events.Left.(aligned_data.gait_events.Properties.VariableNames{j}){i} = power_values;
@@ -35,18 +78,18 @@ if isfield(signal_analysis_data,'Left')
 end
 
 % Right
-if isfield(signal_analysis_data,'Right')
+if isfield(signalAnalysisData,'Right')
     PSD_gait_events.Right = {};
-    for i = 1:length(signal_analysis_data.Right.Chan_Names)
+    for i = 1:length(signalAnalysisData.Right.Chan_Names)
         for j = 1:length(aligned_data.gait_events.Properties.VariableNames)
             if ~isfield(PSD_gait_events.Right,aligned_data.gait_events.Properties.VariableNames{j})
-                PSD_gait_events.Right.(aligned_data.gait_events.Properties.VariableNames{j}) = cell(1,length(signal_analysis_data.Right.Chan_Names));
+                PSD_gait_events.Right.(aligned_data.gait_events.Properties.VariableNames{j}) = cell(1,length(signalAnalysisData.Right.Chan_Names));
             end
             for k = 1:height(aligned_data.gait_events)
                 event_time = aligned_data.gait_events.(aligned_data.gait_events.Properties.VariableNames{j})(k);
                 if ~isnan(event_time)
-                    [~,min_ind] = min(abs(signal_analysis_data.Right.Time{i}-event_time));
-                    power_values = signal_analysis_data.Right.PSD{i}(:,min_ind);
+                    [~,min_ind] = min(abs(signalAnalysisData.Right.Time{i}-event_time));
+                    power_values = signalAnalysisData.Right.PSD{i}(:,min_ind);
                     if sum(power_values == 0) == 0
                         if isempty(PSD_gait_events.Right.(aligned_data.gait_events.Properties.VariableNames{j}))
                             PSD_gait_events.Right.(aligned_data.gait_events.Properties.VariableNames{j}){i} = power_values;
@@ -63,11 +106,11 @@ end
 %% Plot
 fig_vec = [];
 if isfield(PSD_gait_events,'Left')
-    for i = 1:length(signal_analysis_data.Left.Chan_Names)
+    for i = 1:length(signalAnalysisData.Left.Chan_Names)
         fig_vec(end+1) = figure;
         for j = 1:length(aligned_data.gait_events.Properties.VariableNames)
             curr_event = aligned_data.gait_events.Properties.VariableNames{j};
-            freq_mat = repmat(signal_analysis_data.Left.Freq_Values{i},1,size(PSD_gait_events.Left.(curr_event){i},2));
+            freq_mat = repmat(signalAnalysisData.Left.Freq_Values{i},1,size(PSD_gait_events.Left.(curr_event){i},2));
             avg_power = mean(10*log10(abs(PSD_gait_events.Left.(curr_event){i})),2);
             
             switch curr_event
@@ -90,17 +133,17 @@ if isfield(PSD_gait_events,'Left')
             xlabel('Frequency (Hz)');
             ylabel('db/Hz');
         end
-        sgtitle({[subjectID,' Left'];signal_analysis_data.Left.Chan_Names{i}});
+        sgtitle({[subjectID,' Left'];signalAnalysisData.Left.Chan_Names{i}});
     end
 end
 
 % Right
 if isfield(PSD_gait_events,'Right')
-    for i = 1:length(signal_analysis_data.Right.Chan_Names)
+    for i = 1:length(signalAnalysisData.Right.Chan_Names)
         fig_vec(end+1) = figure;
         for j = 1:length(aligned_data.gait_events.Properties.VariableNames)
             curr_event = aligned_data.gait_events.Properties.VariableNames{j};
-            freq_mat = repmat(signal_analysis_data.Right.Freq_Values{i},1,size(PSD_gait_events.Right.(curr_event){i},2));
+            freq_mat = repmat(signalAnalysisData.Right.Freq_Values{i},1,size(PSD_gait_events.Right.(curr_event){i},2));
             avg_power = mean(10*log10(abs(PSD_gait_events.Right.(curr_event){i})),2);
             
             switch curr_event
@@ -123,11 +166,11 @@ if isfield(PSD_gait_events,'Right')
             xlabel('Frequency (Hz)');
             ylabel('db/Hz');
         end
-        sgtitle({[subjectID,' Right'];signal_analysis_data.Right.Chan_Names{i}});
+        sgtitle({[subjectID,' Right'];signalAnalysisData.Right.Chan_Names{i}});
     end
 end
 
-if save_flag
+if savePlot
     save_dir = uigetdir();
     
     figure_format(6,6,10);

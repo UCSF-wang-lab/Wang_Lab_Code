@@ -1,21 +1,63 @@
-function calcRCS_AvgGaitCycleCoherence(aligned_data,varargin)
+function GaitCycleAvgCoherence(aligned_data,varargin)
+%% GaitCycleAvgCoherence
+% Generates the average gait cycle coherence between all recorded areas.
+%
+% INPUTS:  Required
+%               aligned_data            [=] Struct containing all the
+%                                           aligned data from the trial of
+%                                           interests.
+%
+%          Optional
+%               cycleStartEvent         [=] Gait event that is considered
+%                                           to be the start of the gait
+%                                           cycle. Default is left heel
+%                                           strike 'LHS'. Can also be right
+%                                           heel strike ('RHS'), left toe
+%                                           off ('LTO'), or right toe off
+%                                           ('RTO')
+%
+%               nPercentBins            [=] Number of bins to break up the
+%                                           gait cycle. Default is 100.
+%
+%               baselineData            [=] TODO
+%
+%               baselineNormalization   [=] TODO
+%
+%               subjectID               [=] String variable of the name of
+%                                           the subject being analyzed.
+%
+%               savePlot                [=] Boolean option to save the 
+%                                           resulting plot. Default is
+%                                           fault.
+%
+%               saveDir                 [=] Directory to save generated
+%                                           plots.
+%
+%   Example call:
+%           load(<filename>)
+%           A = calcRCS_STFT(aligned_data,[],1,0.9,[]);
+%           GaitCycleAvgCoherence(aligned_data,'cycleStartEvent','LHS');
+%
+% Date:     05/25/2022
+% Author:   Kenneth H. Louie (kenneth.louie@ucsf.edu)
+% Project:  MJFF aDBS Gait
 
 for i = 1:2:nargin-2
     switch varargin{i}
-        case 'cycle_start_event'
-            cycle_start_event = varargin{i+1};
-        case 'n_percent_bins'
-            n_percent_bins = varargin{i+1};
-        case 'baseline_data'
-            baseline_data = varargin{i+1};
-        case 'baseline_normalization'
-            baseline_normalization = varargin{i+1};
+        case 'cycleStartEvent'
+            cycleStartEvent = varargin{i+1};
+        case 'nPercentBins'
+            nPercentBins = varargin{i+1};
+        case 'baselineData'
+            baselineData = varargin{i+1};
+        case 'baselineormalization'
+            baselineNormalization = varargin{i+1};
         case 'subjectID'
             subjectID = varargin{i+1};
-        case 'save_flag'
-            save_flag = varargin{i+1};
-        case 'save_dir'
-            save_dir = varargin{i+1};
+        case 'savePlot'
+            savePlot = varargin{i+1};
+        case 'saveDir'
+            saveDir = varargin{i+1};
     end
 end
 
@@ -29,11 +71,11 @@ if isfield(aligned_data,'right_LFP_table')
 end
 
 if ~exist('cycle_start_event','var')
-    cycle_start_event = 'LHS';
+    cycleStartEvent = 'LHS';
 end
 
 if ~exist('n_percent_bins','var')
-    n_percent_bins = 100;
+    nPercentBins = 100;
 end
 
 if ~exist('subjectID','var')
@@ -41,17 +83,14 @@ if ~exist('subjectID','var')
 end
 
 if ~exist('save_flag','var')
-    save_flag = 0;
+    savePlot = 0;
 end
 
-if ~exist('save_dir','var') && save_flag == 1
-    save_dir = uigetdir();
+if ~exist('save_dir','var') && savePlot == 1
+    saveDir = uigetdir();
 end
 
-gait_events_sorted = sortGaitEvents(aligned_data.gait_events,cycle_start_event);
-
-n_percent_bins = 100;
-
+gait_events_sorted = sortGaitEvents(aligned_data.gait_events,cycleStartEvent);
 fig_vec = [];
 pairs = nchoosek(elements_to_compare,2);
 gait_cycle_avg = cell(1,size(pairs,1));
@@ -118,16 +157,16 @@ for i = 1:size(pairs,1)
     % Calculate wavelet coherence and extract gait cycle values
     [x,~,y] = wcoherence(aligned_data.(side1).(contact1)(1:n_val),aligned_data.(side2).(contact2)(1:n_val),sr,'VoicesPerOctave',10);
     
-    gait_cycle_mat = zeros(length(y),n_percent_bins,1);
+    gait_cycle_mat = zeros(length(y),nPercentBins,1);
     count = 1;
     for j = 1:height(gait_events_sorted)-1
-        if ~isnan(gait_events_sorted.(cycle_start_event)(j)) && ~isnan(gait_events_sorted.(cycle_start_event)(j+1)) && (diff(gait_events_sorted.(cycle_start_event)(j:j+1)) < 2)
-            [~,start_ind] = min(abs(time_vec-gait_events_sorted.(cycle_start_event)(j)));
-            [~,end_ind] = min(abs(time_vec-gait_events_sorted.(cycle_start_event)(j+1)));
+        if ~isnan(gait_events_sorted.(cycleStartEvent)(j)) && ~isnan(gait_events_sorted.(cycleStartEvent)(j+1)) && (diff(gait_events_sorted.(cycleStartEvent)(j:j+1)) < 2)
+            [~,start_ind] = min(abs(time_vec-gait_events_sorted.(cycleStartEvent)(j)));
+            [~,end_ind] = min(abs(time_vec-gait_events_sorted.(cycleStartEvent)(j+1)));
             data_snip = x(:,start_ind:end_ind);
             
             if sum(isinf(data_snip),'all') == 0
-                percent_inds = round(linspace(1,size(data_snip,2),n_percent_bins+1));
+                percent_inds = round(linspace(1,size(data_snip,2),nPercentBins+1));
                 for k = 1:length(percent_inds)-1
                     if k == 1
                         gait_cycle_mat(:,k,count) = mean(data_snip(:,percent_inds(k):percent_inds(k+1)),2);
@@ -156,23 +195,23 @@ for i = 1:size(pairs,1)
 end
 
 % Format and save figures
-if save_flag
+if savePlot
     figure_format(6,6,12,[],'painters');
     
     % check if saving folders exist
-    if ~isfolder(fullfile(save_dir,'Coherence'))
-        mkdir(fullfile(save_dir,'Coherence'));
+    if ~isfolder(fullfile(saveDir,'Coherence'))
+        mkdir(fullfile(saveDir,'Coherence'));
     end
     
-    if ~isfolder(fullfile(save_dir,'Coherence',[aligned_data.stim_condition,'_STIM']))
-        mkdir(fullfile(save_dir,'Coherence',[aligned_data.stim_condition,'_STIM']))
+    if ~isfolder(fullfile(saveDir,'Coherence',[aligned_data.stim_condition,'_STIM']))
+        mkdir(fullfile(saveDir,'Coherence',[aligned_data.stim_condition,'_STIM']))
     end
     
     folders_to_check = {'FIG_files','PDF_files','TIFF_files'};
     extension = {'.fig','.pdf','.tiff'};
     for n = 1:length(folders_to_check)
-        if ~isfolder(fullfile(save_dir,'Coherence',[aligned_data.stim_condition,'_STIM'],'CWT',folders_to_check{n}))
-            mkdir(fullfile(save_dir,'Coherence',[aligned_data.stim_condition,'_STIM'],'CWT',folders_to_check{n}));
+        if ~isfolder(fullfile(saveDir,'Coherence',[aligned_data.stim_condition,'_STIM'],'CWT',folders_to_check{n}))
+            mkdir(fullfile(saveDir,'Coherence',[aligned_data.stim_condition,'_STIM'],'CWT',folders_to_check{n}));
         end
     end
     
@@ -187,10 +226,10 @@ if save_flag
             end
         end
         
-        savefig(fig_vec(i),fullfile(save_dir,'Coherence',[aligned_data.stim_condition,'_STIM'],'CWT',folders_to_check{1},strrep(save_name,' ','_')));
+        savefig(fig_vec(i),fullfile(saveDir,'Coherence',[aligned_data.stim_condition,'_STIM'],'CWT',folders_to_check{1},strrep(save_name,' ','_')));
         
         for m = 2:length(folders_to_check)
-            print(fig_vec(j),[fullfile(save_dir,'Coherence',[aligned_data.stim_condition,'_STIM'],'CWT',folders_to_check{m},strrep(save_name,' ','_')),extension{m}],'-r300',['-d',extension{m}(2:end)]);
+            print(fig_vec(j),[fullfile(saveDir,'Coherence',[aligned_data.stim_condition,'_STIM'],'CWT',folders_to_check{m},strrep(save_name,' ','_')),extension{m}],'-r300',['-d',extension{m}(2:end)]);
         end
     end
 end

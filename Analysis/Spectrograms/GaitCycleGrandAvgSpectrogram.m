@@ -1,5 +1,5 @@
-function calcGrandAvgGaitCycle(fileList,varargin)
-%% calcGrandAvgGaitCycle
+function GaitCycleGrandAvgSpectrogram(fileList,varargin)
+%% GaitCycleGrandAvgSpectrogram
 % Calculates the grand average gait cycle average spectrogram from all the
 % files passed into this function. Multiple optional inputs allows
 % customization of the computation including resolution of the gait cycle,

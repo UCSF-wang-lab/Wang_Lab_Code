@@ -1,35 +1,114 @@
-function varargout = genAvgBandPowerPhaseGaitEvents(aligned_data,signal_analysis_data,pre_post_time,event_compare,spread_type,subjectID,plot_type,save_flag)
+function varargout = GaitEventAvgCanonicalBandPowerPhase(aligned_data,signalAnalysisData,varargin)
+%% GaitEventAvgCanonicalBandPowerPhase
+% Calculates the average power and/or phase in the canonical frequency
+% bands for different gait events. The canonical frequency bands are delta
+% (0.5-3 Hz), theta (4-7 Hz), alpha (8-12 Hz), beta (13-30 Hz), low gamma
+% (30-50 Hz). Beta is also broken into high (21-30 Hz) and low (13-20 Hz)
+% sub bands. The average phase can also have error bars associated with the
+% plot and can be either the standard deviation or standard error.
+%
+% INPUTS:  Required
+%               aligned_data        [=] Struct containing all the aligned
+%                                       data from the trial of interests. 
+%
+%               signalAnalysisData  [=] Processed aligned data above.
+%                                       Can be either processed using the
+%                                       short time Fourier transform
+%                                       (calcRCS_STFT function) or
+%                                       continuous wavelet transformation
+%                                       (calcRCS_CWT function).
+%
+%          Optional
+%               prePostTime         [=] How far back and forward to look
+%                                       after a gait event. Default is +-1
+%                                       second.
+%
+%               eventsToCompare     [=] Cell array of gait events to
+%                                       compare on the same plot. Default
+%                                       is to show all on the same plot. 
+%
+%               spreadType          [=] How the error of the average should
+%                                       be calculated. Can be either the
+%                                       standard deviation (STD; default)
+%                                       or standard error (SE).
+%
+%               plotType            [=] How to represent the average power
+%                                       and/or phase. Can either be line 
+%                                       graph ("power" or "phase"),
+%                                       boxplot ("power_boxplot" or
+%                                       "phase_boxplot"), boxplot with
+%                                       individal points shown
+%                                       ("power_boxplot_scatter" or
+%                                       "phase_boxplot_scatter"). Phase
+%                                       have an extra option of showing the
+%                                       plots as a polar plot
+%                                       ("phase_polar"). One
+%                                       other option is to plot all types
+%                                       ("all"). Default is all.
+%
+%               subjectID           [=] String variable of the name of the
+%                                       subject being analyzed.
+%
+%               savePlot            [=] Boolean option to save the 
+%                                       resulting plot. Default is false.
+%
+%   Example call:
+%           load(<filename>)
+%           A = calcRCS_STFT(aligned_data,[],1,0.9,[]);
+%           GaitEventAvgCanonicalBandPowerPhase(aligned_data,A,'prePostTime',1,'eventsToCompare',{{'LHS','RTO','RHS','LTO'}},'spreadType','SE','subjectID','gRCS02','savePlot',0)
+%
+% Date:     05/25/2022
+% Author:   Kenneth H. Louie (kenneth.louie@ucsf.edu)
+% Project:  MJFF aDBS Gait
 
-if ~exist('pre_post_time','var') || isempty(pre_post_time)
-    pre_post_time = 1;
+%% Option variables
+for i = 1:2:nargin-2
+    switch varargin{i}
+        case 'prePostTime'
+            prePostTime = varargin{i+1};
+        case 'eventsToCompare'
+            eventsToCompare = varargin{i+1};
+        case 'spreadType'
+            spreadType = varargin{i+1};
+        case 'plotType'
+            plotType = varargin{i+1};
+        case 'subjectID'
+            subjectID = varargin{i+1};
+        case 'savePlot'
+            savePlot = varargin{i+1};
+    end
 end
 
-if ~exist('event_compare','var') || isempty(event_compare)
-    event_compare{1} = {'LTO','RTO'};
-    event_compare{2} = {'LHS','RHS'};
+% Set default options if not passed in by user
+if ~exist('prePostTime','var') || isempty(prePostTime)
+    prePostTime = 1;
 end
 
-if ~exist('spread_type','var') || isempty(spread_type)
-    spread_type = 'SD';
+if ~exist('eventsToCompare','var') || isempty(eventsToCompare)
+    eventsToCompare{1} = {'LHS','RTO','RHS','LTO'};
+end
+
+if ~exist('spreadType','var') || isempty(spreadType)
+    spreadType = 'STD';
 end
 
 if ~exist('subjectID','var') || isempty(subjectID)
     subjectID = 'RCSXX';
 end
 
-if ~exist('plot_type','var') || isempty(plot_type)
-    plot_type = 'all';  % all, power, power_boxplot, power_boxplot_scatter, phase, phase_boxplot, phase_boxplot_scatter, phase_polar
+if ~exist('plotType','var') || isempty(plotType)
+    plotType = 'all';  % all, power, power_boxplot, power_boxplot_scatter, phase, phase_boxplot, phase_boxplot_scatter, phase_polar
 end
 
-if ~exist('save_flag','var') || isempty(save_flag)
-    save_flag = 0;
+if ~exist('savePlot','var') || isempty(savePlot)
+    savePlot = 0;
 end
 
 %% Extract data
-if isfield(signal_analysis_data,'Left')
+if isfield(signalAnalysisData,'Left')
     left_sr = uniquetol(aligned_data.DeviceSettings.Left.timeDomainSettings.samplingRate,1);
-    time_res_left = uniquetol(diff(signal_analysis_data.Left.Time{1}),1);
-    if isfield(signal_analysis_data.Left,'PSD')
+    time_res_left = uniquetol(diff(signalAnalysisData.Left.Time{1}),1);
+    if isfield(signalAnalysisData.Left,'PSD')
         analysis_type = 'FT';
     else
         analysis_type = 'CWT';
@@ -44,24 +123,24 @@ if isfield(signal_analysis_data,'Left')
     range_power_time.Left = {};
     range_phase.Left = {};
     range_phase_time.Left = {};
-    [~,band_names] = getFreqBandInd(signal_analysis_data.Left.Freq_Values{1});
-    for i = 1:length(signal_analysis_data.Left.Chan_Names)
-        band_inds = getFreqBandInd(signal_analysis_data.Left.Freq_Values{i});
+    [~,band_names] = getFreqBandInd(signalAnalysisData.Left.Freq_Values{1});
+    for i = 1:length(signalAnalysisData.Left.Chan_Names)
+        band_inds = getFreqBandInd(signalAnalysisData.Left.Freq_Values{i});
         if band_inds(1,2) < band_inds(1,1)
             band_inds = fliplr(band_inds);
         end
         for j = 1:length(aligned_data.gait_events.Properties.VariableNames)
             if ~isfield(average_power.Left,aligned_data.gait_events.Properties.VariableNames{j})
-                power_at_event.Left.(aligned_data.gait_events.Properties.VariableNames{j}) = cell(1,length(signal_analysis_data.Left.Chan_Names));
-                average_power.Left.(aligned_data.gait_events.Properties.VariableNames{j}) = cell(1,length(signal_analysis_data.Left.Chan_Names));
-                average_power_time.Left.(aligned_data.gait_events.Properties.VariableNames{j}) = cell(1,length(signal_analysis_data.Left.Chan_Names));
-                phase_at_event.Left.(aligned_data.gait_events.Properties.VariableNames{j}) = cell(1,length(signal_analysis_data.Left.Chan_Names));
-                average_phase.Left.(aligned_data.gait_events.Properties.VariableNames{j}) = cell(1,length(signal_analysis_data.Left.Chan_Names));
-                average_phase_time.Left.(aligned_data.gait_events.Properties.VariableNames{j}) = cell(1,length(signal_analysis_data.Left.Chan_Names));
-                range_power.Left.(aligned_data.gait_events.Properties.VariableNames{j}) = cell(1,length(signal_analysis_data.Left.Chan_Names));
-                range_power_time.Left.(aligned_data.gait_events.Properties.VariableNames{j}) = cell(1,length(signal_analysis_data.Left.Chan_Names));
-                range_phase.Left.(aligned_data.gait_events.Properties.VariableNames{j}) = cell(1,length(signal_analysis_data.Left.Chan_Names));
-                range_phase_time.Left.(aligned_data.gait_events.Properties.VariableNames{j}) = cell(1,length(signal_analysis_data.Left.Chan_Names));
+                power_at_event.Left.(aligned_data.gait_events.Properties.VariableNames{j}) = cell(1,length(signalAnalysisData.Left.Chan_Names));
+                average_power.Left.(aligned_data.gait_events.Properties.VariableNames{j}) = cell(1,length(signalAnalysisData.Left.Chan_Names));
+                average_power_time.Left.(aligned_data.gait_events.Properties.VariableNames{j}) = cell(1,length(signalAnalysisData.Left.Chan_Names));
+                phase_at_event.Left.(aligned_data.gait_events.Properties.VariableNames{j}) = cell(1,length(signalAnalysisData.Left.Chan_Names));
+                average_phase.Left.(aligned_data.gait_events.Properties.VariableNames{j}) = cell(1,length(signalAnalysisData.Left.Chan_Names));
+                average_phase_time.Left.(aligned_data.gait_events.Properties.VariableNames{j}) = cell(1,length(signalAnalysisData.Left.Chan_Names));
+                range_power.Left.(aligned_data.gait_events.Properties.VariableNames{j}) = cell(1,length(signalAnalysisData.Left.Chan_Names));
+                range_power_time.Left.(aligned_data.gait_events.Properties.VariableNames{j}) = cell(1,length(signalAnalysisData.Left.Chan_Names));
+                range_phase.Left.(aligned_data.gait_events.Properties.VariableNames{j}) = cell(1,length(signalAnalysisData.Left.Chan_Names));
+                range_phase_time.Left.(aligned_data.gait_events.Properties.VariableNames{j}) = cell(1,length(signalAnalysisData.Left.Chan_Names));
             end
             vals_power = [];
             vals_power_time = [];
@@ -72,23 +151,23 @@ if isfield(signal_analysis_data,'Left')
             for k = 1:height(aligned_data.gait_events)
                 event_time = aligned_data.gait_events.(aligned_data.gait_events.Properties.VariableNames{j})(k);
                 if ~isnan(event_time)
-                    [~,min_ind_pre] = min(abs(signal_analysis_data.Left.Time{i}-(event_time-pre_post_time)));
-                    [~,min_ind_post] = min(abs(signal_analysis_data.Left.Time{i}-(event_time+pre_post_time)));
-                    [~,event_ind] = min(abs(signal_analysis_data.Left.Time{i}-event_time));
+                    [~,min_ind_pre] = min(abs(signalAnalysisData.Left.Time{i}-(event_time-prePostTime)));
+                    [~,min_ind_post] = min(abs(signalAnalysisData.Left.Time{i}-(event_time+prePostTime)));
+                    [~,event_ind] = min(abs(signalAnalysisData.Left.Time{i}-event_time));
                     
-                    if isfield(signal_analysis_data.Left,'PSD')
-                        temp = 20*log10(abs(signal_analysis_data.Left.Values{i}(:,event_ind)));
-                        temp1 = 20*log10(abs(signal_analysis_data.Left.Values{i}(:,min_ind_pre:min_ind_post)));
-                        temp2 = angle(signal_analysis_data.Left.Values{i}(:,event_ind));
-                        temp3 = angle(signal_analysis_data.Left.Values{i}(:,min_ind_pre:min_ind_post));
+                    if isfield(signalAnalysisData.Left,'PSD')
+                        temp = 20*log10(abs(signalAnalysisData.Left.Values{i}(:,event_ind)));
+                        temp1 = 20*log10(abs(signalAnalysisData.Left.Values{i}(:,min_ind_pre:min_ind_post)));
+                        temp2 = angle(signalAnalysisData.Left.Values{i}(:,event_ind));
+                        temp3 = angle(signalAnalysisData.Left.Values{i}(:,min_ind_pre:min_ind_post));
                     else
-                        temp = abs(signal_analysis_data.Left.Values{i}(:,event_ind));
-                        temp1 = abs(signal_analysis_data.Left.Values{i}(:,min_ind_pre:min_ind_post));
-                        temp2 = angle(signal_analysis_data.Left.Values{i}(:,event_ind));
-                        temp3 = angle(signal_analysis_data.Left.Values{i}(:,min_ind_pre:min_ind_post));
+                        temp = abs(signalAnalysisData.Left.Values{i}(:,event_ind));
+                        temp1 = abs(signalAnalysisData.Left.Values{i}(:,min_ind_pre:min_ind_post));
+                        temp2 = angle(signalAnalysisData.Left.Values{i}(:,event_ind));
+                        temp3 = angle(signalAnalysisData.Left.Values{i}(:,min_ind_pre:min_ind_post));
                     end
                     
-                    if size(temp1,2) == round((pre_post_time*2)/time_res_left)+1
+                    if size(temp1,2) == round((prePostTime*2)/time_res_left)+1
                         if sum(isinf(temp1),'all') == 0
                             for m = 1:length(band_names)
                                 vals_power_time(count_time,:,m) = mean(temp1(band_inds(m,1):band_inds(m,2),:));
@@ -116,7 +195,7 @@ if isfield(signal_analysis_data,'Left')
             average_phase.Left.(aligned_data.gait_events.Properties.VariableNames{j}){i} = squeeze(mean(vals_phase,1));
             average_phase_time.Left.(aligned_data.gait_events.Properties.VariableNames{j}){i} = squeeze(mean(vals_phase_time,1));
             
-            if strcmp(spread_type,'SE')
+            if strcmp(spreadType,'SE')
                 range_power.Left.(aligned_data.gait_events.Properties.VariableNames{j}){i} = squeeze(std(vals_power,0,1))./sqrt(size(vals_power,1));
                 range_power_time.Left.(aligned_data.gait_events.Properties.VariableNames{j}){i} = squeeze(std(vals_power_time,0,1))./sqrt(size(vals_power_time,1));
                 range_phase.Left.(aligned_data.gait_events.Properties.VariableNames{j}){i} = squeeze(std(vals_phase,0,1))./sqrt(size(vals_phase,1));
@@ -131,10 +210,10 @@ if isfield(signal_analysis_data,'Left')
     end
 end
 
-if isfield(signal_analysis_data,'Right')
+if isfield(signalAnalysisData,'Right')
     right_sr = uniquetol(aligned_data.DeviceSettings.Right.timeDomainSettings.samplingRate,1);
-    time_res_right = uniquetol(diff(signal_analysis_data.Right.Time{1}),1);
-    if isfield(signal_analysis_data.Right,'PSD')
+    time_res_right = uniquetol(diff(signalAnalysisData.Right.Time{1}),1);
+    if isfield(signalAnalysisData.Right,'PSD')
         analysis_type = 'FT';
     else
         analysis_type = 'CWT';
@@ -149,24 +228,24 @@ if isfield(signal_analysis_data,'Right')
     range_power_time.Right = {};
     range_phase.Right = {};
     range_phase_time.Right = {};
-    [~,band_names] = getFreqBandInd(signal_analysis_data.Right.Freq_Values{1});
-    for i = 1:length(signal_analysis_data.Right.Chan_Names)
-        band_inds = getFreqBandInd(signal_analysis_data.Right.Freq_Values{i});
+    [~,band_names] = getFreqBandInd(signalAnalysisData.Right.Freq_Values{1});
+    for i = 1:length(signalAnalysisData.Right.Chan_Names)
+        band_inds = getFreqBandInd(signalAnalysisData.Right.Freq_Values{i});
         if band_inds(1,2) < band_inds(1,1)
             band_inds = fliplr(band_inds);
         end
         for j = 1:length(aligned_data.gait_events.Properties.VariableNames)
             if ~isfield(average_power.Right,aligned_data.gait_events.Properties.VariableNames{j})
-                power_at_event.Right.(aligned_data.gait_events.Properties.VariableNames{j}) = cell(1,length(signal_analysis_data.Right.Chan_Names));
-                average_power.Right.(aligned_data.gait_events.Properties.VariableNames{j}) = cell(1,length(signal_analysis_data.Right.Chan_Names));
-                average_power_time.Right.(aligned_data.gait_events.Properties.VariableNames{j}) = cell(1,length(signal_analysis_data.Right.Chan_Names));
-                phase_at_event.Right.(aligned_data.gait_events.Properties.VariableNames{j}) = cell(1,length(signal_analysis_data.Right.Chan_Names));
-                average_phase.Right.(aligned_data.gait_events.Properties.VariableNames{j}) = cell(1,length(signal_analysis_data.Right.Chan_Names));
-                average_phase_time.Right.(aligned_data.gait_events.Properties.VariableNames{j}) = cell(1,length(signal_analysis_data.Right.Chan_Names));
-                range_power.Right.(aligned_data.gait_events.Properties.VariableNames{j}) = cell(1,length(signal_analysis_data.Right.Chan_Names));
-                range_power_time.Right.(aligned_data.gait_events.Properties.VariableNames{j}) = cell(1,length(signal_analysis_data.Right.Chan_Names));
-                range_phase.Right.(aligned_data.gait_events.Properties.VariableNames{j}) = cell(1,length(signal_analysis_data.Right.Chan_Names));
-                range_phase_time.Right.(aligned_data.gait_events.Properties.VariableNames{j}) = cell(1,length(signal_analysis_data.Right.Chan_Names));
+                power_at_event.Right.(aligned_data.gait_events.Properties.VariableNames{j}) = cell(1,length(signalAnalysisData.Right.Chan_Names));
+                average_power.Right.(aligned_data.gait_events.Properties.VariableNames{j}) = cell(1,length(signalAnalysisData.Right.Chan_Names));
+                average_power_time.Right.(aligned_data.gait_events.Properties.VariableNames{j}) = cell(1,length(signalAnalysisData.Right.Chan_Names));
+                phase_at_event.Right.(aligned_data.gait_events.Properties.VariableNames{j}) = cell(1,length(signalAnalysisData.Right.Chan_Names));
+                average_phase.Right.(aligned_data.gait_events.Properties.VariableNames{j}) = cell(1,length(signalAnalysisData.Right.Chan_Names));
+                average_phase_time.Right.(aligned_data.gait_events.Properties.VariableNames{j}) = cell(1,length(signalAnalysisData.Right.Chan_Names));
+                range_power.Right.(aligned_data.gait_events.Properties.VariableNames{j}) = cell(1,length(signalAnalysisData.Right.Chan_Names));
+                range_power_time.Right.(aligned_data.gait_events.Properties.VariableNames{j}) = cell(1,length(signalAnalysisData.Right.Chan_Names));
+                range_phase.Right.(aligned_data.gait_events.Properties.VariableNames{j}) = cell(1,length(signalAnalysisData.Right.Chan_Names));
+                range_phase_time.Right.(aligned_data.gait_events.Properties.VariableNames{j}) = cell(1,length(signalAnalysisData.Right.Chan_Names));
             end
             vals_power = [];
             vals_power_time = [];
@@ -177,23 +256,23 @@ if isfield(signal_analysis_data,'Right')
             for k = 1:height(aligned_data.gait_events)
                 event_time = aligned_data.gait_events.(aligned_data.gait_events.Properties.VariableNames{j})(k);
                 if ~isnan(event_time)
-                    [~,min_ind_pre] = min(abs(signal_analysis_data.Right.Time{i}-(event_time-pre_post_time)));
-                    [~,min_ind_post] = min(abs(signal_analysis_data.Right.Time{i}-(event_time+pre_post_time)));
-                    [~,event_ind] = min(abs(signal_analysis_data.Right.Time{i}-event_time));
+                    [~,min_ind_pre] = min(abs(signalAnalysisData.Right.Time{i}-(event_time-prePostTime)));
+                    [~,min_ind_post] = min(abs(signalAnalysisData.Right.Time{i}-(event_time+prePostTime)));
+                    [~,event_ind] = min(abs(signalAnalysisData.Right.Time{i}-event_time));
                     
-                    if isfield(signal_analysis_data.Right,'PSD')
-                        temp = 20*log10(abs(signal_analysis_data.Right.Values{i}(:,event_ind)));
-                        temp1 = 20*log10(abs(signal_analysis_data.Right.Values{i}(:,min_ind_pre:min_ind_post)));
-                        temp2 = angle(signal_analysis_data.Right.Values{i}(:,event_ind));
-                        temp3 = angle(signal_analysis_data.Right.Values{i}(:,min_ind_pre:min_ind_post));
+                    if isfield(signalAnalysisData.Right,'PSD')
+                        temp = 20*log10(abs(signalAnalysisData.Right.Values{i}(:,event_ind)));
+                        temp1 = 20*log10(abs(signalAnalysisData.Right.Values{i}(:,min_ind_pre:min_ind_post)));
+                        temp2 = angle(signalAnalysisData.Right.Values{i}(:,event_ind));
+                        temp3 = angle(signalAnalysisData.Right.Values{i}(:,min_ind_pre:min_ind_post));
                     else
-                        temp = 20*log10(abs(signal_analysis_data.Right.Values{i}(:,event_ind)));
-                        temp1 = abs(signal_analysis_data.Right.Values{i}(:,min_ind_pre:min_ind_post));
-                        temp2 = angle(signal_analysis_data.Right.Values{i}(:,event_ind));
-                        temp3 = angle(signal_analysis_data.Right.Values{i}(:,min_ind_pre:min_ind_post));
+                        temp = 20*log10(abs(signalAnalysisData.Right.Values{i}(:,event_ind)));
+                        temp1 = abs(signalAnalysisData.Right.Values{i}(:,min_ind_pre:min_ind_post));
+                        temp2 = angle(signalAnalysisData.Right.Values{i}(:,event_ind));
+                        temp3 = angle(signalAnalysisData.Right.Values{i}(:,min_ind_pre:min_ind_post));
                     end
                     
-                    if size(temp1,2) == round((pre_post_time*2)/time_res_right)+1
+                    if size(temp1,2) == round((prePostTime*2)/time_res_right)+1
                         if sum(isinf(temp1),'all') == 0
                             for m = 1:length(band_names)
                                 vals_power_time(count_time,:,m) = mean(temp1(band_inds(m,1):band_inds(m,2),:));
@@ -221,7 +300,7 @@ if isfield(signal_analysis_data,'Right')
             average_phase.Right.(aligned_data.gait_events.Properties.VariableNames{j}){i} = squeeze(mean(vals_phase,1));
             average_phase_time.Right.(aligned_data.gait_events.Properties.VariableNames{j}){i} = squeeze(mean(vals_phase_time,1));
             
-            if strcmp(spread_type,'SE')
+            if strcmp(spreadType,'SE')
                 range_power.Right.(aligned_data.gait_events.Properties.VariableNames{j}){i} = squeeze(std(vals_power,0,1))./sqrt(size(vals_power,1));
                 range_power_time.Right.(aligned_data.gait_events.Properties.VariableNames{j}){i} = squeeze(std(vals_power_time,0,1))./sqrt(size(vals_power_time,1));
                 range_phase.Right.(aligned_data.gait_events.Properties.VariableNames{j}){i} = squeeze(std(vals_phase,0,1))./sqrt(size(vals_phase,1));
@@ -240,16 +319,16 @@ end
 fig_vec = [];
 colors = CBMap('GaitEvents',4);
 
-if strcmp(plot_type,'all') || strcmp(plot_type,'power')
+if strcmp(plotType,'all') || strcmp(plotType,'power')
     if isfield(average_power_time,'Left')
         time_vec = -1:time_res_left:1;
-        for i = 1:length(signal_analysis_data.Left.Chan_Names)
-            for j = 1:length(event_compare)
+        for i = 1:length(signalAnalysisData.Left.Chan_Names)
+            for j = 1:length(eventsToCompare)
                 fig_vec(end+1) = figure;
                 for k = 1:length(band_names)
                     ax_hand = subplot(2,4,k);
-                    for m = 1:length(event_compare{j})
-                        mean_std_plot(time_vec,average_power_time.Left.(event_compare{j}{m}){i}(:,k),range_power_time.Left.(event_compare{j}{m}){i}(:,k),ax_hand,colors.(event_compare{j}{m}),[]);
+                    for m = 1:length(eventsToCompare{j})
+                        mean_std_plot(time_vec,average_power_time.Left.(eventsToCompare{j}{m}){i}(:,k),range_power_time.Left.(eventsToCompare{j}{m}){i}(:,k),ax_hand,colors.(eventsToCompare{j}{m}),[]);
                         %                     mean_std_plot(time_vec,average_phase.Left.(event_compare{j}{m}){i}(:,k),std_phase.Left.(event_compare{j}{m}){i}(:,k),ax_hand,colors.(event_compare{j}{m}),[]);
                     end
                     hold(ax_hand,'on');
@@ -257,7 +336,7 @@ if strcmp(plot_type,'all') || strcmp(plot_type,'power')
                     hold(ax_hand,'off');
                     xlabel('Time (s)');
                     
-                    if isfield(signal_analysis_data.Left,'PSD')
+                    if isfield(signalAnalysisData.Left,'PSD')
                         ylabel('mV^2'); % mV^2
                     else
                         ylabel('Magnitude');
@@ -265,56 +344,56 @@ if strcmp(plot_type,'all') || strcmp(plot_type,'power')
                     
                     title(band_names{k});
                 end
-                sgtitle({[subjectID,' Left'];signal_analysis_data.Left.Chan_Names{i};createPlotTitle(event_compare{j})});
+                sgtitle({[subjectID,' Left'];signalAnalysisData.Left.Chan_Names{i};createPlotTitle(eventsToCompare{j})});
             end
         end
     end
     
     if isfield(average_power_time,'Right')
         time_vec = -1:time_res_right:1;
-        for i = 1:length(signal_analysis_data.Right.Chan_Names)
-            for j = 1:length(event_compare)
+        for i = 1:length(signalAnalysisData.Right.Chan_Names)
+            for j = 1:length(eventsToCompare)
                 fig_vec(end+1) = figure;
                 for k = 1:length(band_names)
                     ax_hand = subplot(2,4,k);
-                    for m = 1:length(event_compare{j})
-                        mean_std_plot(time_vec,average_power_time.Right.(event_compare{j}{m}){i}(:,k),range_power_time.Right.(event_compare{j}{m}){i}(:,k),ax_hand,colors.(event_compare{j}{m}),[]);
+                    for m = 1:length(eventsToCompare{j})
+                        mean_std_plot(time_vec,average_power_time.Right.(eventsToCompare{j}{m}){i}(:,k),range_power_time.Right.(eventsToCompare{j}{m}){i}(:,k),ax_hand,colors.(eventsToCompare{j}{m}),[]);
                     end
                     hold(ax_hand,'on');
                     xline(0,'--k');
                     hold(ax_hand,'off');
                     xlabel('Time (s)');
                     
-                    if isfield(signal_analysis_data.Right,'PSD')
+                    if isfield(signalAnalysisData.Right,'PSD')
                         ylabel('mV^2'); % mV^2
                     else
                         ylabel('Magnitude');
                     end
                     title(band_names{k});
                 end
-                sgtitle({[subjectID,' Right'];signal_analysis_data.Right.Chan_Names{i};createPlotTitle(event_compare{j})});
+                sgtitle({[subjectID,' Right'];signalAnalysisData.Right.Chan_Names{i};createPlotTitle(eventsToCompare{j})});
             end
         end
     end
 end
 
-if strcmp(plot_type,'all') || strcmp(plot_type,'phase')
+if strcmp(plotType,'all') || strcmp(plotType,'phase')
     if isfield(average_phase_time,'Left')
         time_vec = -1:time_res_left:1;
-        for i = 1:length(signal_analysis_data.Left.Chan_Names)
-            for j = 1:length(event_compare)
+        for i = 1:length(signalAnalysisData.Left.Chan_Names)
+            for j = 1:length(eventsToCompare)
                 fig_vec(end+1) = figure;
                 for k = 1:length(band_names)
                     ax_hand = subplot(2,4,k);
-                    for m = 1:length(event_compare{j})
-                        mean_std_plot(time_vec,average_phase_time.Left.(event_compare{j}{m}){i}(:,k),range_phase_time.Left.(event_compare{j}{m}){i}(:,k),ax_hand,colors.(event_compare{j}{m}),[]);
+                    for m = 1:length(eventsToCompare{j})
+                        mean_std_plot(time_vec,average_phase_time.Left.(eventsToCompare{j}{m}){i}(:,k),range_phase_time.Left.(eventsToCompare{j}{m}){i}(:,k),ax_hand,colors.(eventsToCompare{j}{m}),[]);
                     end
                     hold(ax_hand,'on');
                     xline(0,'--k');
                     hold(ax_hand,'off');
                     xlabel('Time (s)');
                     
-                    if isfield(signal_analysis_data.Left,'PSD')
+                    if isfield(signalAnalysisData.Left,'PSD')
                         ylabel('Phase');
                     else
                         ylabel('Phase');
@@ -322,27 +401,27 @@ if strcmp(plot_type,'all') || strcmp(plot_type,'phase')
                     
                     title(band_names{k});
                 end
-                sgtitle({[subjectID,' Left'];signal_analysis_data.Left.Chan_Names{i};createPlotTitle(event_compare{j})});
+                sgtitle({[subjectID,' Left'];signalAnalysisData.Left.Chan_Names{i};createPlotTitle(eventsToCompare{j})});
             end
         end
     end
     
     if isfield(average_phase_time,'Right')
         time_vec = -1:time_res_right:1;
-        for i = 1:length(signal_analysis_data.Right.Chan_Names)
-            for j = 1:length(event_compare)
+        for i = 1:length(signalAnalysisData.Right.Chan_Names)
+            for j = 1:length(eventsToCompare)
                 fig_vec(end+1) = figure;
                 for k = 1:length(band_names)
                     ax_hand = subplot(2,4,k);
-                    for m = 1:length(event_compare{j})
-                        mean_std_plot(time_vec,average_phase_time.Right.(event_compare{j}{m}){i}(:,k),range_phase_time.Right.(event_compare{j}{m}){i}(:,k),ax_hand,colors.(event_compare{j}{m}),[]);
+                    for m = 1:length(eventsToCompare{j})
+                        mean_std_plot(time_vec,average_phase_time.Right.(eventsToCompare{j}{m}){i}(:,k),range_phase_time.Right.(eventsToCompare{j}{m}){i}(:,k),ax_hand,colors.(eventsToCompare{j}{m}),[]);
                     end
                     hold(ax_hand,'on');
                     xline(0,'--k');
                     hold(ax_hand,'off');
                     xlabel('Time (s)');
                     
-                    if isfield(signal_analysis_data.Right,'PSD')
+                    if isfield(signalAnalysisData.Right,'PSD')
                         ylabel('Phase');
                     else
                         ylabel('Phase');
@@ -350,104 +429,104 @@ if strcmp(plot_type,'all') || strcmp(plot_type,'phase')
                     
                     title(band_names{k});
                 end
-                sgtitle({[subjectID,' Right'];signal_analysis_data.Right.Chan_Names{i};createPlotTitle(event_compare{j})});
+                sgtitle({[subjectID,' Right'];signalAnalysisData.Right.Chan_Names{i};createPlotTitle(eventsToCompare{j})});
             end
         end
     end
 end
 
-if strcmp(plot_type,'all') || contains(plot_type,'power_boxplot')
+if strcmp(plotType,'all') || contains(plotType,'power_boxplot')
     if isfield(power_at_event,'Left')
-        for i = 1:length(signal_analysis_data.Left.Chan_Names)
-            for j = 1:length(event_compare)
+        for i = 1:length(signalAnalysisData.Left.Chan_Names)
+            for j = 1:length(eventsToCompare)
                 fig_vec(end+1) = figure;
                 for k = 1:length(band_names)
                     ax_hand = subplot(2,4,k);
                     box_vals = [];
                     box_group = {};
-                    for m = 1:length(event_compare{j})
-                        box_vals = [box_vals;power_at_event.Left.(event_compare{j}{m}){i}(:,k)];
-                        box_group = [box_group;repelem({event_compare{j}{m}},size(power_at_event.Left.(event_compare{j}{m}){i}(:,k),1),1)];
+                    for m = 1:length(eventsToCompare{j})
+                        box_vals = [box_vals;power_at_event.Left.(eventsToCompare{j}{m}){i}(:,k)];
+                        box_group = [box_group;repelem({eventsToCompare{j}{m}},size(power_at_event.Left.(eventsToCompare{j}{m}){i}(:,k),1),1)];
                     end
                     boxplot(box_vals,box_group,'Colors',[colors.LHS;colors.RTO;colors.RHS;colors.LTO],'Symbol','');
                     hold on;
-                    if contains(plot_type,'scatter')
-                        for n = 1:length(event_compare{j})
-                            inds = strcmp(box_group,event_compare{j}{n});
+                    if contains(plotType,'scatter')
+                        for n = 1:length(eventsToCompare{j})
+                            inds = strcmp(box_group,eventsToCompare{j}{n});
                             scatter_vals = box_vals(inds);
                             scatter_pos = scatterPointJitter(length(scatter_vals),n-0.3,n+0.3);
-                            scatter(scatter_pos,scatter_vals,'o','MarkerFacecolor',colors.(event_compare{j}{n}),'MarkerFaceAlpha',0.5,'MarkerEdgeColor','none');
+                            scatter(scatter_pos,scatter_vals,'o','MarkerFacecolor',colors.(eventsToCompare{j}{n}),'MarkerFaceAlpha',0.5,'MarkerEdgeColor','none');
                         end
                     end
                     
-                    if isfield(signal_analysis_data.Left,'PSD')
+                    if isfield(signalAnalysisData.Left,'PSD')
                         ylabel('mV^2');
                     else
                         ylabel('Magnitude');
                     end
                     title(band_names{k});
                 end
-                sgtitle({[subjectID,' Left'];signal_analysis_data.Left.Chan_Names{i};createPlotTitle(event_compare{j})});
+                sgtitle({[subjectID,' Left'];signalAnalysisData.Left.Chan_Names{i};createPlotTitle(eventsToCompare{j})});
             end
         end
     end
     
     if isfield(power_at_event,'Right')
-        for i = 1:length(signal_analysis_data.Right.Chan_Names)
-            for j = 1:length(event_compare)
+        for i = 1:length(signalAnalysisData.Right.Chan_Names)
+            for j = 1:length(eventsToCompare)
                 fig_vec(end+1) = figure;
                 for k = 1:length(band_names)
                     ax_hand = subplot(2,4,k);
                     box_vals = [];
                     box_group = {};
-                    for m = 1:length(event_compare{j})
-                        box_vals = [box_vals;power_at_event.Right.(event_compare{j}{m}){i}(:,k)];
-                        box_group = [box_group;repelem({event_compare{j}{m}},size(power_at_event.Right.(event_compare{j}{m}){i}(:,k),1),1)];
+                    for m = 1:length(eventsToCompare{j})
+                        box_vals = [box_vals;power_at_event.Right.(eventsToCompare{j}{m}){i}(:,k)];
+                        box_group = [box_group;repelem({eventsToCompare{j}{m}},size(power_at_event.Right.(eventsToCompare{j}{m}){i}(:,k),1),1)];
                     end
                     boxplot(box_vals,box_group,'Colors',[colors.LHS;colors.RTO;colors.RHS;colors.LTO],'Symbol','');
                     hold on;
-                    if contains(plot_type,'scatter')
-                        for n = 1:length(event_compare{j})
-                            inds = strcmp(box_group,event_compare{j}{n});
+                    if contains(plotType,'scatter')
+                        for n = 1:length(eventsToCompare{j})
+                            inds = strcmp(box_group,eventsToCompare{j}{n});
                             scatter_vals = box_vals(inds);
                             scatter_pos = scatterPointJitter(length(scatter_vals),n-0.3,n+0.3);
-                            scatter(scatter_pos,scatter_vals,'o','MarkerFacecolor',colors.(event_compare{j}{n}),'MarkerFaceAlpha',0.5,'MarkerEdgeColor','none');
+                            scatter(scatter_pos,scatter_vals,'o','MarkerFacecolor',colors.(eventsToCompare{j}{n}),'MarkerFaceAlpha',0.5,'MarkerEdgeColor','none');
                         end
                     end
-                    if isfield(signal_analysis_data.Right,'PSD')
+                    if isfield(signalAnalysisData.Right,'PSD')
                         ylabel('mV^2');
                     else
                         ylabel('Magnitude');
                     end
                     title(band_names{k});
                 end
-                sgtitle({[subjectID,' Right'];signal_analysis_data.Right.Chan_Names{i};createPlotTitle(event_compare{j})});
+                sgtitle({[subjectID,' Right'];signalAnalysisData.Right.Chan_Names{i};createPlotTitle(eventsToCompare{j})});
             end
         end
     end
 end
 
-if strcmp(plot_type,'all') || contains(plot_type,'phase_boxplot')
+if strcmp(plotType,'all') || contains(plotType,'phase_boxplot')
     if isfield(phase_at_event,'Left')
-        for i = 1:length(signal_analysis_data.Left.Chan_Names)
-            for j = 1:length(event_compare)
+        for i = 1:length(signalAnalysisData.Left.Chan_Names)
+            for j = 1:length(eventsToCompare)
                 fig_vec(end+1) = figure;
                 for k = 1:length(band_names)
                     ax_hand = subplot(2,4,k);
                     box_vals = [];
                     box_group = {};
-                    for m = 1:length(event_compare{j})
-                        box_vals = [box_vals;phase_at_event.Left.(event_compare{j}{m}){i}(:,k)];
-                        box_group = [box_group;repelem({event_compare{j}{m}},size(phase_at_event.Left.(event_compare{j}{m}){i}(:,k),1),1)];
+                    for m = 1:length(eventsToCompare{j})
+                        box_vals = [box_vals;phase_at_event.Left.(eventsToCompare{j}{m}){i}(:,k)];
+                        box_group = [box_group;repelem({eventsToCompare{j}{m}},size(phase_at_event.Left.(eventsToCompare{j}{m}){i}(:,k),1),1)];
                     end
                     boxplot(box_vals,box_group,'Colors',[colors.LHS;colors.RTO;colors.RHS;colors.LTO],'Symbol','');
                     hold on;
-                    if contains(plot_type,'scatter')
-                        for n = 1:length(event_compare{j})
-                            inds = strcmp(box_group,event_compare{j}{n});
+                    if contains(plotType,'scatter')
+                        for n = 1:length(eventsToCompare{j})
+                            inds = strcmp(box_group,eventsToCompare{j}{n});
                             scatter_vals = box_vals(inds);
                             scatter_pos = scatterPointJitter(length(scatter_vals),n-0.3,n+0.3);
-                            scatter(scatter_pos,scatter_vals,'o','MarkerFacecolor',colors.(event_compare{j}{n}),'MarkerFaceAlpha',0.5,'MarkerEdgeColor','none');
+                            scatter(scatter_pos,scatter_vals,'o','MarkerFacecolor',colors.(eventsToCompare{j}{n}),'MarkerFaceAlpha',0.5,'MarkerEdgeColor','none');
                         end
                     end
                     ylabel('Phase');
@@ -457,31 +536,31 @@ if strcmp(plot_type,'all') || contains(plot_type,'phase_boxplot')
                     set(gca,'TickLabelInterpreter','tex')
                     title(band_names{k});
                 end
-                sgtitle({[subjectID,' Left'];signal_analysis_data.Left.Chan_Names{i};createPlotTitle(event_compare{j})});
+                sgtitle({[subjectID,' Left'];signalAnalysisData.Left.Chan_Names{i};createPlotTitle(eventsToCompare{j})});
             end
         end
     end
     
     if isfield(phase_at_event,'Right')
-        for i = 1:length(signal_analysis_data.Right.Chan_Names)
-            for j = 1:length(event_compare)
+        for i = 1:length(signalAnalysisData.Right.Chan_Names)
+            for j = 1:length(eventsToCompare)
                 fig_vec(end+1) = figure;
                 for k = 1:length(band_names)
                     ax_hand = subplot(2,4,k);
                     box_vals = [];
                     box_group = {};
-                    for m = 1:length(event_compare{j})
-                        box_vals = [box_vals;phase_at_event.Right.(event_compare{j}{m}){i}(:,k)];
-                        box_group = [box_group;repelem({event_compare{j}{m}},size(phase_at_event.Right.(event_compare{j}{m}){i}(:,k),1),1)];
+                    for m = 1:length(eventsToCompare{j})
+                        box_vals = [box_vals;phase_at_event.Right.(eventsToCompare{j}{m}){i}(:,k)];
+                        box_group = [box_group;repelem({eventsToCompare{j}{m}},size(phase_at_event.Right.(eventsToCompare{j}{m}){i}(:,k),1),1)];
                     end
                     boxplot(box_vals,box_group,'Colors',[colors.LHS;colors.RTO;colors.RHS;colors.LTO],'Symbol','');
                     hold on;
-                    if contains(plot_type,'scatter')
-                        for n = 1:length(event_compare{j})
-                            inds = strcmp(box_group,event_compare{j}{n});
+                    if contains(plotType,'scatter')
+                        for n = 1:length(eventsToCompare{j})
+                            inds = strcmp(box_group,eventsToCompare{j}{n});
                             scatter_vals = box_vals(inds);
                             scatter_pos = scatterPointJitter(length(scatter_vals),n-0.3,n+0.3);
-                            scatter(scatter_pos,scatter_vals,'o','MarkerFacecolor',colors.(event_compare{j}{n}),'MarkerFaceAlpha',0.5,'MarkerEdgeColor','none');
+                            scatter(scatter_pos,scatter_vals,'o','MarkerFacecolor',colors.(eventsToCompare{j}{n}),'MarkerFaceAlpha',0.5,'MarkerEdgeColor','none');
                         end
                     end
                     ylabel('Phase');
@@ -491,56 +570,56 @@ if strcmp(plot_type,'all') || contains(plot_type,'phase_boxplot')
                     set(gca,'TickLabelInterpreter','tex')
                     title(band_names{k});
                 end
-                sgtitle({[subjectID,' Right'];signal_analysis_data.Right.Chan_Names{i};createPlotTitle(event_compare{j})});
+                sgtitle({[subjectID,' Right'];signalAnalysisData.Right.Chan_Names{i};createPlotTitle(eventsToCompare{j})});
             end
         end
     end
 end
 
-if strcmp(plot_type,'all') || strcmp(plot_type,'phase_polar')
+if strcmp(plotType,'all') || strcmp(plotType,'phase_polar')
     if isfield(phase_at_event,'Left')
-        for i = 1:length(signal_analysis_data.Left.Chan_Names)
-            for j = 1:length(event_compare)
+        for i = 1:length(signalAnalysisData.Left.Chan_Names)
+            for j = 1:length(eventsToCompare)
                 fig_vec(end+1) = figure;
                 for k = 1:length(band_names)
                     ax_hand = subplot(2,4,k);
                     polar_handle = polaraxes('Units',ax_hand.Units,'Position',ax_hand.Position);
                     delete(ax_hand);
                     hold(polar_handle,'on');
-                    for m = 1:length(event_compare{j})
-                        polarhistogram(polar_handle,wrapTo2Pi(phase_at_event.Left.(event_compare{j}{m}){i}(:,k)),10,'FaceColor',colors.(event_compare{j}{m}),'FaceAlpha',0.3);
+                    for m = 1:length(eventsToCompare{j})
+                        polarhistogram(polar_handle,wrapTo2Pi(phase_at_event.Left.(eventsToCompare{j}{m}){i}(:,k)),10,'FaceColor',colors.(eventsToCompare{j}{m}),'FaceAlpha',0.3);
                     end
                     hold(polar_handle,'off');
                     title(band_names{k});
                 end
-                sgtitle({[subjectID,' Left'];signal_analysis_data.Left.Chan_Names{i};createPlotTitle(event_compare{j})});
+                sgtitle({[subjectID,' Left'];signalAnalysisData.Left.Chan_Names{i};createPlotTitle(eventsToCompare{j})});
             end
         end
     end
     
     if isfield(phase_at_event,'Right')
-        for i = 1:length(signal_analysis_data.Right.Chan_Names)
-            for j = 1:length(event_compare)
+        for i = 1:length(signalAnalysisData.Right.Chan_Names)
+            for j = 1:length(eventsToCompare)
                 fig_vec(end+1) = figure;
                 for k = 1:length(band_names)
                     ax_hand = subplot(2,4,k);
                     polar_handle = polaraxes('Units',ax_hand.Units,'Position',ax_hand.Position);
                     delete(ax_hand);
                     hold(polar_handle,'on');
-                    for m = 1:length(event_compare{j})
-                        polarhistogram(polar_handle,phase_at_event.Right.(event_compare{j}{m}){i}(:,k),10,'FaceColor',colors.(event_compare{j}{m}),'FaceAlpha',0.3);
+                    for m = 1:length(eventsToCompare{j})
+                        polarhistogram(polar_handle,phase_at_event.Right.(eventsToCompare{j}{m}){i}(:,k),10,'FaceColor',colors.(eventsToCompare{j}{m}),'FaceAlpha',0.3);
                     end
                     hold(polar_handle,'off');
                     title(band_names{k});
                 end
-                sgtitle({[subjectID,' Right'];signal_analysis_data.Right.Chan_Names{i};createPlotTitle(event_compare{j})});
+                sgtitle({[subjectID,' Right'];signalAnalysisData.Right.Chan_Names{i};createPlotTitle(eventsToCompare{j})});
             end
         end
     end
 end
 
 %% Save plots (NEED TO CHANGE; commented out for now)
-if save_flag
+if savePlot
     save_dir = uigetdir();
     
     figure_format(12,8,12);
@@ -589,10 +668,10 @@ if save_flag
             end
         end
         
-        if contains(plot_type,'boxplot') || contains(plot_type,'phase_polar')
-            save_name = [save_name,' ', plot_type];
+        if contains(plotType,'boxplot') || contains(plotType,'phase_polar')
+            save_name = [save_name,' ', plotType];
         else
-            save_name = [save_name,' ', plot_type, ' ', spread_type];
+            save_name = [save_name,' ', plotType, ' ', spreadType];
         end
         
         if strcmp(analysis_type,'FT')
