@@ -524,17 +524,21 @@ if save_flag && ~strcmp(save_type,'stat_table')
         mkdir(fullfile(save_dir,'GaitBiomarkerSearch'));
     end
     
-    if ~isfolder(fullfile(save_dir,'GaitBiomarkerSearch',aligned_data.stim_condition))
-        mkdir(fullfile(save_dir,'GaitBiomarkerSearch',aligned_data.stim_condition))
+    if ~isfolder(fullfile(save_dir,'GaitBiomarkerSearch',[aligned_data.stim_condition,'_STIM']))
+        mkdir(fullfile(save_dir,'GaitBiomarkerSearch',[aligned_data.stim_condition,'_STIM']))
+    end
+
+    if ~isfolder(fullfile(save_dir,'GaitBiomarkerSearch',[aligned_data.stim_condition,'_STIM'],[aligned_data.med_condition,'_MED']))
+        mkdir(fullfile(save_dir,'GaitBiomarkerSearch',[aligned_data.stim_condition,'_STIM'],[aligned_data.med_condition,'_MED']))
     end
     
     if strcmp(analysis_type,'FT')
-        if ~isfolder(fullfile(save_dir,'GaitBiomarkerSearch',aligned_data.stim_condition,'FT'))
-            mkdir(fullfile(save_dir,'GaitBiomarkerSearch',aligned_data.stim_condition,'FT'))
+        if ~isfolder(fullfile(save_dir,'GaitBiomarkerSearch',[aligned_data.stim_condition,'_STIM'],[aligned_data.med_condition,'_MED'],'FT'))
+            mkdir(fullfile(save_dir,'GaitBiomarkerSearch',[aligned_data.stim_condition,'_STIM'],[aligned_data.med_condition,'_MED'],'FT'))
         end
     elseif strcmp(analysis_type,'CWT')
-        if ~isfolder(fullfile(save_dir,'GaitBiomarkerSearch',aligned_data.stim_condition,'CWT'))
-            mkdir(fullfile(save_dir,'GaitBiomarkerSearch',aligned_data.stim_condition,'CWT'))
+        if ~isfolder(fullfile(save_dir,'GaitBiomarkerSearch',[aligned_data.stim_condition,'_STIM'],[aligned_data.med_condition,'_MED'],'CWT'))
+            mkdir(fullfile(save_dir,'GaitBiomarkerSearch',[aligned_data.stim_condition,'_STIM'],[aligned_data.med_condition,'_MED'],'CWT'))
         end
     end
     
@@ -542,12 +546,12 @@ if save_flag && ~strcmp(save_type,'stat_table')
     extension = {'.fig','.pdf','.tiff'};
     for n = 1:length(folders_to_check)
         if strcmp(analysis_type,'FT')
-            if ~isfolder(fullfile(save_dir,'GaitBiomarkerSearch',aligned_data.stim_condition,'FT',folders_to_check{n}))
-                mkdir(fullfile(save_dir,'GaitBiomarkerSearch',aligned_data.stim_condition,'FT',folders_to_check{n}));
+            if ~isfolder(fullfile(save_dir,'GaitBiomarkerSearch',[aligned_data.stim_condition,'_STIM'],[aligned_data.med_condition,'_MED'],'FT',folders_to_check{n}))
+                mkdir(fullfile(save_dir,'GaitBiomarkerSearch',[aligned_data.stim_condition,'_STIM'],[aligned_data.med_condition,'_MED'],'FT',folders_to_check{n}));
             end
         elseif strcmp(analysis_type,'CWT')
-            if ~isfolder(fullfile(save_dir,'GaitBiomarkerSearch',aligned_data.stim_condition,'CWT',folders_to_check{n}))
-                mkdir(fullfile(save_dir,'GaitBiomarkerSearch',aligned_data.stim_condition,'CWT',folders_to_check{n}));
+            if ~isfolder(fullfile(save_dir,'GaitBiomarkerSearch',[aligned_data.stim_condition,'_STIM'],[aligned_data.med_condition,'_MED'],'CWT',folders_to_check{n}))
+                mkdir(fullfile(save_dir,'GaitBiomarkerSearch',[aligned_data.stim_condition,'_STIM'],[aligned_data.med_condition,'_MED'],'CWT',folders_to_check{n}));
             end
         end
     end
@@ -564,16 +568,16 @@ if save_flag && ~strcmp(save_type,'stat_table')
         end
         
         if strcmp(analysis_type,'FT')
-            savefig(fig_vec(i),fullfile(save_dir,'GaitBiomarkerSearch',aligned_data.stim_condition,'FT',folders_to_check{1},strrep(strrep(save_name,' ','_'),'.','')));
+            savefig(fig_vec(i),fullfile(save_dir,'GaitBiomarkerSearch',[aligned_data.stim_condition,'_STIM'],[aligned_data.med_condition,'_MED'],'FT',folders_to_check{1},strrep(strrep(save_name,' ','_'),'.','')));
         elseif strcmp(analysis_type,'CWT')
-            savefig(fig_vec(i),fullfile(save_dir,'GaitBiomarkerSearch',aligned_data.stim_condition,'CWT',folders_to_check{1},strrep(strrep(save_name,' ','_'),'.','')));
+            savefig(fig_vec(i),fullfile(save_dir,'GaitBiomarkerSearch',[aligned_data.stim_condition,'_STIM'],[aligned_data.med_condition,'_MED'],'CWT',folders_to_check{1},strrep(strrep(save_name,' ','_'),'.','')));
         end
         
         for k = 2:length(folders_to_check)
             if strcmp(analysis_type,'FT')
-                print(fig_vec(i),[fullfile(save_dir,'GaitBiomarkerSearch',aligned_data.stim_condition,'FT',folders_to_check{k},strrep(strrep(save_name,' ','_'),'.','')),extension{k}],'-r300',['-d',extension{k}(2:end)]);
+                print(fig_vec(i),[fullfile(save_dir,'GaitBiomarkerSearch',[aligned_data.stim_condition,'_STIM'],[aligned_data.med_condition,'_MED'],'FT',folders_to_check{k},strrep(strrep(save_name,' ','_'),'.','')),extension{k}],'-r300',['-d',extension{k}(2:end)]);
             elseif strcmp(analysis_type,'CWT')
-                print(fig_vec(i),[fullfile(save_dir,'GaitBiomarkerSearch',aligned_data.stim_condition,'CWT',folders_to_check{k},strrep(strrep(save_name,' ','_'),'.','')),extension{k}],'-r300',['-d',extension{k}(2:end)]);
+                print(fig_vec(i),[fullfile(save_dir,'GaitBiomarkerSearch',[aligned_data.stim_condition,'_STIM'],[aligned_data.med_condition,'_MED'],'CWT',folders_to_check{k},strrep(strrep(save_name,' ','_'),'.','')),extension{k}],'-r300',['-d',extension{k}(2:end)]);
             end
         end
     end

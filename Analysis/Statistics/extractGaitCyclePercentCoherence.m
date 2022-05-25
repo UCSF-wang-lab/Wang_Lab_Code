@@ -1,5 +1,5 @@
 function data_table = extractGaitCyclePercentCoherence(files,subject_ID,stim_target,varargin)
-%%
+%% extractGaitCyclePercentCoherence
 %   This function extracts the coherence between two contact pairs from the
 %   same hemisphere for each frequency and gait cycle percentage during 
 %   walking and in one of two conditions, rest prior to walking and the 
@@ -7,21 +7,19 @@ function data_table = extractGaitCyclePercentCoherence(files,subject_ID,stim_tar
 %   data as a CSV file. Note, this CSV file will be GB in size.
 
 %% EXAMPLE FUNCTION RUN
-% % GPi
-% RCS03 = '/Volumes/dwang3_shared/Patient Data/RC+S Data/RCS03/Gait/2020-10-05/Data/Aligned Data/RCS03_OG_after_task_OFF_STIM_w_Gait_Events_Julia.mat'; % Using "after task" but the task had a lot of issues. Unlikely they learned.
-% RCS14 = '/Volumes/dwang3_shared/Patient Data/RC+S Data/RCS14/2021-04-12/Data/Aligned Data/RCS14_OG_OFF_STIM_ON_MEDS_w_Gait_Events_Julia.mat';
-% gpi_patients = {RCS03,RCS14};
-% 
-% % STN
-% RCS07 = '/Volumes/dwang3_shared/Patient Data/RC+S Data/RCS07/Gait/2019-12-17/Data/Aligned Data/RCS07_OG_before_task_OFF_STIM_w_Gait_Events.mat';
-% RCS12 = '/Volumes/dwang3_shared/Patient Data/RC+S Data/RCS12/10 Visit/Data/Aligned Data/RCS12_OG_OFF_STIM_w_Gait_Events_Julia.mat';
-% RCS15 = '/Volumes/dwang3_shared/Patient Data/RC+S Data/RCS15/2021-07-29/Data/Aligned Data/RCS15_OG_OFF_STIM_ON_MEDS_w_Gait_Events_Julia.mat';
-% stn_patients = {RCS07,RCS12,RCS15};
-% 
-% files = [stn_patients,gpi_patients];
-% subject_ID = {'RCS07','RCS12','RCS15','RCS03','RCS14'};
-% 
-% extractGaitCyclePercentCoherence(files,subject_ID,{'STN';'STN';'STN';'GPi';'GPi'});
+% RCS03 = '/Users/klouie/Documents/Backup Data/RCS03_OG_after_task_OFF_STIM_w_Gait_Events_Julia.mat';
+% RCS07 = '/Users/klouie/Documents/Backup Data/RCS07_OG_before_task_OFF_STIM_w_Gait_Events.mat';
+% RCS12 = '/Users/klouie/Documents/Backup Data/RCS12_OG_OFF_STIM_w_Gait_Events_Julia.mat';
+% RCS14 = '/Users/klouie/Documents/Backup Data/RCS14_OG_OFF_STIM_ON_MEDS_w_Gait_Events_Julia.mat';
+% RCS15 = '/Users/klouie/Documents/Backup Data/RCS15_OG_OFF_STIM_ON_MEDS_w_Gait_Events_Julia.mat';
+% gRCS01 = '/Users/klouie/Documents/Backup Data/gait_RCS_01_OG_ON_Meds_Trial1_w_Gait_Events_Ken.mat';
+% gRCS02 = '/Users/klouie/Documents/Backup Data/gait_RCS_02_OG_OFF_STIM_ON_MEDS_w_Gait_Events_Julia.mat';
+% gRCS03 = '/Users/klouie/Documents/Backup Data/gait_RCS_03_OG_OFF_Stim_ON_Meds_Trial1_w_Gait_Events_Julia.mat';
+% allFiles = {RCS07;RCS12;RCS15;RCS03;RCS14;gRCS01;gRCS02;gRCS03}
+% subject_ID = {'RCS07','RCS12','RCS15','RCS03','RCS14','gRCS01','gRCS02','gRCS03'}
+% stim_target = {'STN';'STN';'STN';'GPi';'GPi';'GPi';'GPi';'GPi'}
+% geRangeTable = [1,inf;51,234;1,inf;1,inf;1,inf;1,inf;1,inf;1,inf]
+% extractGaitCyclePercentCoherence(allFiles,subject_ID,stim_target,'geRangeTable',geRangeTable);
 
 %% Initiation
 if ~exist('files','var') || isempty(files)
