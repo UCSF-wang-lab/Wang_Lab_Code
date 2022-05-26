@@ -28,43 +28,47 @@ end
 folderList = dir(folderPath);
 sessionFolders = {folderList(contains({folderList.name},'Session')).name};
 
-% Extract RCS serial number
-temp = dir(fullfile(folderPath,sessionFolders{1}));
-deviceName = temp(contains({temp.name},'Device')).name;
+if ~isempty(sessionFolders)
+    % Extract RCS serial number
+    temp = dir(fullfile(folderPath,sessionFolders{1}));
+    deviceName = temp(contains({temp.name},'Device')).name;
 
 
-% Go through all found session folders and extract comments. 
-extraCommentsArray = {};
-sessionArray = {};
-sessionTime = {};
-for i = 1:length(sessionFolders)
-    fid = fopen(fullfile(folderPath,sessionFolders{i},deviceName,'EventLog.json'));
-    raw = fread(fid,inf);
-    str = char(raw');
-    fclose(fid);
-    val = jsondecode(str);
+    % Go through all found session folders and extract comments.
+    extraCommentsArray = {};
+    sessionArray = {};
+    sessionTime = {};
+    for i = 1:length(sessionFolders)
+        fid = fopen(fullfile(folderPath,sessionFolders{i},deviceName,'EventLog.json'));
+        raw = fread(fid,inf);
+        str = char(raw');
+        fclose(fid);
+        val = jsondecode(str);
 
-    % Add entry for each session
-    extraCommentsArray = [extraCommentsArray;{'New Session'}];
-    sessionArray = [sessionArray;repelem({sessionFolders{i}},1,1)];
-    sessionTime = [sessionTime;repelem(convertSessionToDateTime(sessionFolders{i}),1,1)];
+        % Add entry for each session
+        extraCommentsArray = [extraCommentsArray;{'New Session'}];
+        sessionArray = [sessionArray;repelem({sessionFolders{i}},1,1)];
+        sessionTime = [sessionTime;repelem(convertSessionToDateTime(sessionFolders{i}),1,1)];
 
-    % Go through all extra comments
-    for j = 1:length(val)
-        if strcmp(val(j).Event.EventType,'extra_comments')
-            comments = strsplit(val(j).Event.EventSubType,newline);
-            extraCommentsArray = [extraCommentsArray;comments'];
-            sessionArray = [sessionArray;repelem({sessionFolders{i}},length(comments),1)];
-            sessionTime = [sessionTime;repelem(convertSessionToDateTime(sessionFolders{i}),length(comments),1)];
+        % Go through all extra comments
+        for j = 1:length(val)
+            if strcmp(val(j).Event.EventType,'extra_comments')
+                comments = strsplit(val(j).Event.EventSubType,newline);
+                extraCommentsArray = [extraCommentsArray;comments'];
+                sessionArray = [sessionArray;repelem({sessionFolders{i}},length(comments),1)];
+                sessionTime = [sessionTime;repelem(convertSessionToDateTime(sessionFolders{i}),length(comments),1)];
+            end
+
+
         end
-
-
     end
+    deviceArray = repelem({deviceName},length(extraCommentsArray),1);
+    
+    % Create the output table
+    outTable = table(deviceArray,sessionArray,sessionTime,extraCommentsArray,'VariableNames',{'Device Name','Session','Session Approx. Start Time','Comments'});
+else
+    outTable = [];
 end
-deviceArray = repelem({deviceName},length(extraCommentsArray),1);
-
-% Create the output table
-outTable = table(deviceArray,sessionArray,sessionTime,extraCommentsArray,'VariableNames',{'Device Name','Session','Session Approx. Start Time','Comments'});
 
 end
 
