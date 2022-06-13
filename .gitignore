@@ -1,7 +1,7 @@
 # System files
 *.DS_Store
-*.m~
-*.asv~
+*.m
+*.asv
 
 # OS generated files #
 ######################
