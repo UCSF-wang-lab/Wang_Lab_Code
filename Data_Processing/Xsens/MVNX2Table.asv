@@ -138,10 +138,6 @@ if sampleDiff > 0
 
     % Center of Mass
     center_mass(currInd+1:end,:) = [];
-
-    % Calculate time vec
-    time_vec = 0:currInd-1;
-    time_vec = time_vec'.*(1/tree.subject.frameRate);
 else
     time_vec = 0:currInd-1;
     time_vec = time_vec'.*(1/tree.subject.frameRate);
@@ -186,14 +182,14 @@ for j = 1:length({tree.subject.joints.joint.label})
 end
 
 % Center of mass column labels
-center_mass_type = {'Pos','Vel','Acc'};
-for k = 1:3
-    header{(k*3-2)+1+nSegments*3*5+nJoints*3} = ['CoM','_',center_mass_type{k},'X'];
-    header{(k*3-1)+1+nSegments*3*5+nJoints*3} = ['CoM','_',center_mass_type{k},'Y'];
-    header{(k*3)+1+nSegments*3*5+nJoints*3} = ['CoM','_',center_mass_type{k},'Z'];
+center_mass_type = {}
+for k = 1:9
+    header{(k*3-2)+1+nSegments*3*5+nJoints*3} = ['CoM','_X'];
+    header{(k*3-1)+1+nSegments*3*5+nJoints*3} = [tree.subject.joints.joint(j).label,'_X'];
+    header{(k*3)+1+nSegments*3*5+nJoints*3} = [tree.subject.joints.joint(j).label,'_Y'];
 end
 
-xsens_table = array2table([time_vec,seg_pos,seg_vel,seg_accel,seg_aVel,seg_aAccel,joint_angles,center_mass],'VariableNames',header);
+xsens_table = array2table([time_vec,seg_pos,seg_vel,seg_accel,seg_aVel,seg_aAccel,joint_angles],'VariableNames',header);
 writetable(xsens_table,[save_name(1:end-4),'.csv']);
 
 end
