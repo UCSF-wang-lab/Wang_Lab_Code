@@ -378,6 +378,14 @@ for i = 1:length(fields(grandAverage.Right))
     start_ind = find(fc.Right.(['key',num2str(i-1)]){1}<=100,1,'first');
     end_ind = find(fc.Right.(['key',num2str(i-1)]){1}>=0.1,1,'last');
     freq_vec = fc.Right.(['key',num2str(i-1)]){1}(start_ind:end_ind);
+    count = 1;
+    
+    while isempty(freq_vec)
+        count = count + 1;
+        start_ind = find(fc.Right.(['key',num2str(i-1)]){count}<=100,1,'first');
+        end_ind = find(fc.Right.(['key',num2str(i-1)]){count}>=0.1,1,'last');
+        freq_vec = fc.Right.(['key',num2str(i-1)]){count}(start_ind:end_ind);
+    end
 
     figure;
     ax = pcolor(1:100,log2(freq_vec),grandAverage.Right.(['key',num2str(i-1)]));
