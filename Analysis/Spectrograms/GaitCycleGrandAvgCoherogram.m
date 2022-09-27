@@ -19,7 +19,7 @@ function GaitCycleGrandAvgCoherogram(fileList,varargin)
 %                               right heel strike (RHS), left toe off
 %                               (LTO), right toe off (RTO). Default is LHS.
 %
-%               cohParis    [=] Pairs to compute coherence between. The
+%               cohPairs    [=] Pairs to compute coherence between. The
 %                               list of pairs will be used across all
 %                               files. Default is to do all possible
 %                               unilateral pairs.
@@ -60,7 +60,7 @@ function GaitCycleGrandAvgCoherogram(fileList,varargin)
 %           fileList = {RCS03,RCS14,gRCS01,gRCS02,gRCS03};
 %           keys = {'key0','key1','key2'};
 %           swapKeys = {{'key2','key3'},{'key2','key3'},{},{},{}};
-%           calcGrandAvgGaitCycleCoherence(fileList,'gcStartEvent','LHS','normBy','average_during_walking','normType','zscore','keys',keys,'swapKeys',swapKeys)
+%           GaitCycleGrandAvgCoherogram(fileList,'gcStartEvent','LHS','normBy','average_during_walking','normType','zscore','keys',keys,'swapKeys',swapKeys)
 %
 % Date:     05/17/2022
 % Author:   Kenneth H. Louie (kenneth.louie@ucsf.edu)

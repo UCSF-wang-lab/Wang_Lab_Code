@@ -9,8 +9,22 @@ if filename_gait_events == 0
     [filename_gait_events,path2] = uigetfile('*.txt');
 end
 
+fid = fopen(fullfile(path2,filename_gait_events));
+count = 0;
+gait_event_line = true;
+while gait_event_line
+    curr_line = fgetl(fid);
+    count = count + 1;
+    if contains(curr_line,{'LHS','RTO','RHS','LTO'})
+        gait_event_line = false;
+    end
+end
+fclose(fid);
+
 opts = detectImportOptions(fullfile(path2,filename_gait_events));
-opts.VariableNamesLine = opts.DataLines(1)-1;
+opts.VariableNamesLine = count;
+opts.DataLines(1) = count+1;
+
 gait_events = readtable(fullfile(path2,filename_gait_events),opts);
 
 gait_events_aligned = gait_events;

@@ -371,6 +371,7 @@ for i = 1:length(fields(grandAverage.Left))
     xticklabels({'0','10','20','30','40','50','60','70','80','90','100'});
     shading interp;
     ylabel('Frequency (Hz)');
+    xlabel('Percent of gait cycle');
     title({'Left';sprintf('key%i Grand Average',i-1)});
 end
 
@@ -389,6 +390,7 @@ for i = 1:length(fields(grandAverage.Right))
     xticklabels({'0','10','20','30','40','50','60','70','80','90','100'});
     shading interp;
     ylabel('Frequency (Hz)');
+    xlabel('Percent of gait cycle');
     title({'Right';sprintf('key%i Grand Average',i-1)});
 end
 end

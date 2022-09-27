@@ -354,10 +354,6 @@ for i = 1:length(files)
             time_range = [time_range;repelem(adj_time(i),size(temp_power_data,1),1)];
         end
         
-        if strcmp(power_type,'peri') || strcmp(power_type,'pre')
-            time_range = [time_range;repelem(adj_time(i),size(temp_power_data,1),1)];
-        end
-        
         printStatus('');
     end
 end

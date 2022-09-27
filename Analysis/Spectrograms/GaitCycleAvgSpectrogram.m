@@ -50,8 +50,8 @@ function GaitCycleAvgSpectrogram(aligned_data,signalAnalysisData,varargin)
 %
 %   Example call:
 %           load(<filename>)
-%           A = calcRCS_STFT(aligned_data,[],1,0.9,[]);
-%           GaitCycleAvgSpectrogram(aligned_data,A,'normalizeBy','average_during_walking',normalizationType','zscore');
+%           B = calcRCS_CWT(aligned_data,[],1,0.9,[]);
+%           GaitCycleAvgSpectrogram(aligned_data,B,'normalizeBy','average_during_walking','normalizationType','zscore');
 %
 % Date:     05/25/2022
 % Author:   Kenneth H. Louie (kenneth.louie@ucsf.edu)
