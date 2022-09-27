@@ -336,6 +336,14 @@ for i = 1:length(grandAverage.Right)
     start_ind = find(fc.Right{1}<=95,1,'first');
     end_ind = find(fc.Right{1}>=0.1,1,'last');
     freq_vec = fc.Right{1}(start_ind:end_ind);
+    
+    count = 1;
+    while isempty(freq_vec)
+        count = count + 1;
+        start_ind = find(fc.Right{count}<=95,1,'first');
+        end_ind = find(fc.Right{count}>=0.1,1,'last');
+        freq_vec = fc.Right{count}(start_ind:end_ind);
+    end
 
     figure;
     ax = pcolor(1:100,log2(freq_vec),grandAverage.Right{i});
