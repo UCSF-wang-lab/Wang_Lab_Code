@@ -42,6 +42,12 @@ function GaitCycleAvgSpectrogram(aligned_data,signalAnalysisData,varargin)
 %                                       perform a normalization ('none').
 %                                       Default is none.
 %
+%               freqLimits          [=] Two element vector. First element
+%                                       is the minimum frequency to
+%                                       visualize, and the second element
+%                                       is the maximum frequency to
+%                                       visualize.
+%
 %               subjectID           [=] String variable of the name of the
 %                                       subject being analyzed.
 %
@@ -70,6 +76,8 @@ for i = 1:2:nargin-2
             normalizationType = varargin{i+1}; % Can be none|percent_change|zscore
         case 'baselineTime'
             baselineTime = varargin{i+1};  % Only valid if "normalization_by" is set to "baseline"
+        case 'freqLimits'
+            freqLimits = varargin{i+1};
         case 'subjectID'
             subjectID = varargin{i+1};
         case 'savePlot'
@@ -109,6 +117,10 @@ end
 
 if strcmp(normalizeBy,'baseline') && ~exist('baselineTime','var')
     error('Normalization by baseline, but no baseline data was passed in.');
+end
+
+if ~exist('freqLimits','var')
+    freqLimits = [2.5,50];
 end
 
 if ~exist('subjectID','var')
@@ -281,17 +293,17 @@ if isfield(gait_cycle_avg,'Left')
         if isfield(signalAnalysisData.Left,'PSD')
             if sum(isnan(gait_cycle_avg.Left{i}),'all') == 0
                 ax = pcolor(1:100,signalAnalysisData.Left.Freq_Values{i},gait_cycle_avg.Left{i});
-                ylim([2.5,50]);
+                ylim([freqLimits(1),freqLimits(2)]);
                 ax.Parent.XTick = [1,10:10:100];
                 ax.Parent.XTickLabel = {'0','10','20','30','40','50','60','70','80','90','100'};
             end
         else
             if sum(isnan(gait_cycle_avg.Left{i}),'all') == 0
                 ax = pcolor(1:100,log2(signalAnalysisData.Left.Freq_Values{i}),gait_cycle_avg.Left{i});
-                ticks = logspace(log10(2.5),log10(50),10);
+                ticks = logspace(log10(freqLimits(1)),log10(freqLimits(2)),10);
                 ax.Parent.YTick = log2(ticks);
                 ax.Parent.YTickLabel = ticks;
-                ylim([log2(2.5),log2(50)]);
+                ylim([log2(freqLimits(1)),log2(freqLimits(2))]);
                 ax.Parent.XTick = [1,10:10:100];
                 ax.Parent.XTickLabel = {'0','10','20','30','40','50','60','70','80','90','100'};
                 if strcmp(normalizeBy,'baseline') && strcmp(normalizationType,'zscore')
@@ -312,17 +324,17 @@ if isfield(gait_cycle_avg,'Right')
         if isfield(signalAnalysisData.Right,'PSD')
             if sum(isnan(gait_cycle_avg.Right{i}),'all') == 0
                 ax = pcolor(1:100,signalAnalysisData.Right.Freq_Values{i},gait_cycle_avg.Right{i});
-                ylim([2.5,50]);
+                ylim([freqLimits(1),freqLimits(2)]);
                 ax.Parent.XTick = [1,10:10:100];
                 ax.Parent.XTickLabel = {'0','10','20','30','40','50','60','70','80','90','100'};
             end
         else
             if sum(isnan(gait_cycle_avg.Right{i}),'all') == 0
                 ax = pcolor(1:100,log2(signalAnalysisData.Right.Freq_Values{i}),gait_cycle_avg.Right{i});
-                ticks = logspace(log10(2.5),log10(50),10);
+                ticks = logspace(log10(freqLimits(1)),log10(freqLimits(2)),10);
                 ax.Parent.YTick = log2(ticks);
                 ax.Parent.YTickLabel = ticks;
-                ylim([log2(2.5),log2(50)]);
+                ylim([log2(freqLimits(1)),log2(freqLimits(2))]);
                 ax.Parent.XTick = [1,10:10:100];
                 ax.Parent.XTickLabel = {'0','10','20','30','40','50','60','70','80','90','100'};
                 if strcmp(normalizeBy,'baseline') && strcmp(normalizationType,'zscore')

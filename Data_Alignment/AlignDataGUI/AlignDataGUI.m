@@ -54,4 +54,5 @@ main_window.UserData.file_names = {};
 main_window.UserData.alignment_times = nan(1,8); % Left LFP|Right LFP|Left Accel|Right Accel|Delsys|Xsens|Force plate|Teensey
 main_window.UserData.alignment_source = cell(1,8); % Left LFP|Right LFP|Left Accel|Right Accel|Delsys|Xsens|Force plate|Teensey
 main_window.UserData.logger = event_panel;
+main_window.UserData.basePath = [];
 end

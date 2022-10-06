@@ -1,4 +1,4 @@
-function varargout = searchForGaitBiomarkers(aligned_data,signal_analysis_data,freq_lim,event_compare,subjectID,save_dir,save_type,save_flag)
+function varargout = searchForGaitBiomarkers(aligned_data,signal_analysis_data,freq_lim,event_compare,stat_test,subjectID,save_dir,save_type,save_flag)
 if ~exist('freq_lim','var') || isempty(freq_lim)
     freq_lim = [0 50];
 end
@@ -6,6 +6,10 @@ end
 if ~exist('event_compare','var') || isempty(event_compare)
     event_compare{1} = {'LTO','RTO'};
     event_compare{2} = {'LHS','RHS'};
+end
+
+if ~exist('stat_test','var') || isempty(stat_test)
+    stat_test = 'kruskal-wallis';   % anova1|kruskal-wallis
 end
 
 if ~exist('subjectID','var') || isempty(subjectID)
@@ -17,7 +21,7 @@ if ~exist('save_dir','var')
 end
 
 if ~exist('save_type','var') || isempty(save_type)
-    save_type = 'all'; % all|anova|mult_compare|summed|summed_all|summed_exclude|stat_table
+    save_type = 'all'; % all|stat_test|mult_compare|summed|summed_all|summed_exclude|stat_table
 end
 
 if ~exist('save_flag','var') || isempty(save_flag)
@@ -26,8 +30,27 @@ end
 
 % searchForGaitBiomarkers(aligned_data,A,[0,50],{{'LHS','RTO','RHS','LTO'}},'RCS07',[],'summed',0);
 
-%% Extract data
+%% Normality and homoscedacity counts
+normCountLeft = 0;
+homoscedasticityCountLeft = 0;
+
+normCountRight = 0;
+homoscedasticityCountRight = 0;
+
+normTestCount = 0;
+homoscedasticityTestCount = 0;
+
+%% Check to see if all state variables are in the struct
+if ~isfield(aligned_data,'stim_condition')
+    aligned_data.stim_condition = 'OFF';
+end
+
+if ~isfield(aligned_data,'med_condition')
+    aligned_data.med_condition = 'ON';
+end
+
 tic
+%% Extract data
 if isfield(signal_analysis_data,'Left')
     left_sr = uniquetol(aligned_data.DeviceSettings.Left.timeDomainSettings.samplingRate,1);
     time_res_left = uniquetol(diff(signal_analysis_data.Left.Time{1}),1);
@@ -41,8 +64,8 @@ if isfield(signal_analysis_data,'Left')
     [freq_bin_inds.Left,freq_vals.Left] = genFreqBinPairs(signal_analysis_data.Left.Freq_Values{1},freq_lim);
     
     channel_power.Left = cell(1,length(signal_analysis_data.Left.Chan_Names));
-    channel_anova_matrix.Left = cell(1,length(signal_analysis_data.Left.Chan_Names));
-    channel_f_matrix.Left = cell(1,length(signal_analysis_data.Left.Chan_Names));
+    channel_stat_model_matrix.Left = cell(1,length(signal_analysis_data.Left.Chan_Names));
+    channel_stat_pval_matrix.Left = cell(1,length(signal_analysis_data.Left.Chan_Names));
     channel_df_between_matrix.Left = nan(1,length(signal_analysis_data.Left.Chan_Names));
     channel_df_within_matrix.Left = nan(1,length(signal_analysis_data.Left.Chan_Names));
 %     channel_mult_compare_matrix.Left = cell(1,size(event_pairs,1));
@@ -79,24 +102,47 @@ if isfield(signal_analysis_data,'Left')
         end
         channel_power.Left{i} = vals_power;
         
-        channel_anova_matrix.Left{i} = nan(sum(diff(freq_bin_inds.Left,1,2)==0),sum(diff(freq_bin_inds.Left,1,2)==0));
+        channel_stat_model_matrix.Left{i} = nan(sum(diff(freq_bin_inds.Left,1,2)==0),sum(diff(freq_bin_inds.Left,1,2)==0));
         for n = 1:size(freq_bin_inds.Left,1)
             X = [];
             groups = {};
+            normDistVec = zeros(1,4);
             for o = 1:length(fields(vals_power))
                 vals = vals_power.(aligned_data.gait_events.Properties.VariableNames{o})(:,n);
                 X = [X;vals];
                 groups = [groups;repelem(aligned_data.gait_events.Properties.VariableNames(o),length(vals),1)];
+                
+                % Check for normality 
+                if ~swtest(vals)                % Shapiro-Wilk Test, null hypothesis is that the values come from a normal distribution with unknown mean and std
+                    normCountLeft = normCountLeft + 1;
+                    normTestCount = normTestCount + 1;
+                else
+                    normTestCount = normTestCount + 1;
+                end
             end
-            [p,anova_table,stats] = anova1(X,groups,'off');
+
+            % Check for homoscedasticity
+            if vartestn(X,groups,'TestType','LeveneAbsolute','Display','off')>0.05       % Levene's test for variance, null hypothesis is that the variance is equal across all groups
+                homoscedasticityCountLeft = homoscedasticityCountLeft + 1;
+                homoscedasticityTestCount = homoscedasticityTestCount + 1;
+            else
+                homoscedasticityTestCount = homoscedasticityTestCount + 1;
+            end
+
+            if strcmp('anova1',stat_test)
+                [p,stat_table,stats] = anova1(X,groups,'off');
+            elseif strcmp('kruskal-wallis',stat_test)
+                [p,stat_table,stats] = kruskalwallis(X,groups,'off');
+            end
+
             [c,~,~,gnames] = multcompare(stats,'Display','off');
-            channel_anova_matrix.Left{i}(freq_bin_inds.Left(n,1),freq_bin_inds.Left(n,2)) = p;
-            channel_f_matrix.Left{i}(freq_bin_inds.Left(n,1),freq_bin_inds.Left(n,2)) = anova_table{2,5};
+            channel_stat_model_matrix.Left{i}(freq_bin_inds.Left(n,1),freq_bin_inds.Left(n,2)) = p;
+            channel_stat_pval_matrix.Left{i}(freq_bin_inds.Left(n,1),freq_bin_inds.Left(n,2)) = stat_table{2,5};
             if isnan(channel_df_between_matrix.Left(i))
-                channel_df_between_matrix.Left(i) = anova_table{2,3};
+                channel_df_between_matrix.Left(i) = stat_table{2,3};
             end
             if isnan(channel_df_within_matrix.Left(i))
-                channel_df_within_matrix.Left(i) = anova_table{3,3};
+                channel_df_within_matrix.Left(i) = stat_table{3,3};
             end
             for r = 1:size(c,1)
                 mat_ind = find(and(strcmp(gnames(c(r,1)),event_pairs(:,1)),strcmp(gnames(c(r,2)),event_pairs(:,2))));
@@ -122,8 +168,8 @@ if isfield(signal_analysis_data,'Right')
     [freq_bin_inds.Right,freq_vals.Right] = genFreqBinPairs(signal_analysis_data.Right.Freq_Values{1},freq_lim);
 
     channel_power.Right = cell(1,length(signal_analysis_data.Right.Chan_Names));
-    channel_anova_matrix.Right = cell(1,length(signal_analysis_data.Right.Chan_Names));
-    channel_f_matrix.Right = cell(1,length(signal_analysis_data.Right.Chan_Names));
+    channel_stat_model_matrix.Right = cell(1,length(signal_analysis_data.Right.Chan_Names));
+    channel_stat_pval_matrix.Right = cell(1,length(signal_analysis_data.Right.Chan_Names));
     channel_df_between_matrix.Right = nan(1,length(signal_analysis_data.Right.Chan_Names));
     channel_df_within_matrix.Right = nan(1,length(signal_analysis_data.Right.Chan_Names));
 %     channel_mult_compare_matrix.Right = cell(1,size(event_pairs,1));
@@ -160,7 +206,7 @@ if isfield(signal_analysis_data,'Right')
         end
         channel_power.Right{i} = vals_power;
 
-        channel_anova_matrix.Right{i} = nan(sum(diff(freq_bin_inds.Right,1,2)==0),sum(diff(freq_bin_inds.Right,1,2)==0));
+        channel_stat_model_matrix.Right{i} = nan(sum(diff(freq_bin_inds.Right,1,2)==0),sum(diff(freq_bin_inds.Right,1,2)==0));
         for n = 1:size(freq_bin_inds.Right,1)
             X = [];
             groups = {};
@@ -168,16 +214,37 @@ if isfield(signal_analysis_data,'Right')
                 vals = vals_power.(aligned_data.gait_events.Properties.VariableNames{o})(:,n);
                 X = [X;vals];
                 groups = [groups;repelem(aligned_data.gait_events.Properties.VariableNames(o),length(vals),1)];
+
+                % Check for normality 
+                if ~swtest(vals)                % Shapiro-Wilk Test, null hypothesis is that the values come from a normal distribution with unknown mean and std
+                    normCountRight = normCountRight + 1;
+                    normTestCount = normTestCount + 1;
+                else
+                    normTestCount = normTestCount + 1;
+                end
             end
-            [p,anova_table,stats] = anova1(X,groups,'off');
+
+            % Check for homoscedasticity
+            if vartestn(X,groups,'TestType','LeveneAbsolute','Display','off')>0.05       % Levene's test for variance, null hypothesis is that the variance is equal across all groups
+                homoscedasticityCountRight = homoscedasticityCountRight + 1;
+            else
+                homoscedasticityTestCount = homoscedasticityTestCount + 1;
+            end
+            
+            if strcmp('anova1',stat_test)
+                [p,stat_table,stats] = anova1(X,groups,'off');
+            elseif strcmp('kruskal-wallis',stat_test)
+                [p,stat_table,stats] = kruskalwallis(X,groups,'off');
+            end
+
             [c,~,~,gnames] = multcompare(stats,'Display','off');
-            channel_anova_matrix.Right{i}(freq_bin_inds.Right(n,1),freq_bin_inds.Right(n,2)) = p;
-            channel_f_matrix.Right{i}(freq_bin_inds.Right(n,1),freq_bin_inds.Right(n,2)) = anova_table{2,5};
+            channel_stat_model_matrix.Right{i}(freq_bin_inds.Right(n,1),freq_bin_inds.Right(n,2)) = p;
+            channel_stat_pval_matrix.Right{i}(freq_bin_inds.Right(n,1),freq_bin_inds.Right(n,2)) = stat_table{2,5};
             if isnan(channel_df_between_matrix.Right(i))
-                channel_df_between_matrix.Right(i) = anova_table{2,3};
+                channel_df_between_matrix.Right(i) = stat_table{2,3};
             end
             if isnan(channel_df_within_matrix.Right(i))
-                channel_df_within_matrix.Right(i) = anova_table{3,3};
+                channel_df_within_matrix.Right(i) = stat_table{3,3};
             end
             for r = 1:size(c,1)
                 mat_ind = find(and(strcmp(gnames(c(r,1)),event_pairs(:,1)),strcmp(gnames(c(r,2)),event_pairs(:,2))));
@@ -245,7 +312,7 @@ if isfield(signal_analysis_data,'Right')
 end
 multiple_comp_table = table(subject_ID,side,contact,event1,event2,freq1,freq2,pVals,'VariableNames',{'SubjectID','Side','Contact','GaitEvent1','GaitEvent2','Freq1','Freq2','pVal'});
 
-% ANOVA table
+% Stat table
 subject_ID = [];
 side =[];
 contact = [];
@@ -253,7 +320,7 @@ freq1 = [];
 freq2 = [];
 df_between = [];
 df_within = [];
-fStat = [];
+testVal = [];
 pVals = [];
 
 if isfield(signal_analysis_data,'Left')
@@ -264,15 +331,15 @@ if isfield(signal_analysis_data,'Left')
         temp = nan(n_vals,1);
         temp2 = nan(n_vals,1);
         for z = 1:n_vals
-            temp(z) = channel_anova_matrix.Left{x}(freq_bin_inds.Left(z,1),freq_bin_inds.Left(z,2));
-            temp2(z) = channel_f_matrix.Left{x}(freq_bin_inds.Left(z,1),freq_bin_inds.Left(z,2));
+            temp(z) = channel_stat_model_matrix.Left{x}(freq_bin_inds.Left(z,1),freq_bin_inds.Left(z,2));
+            temp2(z) = channel_stat_pval_matrix.Left{x}(freq_bin_inds.Left(z,1),freq_bin_inds.Left(z,2));
         end
         contact = [contact;repmat(chan_name,n_vals,1)];
         side = [side;repmat('L',n_vals,1)];
         freq1 = [freq1;signal_analysis_data.Left.Freq_Values{x}(freq_bin_inds.Left(:,1))];
         freq2 = [freq2;signal_analysis_data.Left.Freq_Values{x}(freq_bin_inds.Left(:,2))];
         pVals = [pVals;temp];
-        fStat = [fStat;temp2];
+        testVal = [testVal;temp2];
         df_between = [df_between;repelem(channel_df_between_matrix.Left(x),n_vals)'];
         df_within = [df_within;repelem(channel_df_within_matrix.Left(x),n_vals)'];
     end
@@ -287,30 +354,36 @@ if isfield(signal_analysis_data,'Right')
         temp = nan(n_vals,1);
         temp2 = nan(n_vals,1);
         for z = 1:n_vals
-            temp(z) = channel_anova_matrix.Right{x}(freq_bin_inds.Right(z,1),freq_bin_inds.Right(z,2));
-            temp2(z) = channel_f_matrix.Right{x}(freq_bin_inds.Right(z,1),freq_bin_inds.Right(z,2));
+            temp(z) = channel_stat_model_matrix.Right{x}(freq_bin_inds.Right(z,1),freq_bin_inds.Right(z,2));
+            temp2(z) = channel_stat_pval_matrix.Right{x}(freq_bin_inds.Right(z,1),freq_bin_inds.Right(z,2));
         end
         contact = [contact;repmat(chan_name,n_vals,1)];
         side = [side;repmat('R',n_vals,1)];
         freq1 = [freq1;signal_analysis_data.Right.Freq_Values{x}(freq_bin_inds.Left(:,1))];
         freq2 = [freq2;signal_analysis_data.Right.Freq_Values{x}(freq_bin_inds.Left(:,2))];
         pVals = [pVals;temp];
-        fStat = [fStat;temp2];
+        testVal = [testVal;temp2];
         df_between = [df_between;repelem(channel_df_between_matrix.Right(x),n_vals)'];
         df_within = [df_within;repelem(channel_df_within_matrix.Right(x),n_vals)'];
     end
     subject_ID = [subject_ID;repmat({subjectID},n_vals*length(signal_analysis_data.Right.Chan_Names),1)];
 end
-anova_table = table(subject_ID,side,contact,freq1,freq2,df_between,df_within,fStat,pVals,'VariableNames',{'SubjectID','Side','Contact','Freq1','Freq2','DF_Between','DF_Within','fStat','pVal'});
+
+if strcmp(stat_test,'anova1')
+    stat_table = table(subject_ID,side,contact,freq1,freq2,df_between,df_within,testVal,pVals,'VariableNames',{'SubjectID','Side','Contact','Freq1','Freq2','DF_Between','DF_Within','fStat','pVal'});
+elseif strcmp(stat_test,'kruskal-wallis')
+    stat_table = table(subject_ID,side,contact,freq1,freq2,df_between,df_within,testVal,pVals,'VariableNames',{'SubjectID','Side','Contact','Freq1','Freq2','DF_Between','DF_Within','chi-sq','pVal'});
+end
 
 %% Plot to visualize p-vals
 fig_vec = [];
-% ANOVA Left
+% Stat test
 if strcmp(save_type,'all') || strcmp(save_type,'anova')
-    if isfield(channel_anova_matrix,'Left')
-        for i = 1:length(channel_anova_matrix.Left)
+    % Left
+    if isfield(channel_stat_model_matrix,'Left')
+        for i = 1:length(channel_stat_model_matrix.Left)
             fig_vec(end+1) = figure;
-            ax_hand = pcolor(1:size(channel_anova_matrix.Left{i},1),1:size(channel_anova_matrix.Left{i},2),channel_anova_matrix.Left{i});
+            ax_hand = pcolor(1:size(channel_stat_model_matrix.Left{i},1),1:size(channel_stat_model_matrix.Left{i},2),channel_stat_model_matrix.Left{i});
             colormap(flipud(jet));
             caxis([0,1]);
             set(gca,'YDir',"reverse");
@@ -323,11 +396,11 @@ if strcmp(save_type,'all') || strcmp(save_type,'anova')
         end
     end
     
-    % ANOVA Right
-    if isfield(channel_anova_matrix,'Right')
-        for i = 1:length(channel_anova_matrix.Right)
+    % Right
+    if isfield(channel_stat_model_matrix,'Right')
+        for i = 1:length(channel_stat_model_matrix.Right)
             fig_vec(end+1) = figure;
-            pcolor(1:size(channel_anova_matrix.Right{i},1),1:size(channel_anova_matrix.Right{i},2),channel_anova_matrix.Right{i});
+            pcolor(1:size(channel_stat_model_matrix.Right{i},1),1:size(channel_stat_model_matrix.Right{i},2),channel_stat_model_matrix.Right{i});
             colormap(flipud(jet));
             caxis([0,1]);
             set(gca,'YDir',"reverse");
@@ -493,19 +566,19 @@ if save_flag && strcmp(save_type,'stat_table')
         if ~isfolder(fullfile(save_dir,'GaitBiomarkerSearch',aligned_data.stim_condition,'FT'))
             mkdir(fullfile(save_dir,'GaitBiomarkerSearch',aligned_data.stim_condition,'FT'));
             writetable(multiple_comp_table,[fullfile(save_dir,'GaitBiomarkerSearch',aligned_data.stim_condition,'FT'),'/',subjectID,'_multi-comp_stat_table.csv']);
-            writetable(anova_table,[fullfile(save_dir,'GaitBiomarkerSearch',aligned_data.stim_condition,'FT'),'/',subjectID,'_anova_stat_table.csv']);
+            writetable(stat_table,[fullfile(save_dir,'GaitBiomarkerSearch',aligned_data.stim_condition,'FT'),'/',subjectID,'_anova_stat_table.csv']);
         else
             writetable(multiple_comp_table,[fullfile(save_dir,'GaitBiomarkerSearch',aligned_data.stim_condition,'FT'),'/',subjectID,'_multi-comp_stat_table.csv']);
-            writetable(anova_table,[fullfile(save_dir,'GaitBiomarkerSearch',aligned_data.stim_condition,'FT'),'/',subjectID,'_anova_stat_table.csv']);
+            writetable(stat_table,[fullfile(save_dir,'GaitBiomarkerSearch',aligned_data.stim_condition,'FT'),'/',subjectID,'_anova_stat_table.csv']);
         end
     elseif strcmp(analysis_type,'CWT')
         if ~isfolder(fullfile(save_dir,'GaitBiomarkerSearch',aligned_data.stim_condition,'CWT'))
             mkdir(fullfile(save_dir,'GaitBiomarkerSearch',aligned_data.stim_condition,'CWT'));
             writetable(multiple_comp_table,[fullfile(save_dir,'GaitBiomarkerSearch',aligned_data.stim_condition,'CWT'),'/',subjectID,'_multi-comp_stat_table.csv']);
-            writetable(anova_table,[fullfile(save_dir,'GaitBiomarkerSearch',aligned_data.stim_condition,'CWT'),'/',subjectID,'_anova_stat_table.csv']);
+            writetable(stat_table,[fullfile(save_dir,'GaitBiomarkerSearch',aligned_data.stim_condition,'CWT'),'/',subjectID,'_anova_stat_table.csv']);
         else
             writetable(multiple_comp_table,[fullfile(save_dir,'GaitBiomarkerSearch',aligned_data.stim_condition,'CWT'),'/',subjectID,'_multi-comp_stat_table.csv']);
-            writetable(anova_table,[fullfile(save_dir,'GaitBiomarkerSearch',aligned_data.stim_condition,'CWT'),'/',subjectID,'_anova_stat_table.csv']);
+            writetable(stat_table,[fullfile(save_dir,'GaitBiomarkerSearch',aligned_data.stim_condition,'CWT'),'/',subjectID,'_anova_stat_table.csv']);
         end
     end
 end
@@ -584,7 +657,7 @@ if save_flag && ~strcmp(save_type,'stat_table')
 end
 
 toc
-varargout = {channel_anova_matrix,channel_mult_compare_matrix,event_pairs,freq_vals};
+varargout = {channel_stat_model_matrix,channel_mult_compare_matrix,event_pairs,freq_vals,normCountLeft,normCountRight,normTestCount,homoscedasticityCountLeft,homoscedasticityCountRight,homoscedasticityTestCount};
 end
 
 function [freq_bin_inds,freqs] = genFreqBinPairs(freq_vals,freq_lim)

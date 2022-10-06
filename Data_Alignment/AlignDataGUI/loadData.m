@@ -1,9 +1,16 @@
 function loadData(src,varargin)
 
-if contains(src.Tag,'Xsens') || contains(src.Tag,'Force') || contains(src.Tag,'Teensey')
-    [filename,path] = uigetfile('.csv');
+if isempty(src.Parent.Parent.UserData.basePath)
+    basePath = pwd;
 else
-    [filename,path] = uigetfile();
+    basePath = src.Parent.Parent.UserData.basePath;
+end
+
+
+if contains(src.Tag,'Xsens') || contains(src.Tag,'Force') || contains(src.Tag,'Teensey')
+    [filename,path] = uigetfile([basePath,'/*.csv']);
+else
+    [filename,path] = uigetfile(basePath);
 end
 
 try
@@ -68,6 +75,16 @@ switch src.Tag
 end
 
 src.Parent.Parent.UserData.file_names{end+1} = fullfile(path,filename);
+
+if isempty(src.Parent.Parent.UserData.basePath)
+    curr_path = path(1:end-1);
+    [parent_dir,curr_dir,~] = fileparts(curr_path);
+    while ~strcmp(curr_dir,'Processed Data')
+         curr_path = parent_dir;
+         [parent_dir,curr_dir,~] = fileparts(curr_path);
+    end
+    src.Parent.Parent.UserData.basePath = curr_path;
+end
 
 % Add event to logger
 addEvent(str);
