@@ -3,8 +3,8 @@ function varargout = processTargetStepInfo(filename,savename)
 % .mat file containing the original table, the original table sorted by
 % target number, and a filtered sorted table.
 %
-% Inputs:   file_name   [=] File of the extracted target information
-%           save_path   [=] Save name and path of the .mat file
+% Inputs:   filename    [=] File of the extracted target information
+%           savepath    [=] Save name and path of the .mat file
 % Outputs:  varargout{1}[=] Resultant sorted and filtered table of targets
 %           varargout{2}[=] Original table but sorted by target number
 %           varargout{3}[=] The original table
@@ -29,7 +29,9 @@ data_table_sorted_filt(removeInds,:) = [];
 % Save data
 if ~exist('savename','var')
     [A,B,~] = fileparts(filename);
-    savename = fullfile(A,B)+"_target.csv";
+%     savename = fullfile(A,B)+"_target.csv";
+    savename = fullfile(A,B);
+    savename = strrep(savename,'all_targets','processed_targets.csv');
 end
 
 try

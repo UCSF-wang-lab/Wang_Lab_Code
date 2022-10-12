@@ -1,9 +1,9 @@
-function extractTargetStepInfo(filename,savename)
+function extractTargetStepInfo(filename,savepath)
 % Extracts only the target information from the massive csv file output of
 % the Cirris app
 %
-% Input:    file_name   [=] The csv output of Cirris
-%           save_path   [=] Save name and path of the extract target
+% Input:    filename    [=] The csv output of Cirris
+%           savepath    [=] Save name and path of the extract target
 %                           information
 % Output:   NONE
 %
@@ -41,14 +41,14 @@ end
 outTable = table(TargetNum(:),Side(:),StepModifier(:),Success(:),TaskTimer(:),...
     'VariableNames',{'Target Number','Side','Step Modifier','Success','Task Timer'});
 
-if ~exist('save_path','var')
+if ~exist('savepath','var')
     [A,B,~] = fileparts(filename);
-    savename = fullfile(A,B)+"_raw.csv";
+    savepath = fullfile(A,B)+"_all_targets.csv";
 end
 
 
 try
-    writetable(outTable,savename);
+    writetable(outTable,savepath);
 catch
     error('Unable to write table to file');
 end
