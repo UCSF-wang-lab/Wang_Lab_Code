@@ -3,13 +3,13 @@ function [data_power_table,data_phase_table] = extractDataFeaturesForML(files,su
 % % GPi
 % RCS03 = {'/Volumes/dwang3_shared/Patient Data/RC+S Data/RCS03/Gait/2020-10-05/Data/Aligned Data/RCS03_OG_after_task_OFF_STIM_w_Gait_Events_Julia.mat'}; % Using "after task" but the task had a lot of issues. Unlikely they learned.
 % RCS14 = {'/Volumes/dwang3_shared/Patient Data/RC+S Data/RCS14/2021-04-12/Data/Aligned Data/RCS14_OG_OFF_STIM_ON_MEDS_w_Gait_Events_Julia.mat'};
-% gRCS01 = {'/Volumes/dwang3_shared/Patient Data/RC+S Data/gait_RCS_01/v3_2021-12-20_pre-programming/Data/Aligned Data/gait_RCS_01_OG_ON_Meds_Trial1_w_Gait_Events_Ken_v2.mat';
-%     '/Volumes/dwang3_shared/Patient Data/RC+S Data/gait_RCS_01/v3_2021-12-20_pre-programming/Data/Aligned Data/gait_RCS_01_OG_ON_Meds_Trial2_w_Gait_Events_Ken.mat'};
-% gRCS02 = {'/Volumes/dwang3_shared/Patient Data/RC+S Data/gait_RCS_02/v4_2022-01-14_pre-programming_second/Data/Aligned Data/gait_RCS_02_OG_OFF_STIM_OFF_MEDS_V2_w_Gait_Events_Ken.mat';...
-%     '/Volumes/dwang3_shared/Patient Data/RC+S Data/gait_RCS_02/v4_2022-01-14_pre-programming_second/Data/Aligned Data/gait_RCS_02_OG_OFF_STIM_ON_MEDS_V2_w_Gait_Events_Ken.mat'};
-% gRCS03 = {'/Volumes/dwang3_shared/Patient Data/RC+S Data/gait_RCS_03/v3_2022-03-08_pre-programming/Data/Aligned Data/gait_RCS_03_OG_OFF_Stim_OFF_Meds_Trial1_w_Gait_Events_Julia.mat';...
-%     '/Volumes/dwang3_shared/Patient Data/RC+S Data/gait_RCS_03/v3_2022-03-08_pre-programming/Data/Aligned Data/gait_RCS_03_OG_OFF_Stim_OFF_Meds_Trial2_w_Gait_Events_Julia.mat';...
-%     '/Volumes/dwang3_shared/Patient Data/RC+S Data/gait_RCS_03/v3_2022-03-08_pre-programming/Data/Aligned Data/gait_RCS_03_OG_OFF_Stim_ON_Meds_Trial1_w_Gait_Events_Julia.mat'};
+gRCS01 = {'/Volumes/dwang3_shared/Patient Data/RC+S Data/gait_RCS_01/v3_2021-12-20_pre-programming/Data/Aligned Data/gait_RCS_01_OG_ON_Meds_Trial1_w_Gait_Events_Ken_v2.mat';
+    '/Volumes/dwang3_shared/Patient Data/RC+S Data/gait_RCS_01/v3_2021-12-20_pre-programming/Data/Aligned Data/gait_RCS_01_OG_ON_Meds_Trial2_w_Gait_Events_Ken.mat'};
+gRCS02 = {'/Volumes/dwang3_shared/Patient Data/RC+S Data/gait_RCS_02/v4_2022-01-14_pre-programming_second/Data/Aligned Data/gait_RCS_02_OG_OFF_STIM_OFF_MEDS_V2_w_Gait_Events_Ken.mat';...
+    '/Volumes/dwang3_shared/Patient Data/RC+S Data/gait_RCS_02/v4_2022-01-14_pre-programming_second/Data/Aligned Data/gait_RCS_02_OG_OFF_STIM_ON_MEDS_V2_w_Gait_Events_Ken.mat'};
+gRCS03 = {'/Volumes/dwang3_shared/Patient Data/RC+S Data/gait_RCS_03/v3_2022-03-08_pre-programming/Data/Aligned Data/gait_RCS_03_OG_OFF_Stim_OFF_Meds_Trial1_w_Gait_Events_Julia.mat';...
+    '/Volumes/dwang3_shared/Patient Data/RC+S Data/gait_RCS_03/v3_2022-03-08_pre-programming/Data/Aligned Data/gait_RCS_03_OG_OFF_Stim_OFF_Meds_Trial2_w_Gait_Events_Julia.mat';...
+    '/Volumes/dwang3_shared/Patient Data/RC+S Data/gait_RCS_03/v3_2022-03-08_pre-programming/Data/Aligned Data/gait_RCS_03_OG_OFF_Stim_ON_Meds_Trial1_w_Gait_Events_Julia.mat'};
 % gpi_patients = [RCS03;RCS14;gRCS01;gRCS02;gRCS03];
 % 
 % % STN
@@ -599,6 +599,12 @@ elseif strcmp(subjectID,'gRCS01')
     gait_event_range(1) = 0;
     gait_event_range(2) = max(aligned_data.gait_events{end,:});
 elseif strcmp(subjectID,'gRCS02')
+    gait_event_range(1) = 0;
+    gait_event_range(2) = max(aligned_data.gait_events{end,:});
+elseif strcmp(subjectID,'gRCS03')
+    gait_event_range(1) = 0;
+    gait_event_range(2) = max(aligned_data.gait_events{end,:});
+else
     gait_event_range(1) = 0;
     gait_event_range(2) = max(aligned_data.gait_events{end,:});
 end

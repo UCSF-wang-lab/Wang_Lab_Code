@@ -76,15 +76,15 @@ end
 
 src.Parent.Parent.UserData.file_names{end+1} = fullfile(path,filename);
 
-if isempty(src.Parent.Parent.UserData.basePath)
-    curr_path = path(1:end-1);
-    [parent_dir,curr_dir,~] = fileparts(curr_path);
-    while ~strcmp(curr_dir,'Processed Data')
-         curr_path = parent_dir;
-         [parent_dir,curr_dir,~] = fileparts(curr_path);
-    end
-    src.Parent.Parent.UserData.basePath = curr_path;
-end
+% if isempty(src.Parent.Parent.UserData.basePath)
+%     curr_path = path(1:end-1);
+%     [parent_dir,curr_dir,~] = fileparts(curr_path);
+%     while ~strcmp(curr_dir,'Processed Data')
+%          curr_path = parent_dir;
+%          [parent_dir,curr_dir,~] = fileparts(curr_path);
+%     end
+%     src.Parent.Parent.UserData.basePath = curr_path;
+% end
 
 % Add event to logger
 addEvent(str);
