@@ -1,16 +1,16 @@
 function singleGaitCycleRastergram(file_name,varargin)
 
-% go through optional inputs
-for i = 1:2:nargin-2
-    switch varargin{i}
-        case 'gait_cycle_ignore'
-            sorted_gc_ignore = varargin{i+1};
-    end
-end
-
-if ~exist('sorted_gc_ignore','var')
-    sorted_gc_ignore = [];
-end
+% % go through optional inputs
+% for i = 1:2:nargin-2
+%     switch varargin{i}
+%         case 'gait_cycle_ignore'
+%             sorted_gc_ignore = varargin{i+1};
+%     end
+% end
+% 
+% if ~exist('sorted_gc_ignore','var')
+%     sorted_gc_ignore = [];
+% end
 
 
 % load in data and calculate cwt
@@ -18,19 +18,27 @@ load(file_name);
 lfp_cwt = calcRCS_CWT(aligned_data);
 
 % set frequency bands and channel names
-freq_bands = [1,4;...       % delta
-              4,8;...       % theta
+% freq_bands = [1,4;...       % delta
+%               4,8;...       % theta
+%               8,13;...      % alpha
+%               13,30;...     % beta
+%               30,50];       % low gamma
+% freq_bands_names = {'Delta','Theta','Alpha','Beta','Low Gamma'};
+
+freq_bands = [4,8;...       % theta
               8,13;...      % alpha
               13,30;...     % beta
+              13,20;...     % low beta
+              20,30;...     % high beta
               30,50];       % low gamma
-freq_bands_names = {'Delta','Theta','Alpha','Beta','Low Gamma'};
+freq_bands_names = {'Alpha','Beta','Low Beta','High Beta','Low Gamma'};
 chan_names = {'+2-0','+3-1','+9-8','+11-10'};
 
 % sort gait events and extract valid gait cycles
-gait_events_sorted = sortGaitEvents(aligned_data.gait_events,'LHS');
+gait_events_ordered = sortGaitEvents(aligned_data.gait_events,'LHS');
 
-gc_test = ~isnan(gait_events_sorted.LHS(2:end)-gait_events_sorted.LHS(1:end-1));
-gc_test2 = (gait_events_sorted.LHS(2:end)-gait_events_sorted.LHS(1:end-1)) < 1.8;
+gc_test = ~isnan(gait_events_ordered.LHS(2:end)-gait_events_ordered.LHS(1:end-1));
+gc_test2 = (gait_events_ordered.LHS(2:end)-gait_events_ordered.LHS(1:end-1)) < 1.8;
 valid_gc = and(gc_test,gc_test2);
 left_single_gait_cycle_cell = cell(size(freq_bands,1),sum(valid_gc),4);   % freq_band x gait cycle x recording area
 right_single_gait_cycle_cell = cell(size(freq_bands,1),sum(valid_gc),4);   % freq_band x gait cycle x recording area
@@ -41,7 +49,7 @@ if isfield(lfp_cwt,'Left')
     for j = 1:length(valid_gc)
         if valid_gc(j)
             for k = 1:length(lfp_cwt.Left.Chan_Names)
-                time_inds = getTimeInds(lfp_cwt.Left.Time{k},gait_events_sorted.LHS(j),gait_events_sorted.LHS(j+1));
+                time_inds = getTimeInds(lfp_cwt.Left.Time{k},gait_events_ordered.LHS(j),gait_events_ordered.LHS(j+1));
                 for m = 1:size(freq_bands,1)
                     freq_inds = getFreqInds(lfp_cwt.Left.Freq_Values{k},freq_bands(m,1),freq_bands(m,2));
                     gc_data = lfp_cwt.Left.Values{k}([freq_inds(1):freq_inds(2)],[time_inds(1):time_inds(2)]);
@@ -52,13 +60,8 @@ if isfield(lfp_cwt,'Left')
         end
     end
 
-%     temp = {left_single_gait_cycle_cell{1,:,1}};
-%     gc_lengths = cellfun(@(x)size(x,2),temp);
-%     max_gc_length = max(gc_lengths);
-%     [gc_sort_lengths,gc_sort_inds] = sort(gc_lengths,'descend');
-
     % normalize data
-    left_single_gait_cycle_cell_norm = normalizeSingleGaitCycle(left_single_gait_cycle_cell,lfp_cwt.Left,gait_events_sorted,freq_bands,'zscore');
+    left_single_gait_cycle_cell_norm = normalizeSingleGaitCycle(left_single_gait_cycle_cell,lfp_cwt.Left,gait_events_ordered,freq_bands,'zscore');
 end
 
 if isfield(lfp_cwt,'Right')
@@ -66,7 +69,7 @@ if isfield(lfp_cwt,'Right')
     for j = 1:length(valid_gc)
         if valid_gc(j)
             for k = 1:length(lfp_cwt.Right.Chan_Names)
-                time_inds = getTimeInds(lfp_cwt.Right.Time{k},gait_events_sorted.LHS(j),gait_events_sorted.LHS(j+1));
+                time_inds = getTimeInds(lfp_cwt.Right.Time{k},gait_events_ordered.LHS(j),gait_events_ordered.LHS(j+1));
                 for m = 1:size(freq_bands,1)
                     freq_inds = getFreqInds(lfp_cwt.Right.Freq_Values{k},freq_bands(m,1),freq_bands(m,2));
                     gc_data = lfp_cwt.Right.Values{k}([freq_inds(1):freq_inds(2)],[time_inds(1):time_inds(2)]);
@@ -77,7 +80,7 @@ if isfield(lfp_cwt,'Right')
         end
     end
     % normalize data
-    right_single_gait_cycle_cell_norm = normalizeSingleGaitCycle(right_single_gait_cycle_cell,lfp_cwt.Right,gait_events_sorted,freq_bands,'zscore');
+    right_single_gait_cycle_cell_norm = normalizeSingleGaitCycle(right_single_gait_cycle_cell,lfp_cwt.Right,gait_events_ordered,freq_bands,'zscore');
 end
 
 % Determine which gait cycle is the longest and setup visualization matrix
@@ -95,7 +98,8 @@ if isfield(lfp_cwt,'Left')
             end
         end
     end
-
+    
+    left_single_gait_cycle_mat = removeArtifactGC(left_single_gait_cycle_mat);
     left_sr = unique(aligned_data.DeviceSettings.Left.timeDomainSettings.samplingRate);
     left_single_gait_cycle_time_vec = (0:max_gc_length-1).*(1/left_sr);
 end
@@ -116,48 +120,57 @@ if isfield(lfp_cwt,'Right')
         end
     end
 
+    right_single_gait_cycle_mat = removeArtifactGC(right_single_gait_cycle_mat);
     right_sr = unique(aligned_data.DeviceSettings.Right.timeDomainSettings.samplingRate);
     right_single_gait_cycle_time_vec = (0:max_gc_length-1).*(1/right_sr);
 end
 
 % calc event time markers from LHS
-RTO_relative_time = gait_events_sorted.('RTO')(valid_gc)-gait_events_sorted.LHS(valid_gc);
-RHS_relative_time = gait_events_sorted.('RHS')(valid_gc)-gait_events_sorted.LHS(valid_gc);
-LTO_relative_time = gait_events_sorted.('LTO')(valid_gc)-gait_events_sorted.LHS(valid_gc);
+RTO_relative_time = gait_events_ordered.('RTO')(valid_gc)-gait_events_ordered.LHS(valid_gc);
+RHS_relative_time = gait_events_ordered.('RHS')(valid_gc)-gait_events_ordered.LHS(valid_gc);
+LTO_relative_time = gait_events_ordered.('LTO')(valid_gc)-gait_events_ordered.LHS(valid_gc);
 
 % colors for gait events
 marker_colors = CBMap('GaitEvents');
 
-% Check to see if there are any gait cycles to ignore and remove them
-if ~isempty(sorted_gc_ignore)
-    if exist('left_single_gait_cycle_mat','var')
-        for i = 1:length(sorted_gc_ignore)
-            left_single_gait_cycle_mat(sorted_gc_ignore(i),:,:,:) = [];
-        end
-    end
-
-    if exist('right_single_gait_cycle_mat','var')
-        for i = 1:length(sorted_gc_ignore)
-            right_single_gait_cycle_mat(sorted_gc_ignore(i),:,:,:) = [];
-        end
-    end
-end
+% % Check to see if there are any gait cycles to ignore and remove them
+% if ~isempty(sorted_gc_ignore)
+%     if exist('left_single_gait_cycle_mat','var')
+%         for i = 1:length(sorted_gc_ignore)
+%             left_single_gait_cycle_mat(sorted_gc_ignore(i),:,:,:) = [];
+%         end
+%     end
+% 
+%     if exist('right_single_gait_cycle_mat','var')
+%         for i = 1:length(sorted_gc_ignore)
+%             right_single_gait_cycle_mat(sorted_gc_ignore(i),:,:,:) = [];
+%         end
+%     end
+% end
 
 % Plot the data
 if exist('left_single_gait_cycle_mat','var')
     for i = 1:size(left_single_gait_cycle_mat,4)        % channel
         for j = 1:size(left_single_gait_cycle_mat,3)    % freq band
             figure;
-            pcolor(left_single_gait_cycle_time_vec,sum(valid_gc):-1:1,left_single_gait_cycle_mat(:,:,j,i));
+            pcolor(left_single_gait_cycle_time_vec,size(left_single_gait_cycle_mat,1):-1:1,left_single_gait_cycle_mat(:,:,j,i));
             title(['Left ',chan_names{i},' ',freq_bands_names{j}]);
             shading interp
             hold on;
             scatter(RTO_relative_time(gc_sort_inds),sum(valid_gc):-1:1,'MarkerEdgeColor',marker_colors.RTO,'MarkerFaceColor',marker_colors.RTO);
             scatter(RHS_relative_time(gc_sort_inds),sum(valid_gc):-1:1,'MarkerEdgeColor',marker_colors.RHS,'MarkerFaceColor',marker_colors.RHS);
             scatter(LTO_relative_time(gc_sort_inds),sum(valid_gc):-1:1,'MarkerEdgeColor',marker_colors.LTO,'MarkerFaceColor',marker_colors.LTO);
-            yticks([1:5:sum(valid_gc),sum(valid_gc)]);
+            
+            if mod(size(left_single_gait_cycle_mat,1)-1,5)~=0
+                yticks([1:5:size(left_single_gait_cycle_mat,1),size(left_single_gait_cycle_mat,1)]);
+            else
+                yticks([1:5:size(left_single_gait_cycle_mat,1)])
+            end
+
             ylabel('Gait Cycle');
             xlabel('Time (sec)');
+            colorbar;
+            caxis([-3,5])
         end
     end
 end
@@ -166,16 +179,24 @@ if exist('right_single_gait_cycle_mat','var')
     for i = 1:size(right_single_gait_cycle_mat,4)       % channel
         for j = 1:size(right_single_gait_cycle_mat,3)   % freq band
             figure;
-            pcolor(right_single_gait_cycle_time_vec,sum(valid_gc):-1:1,right_single_gait_cycle_mat(:,:,j,i));
+            pcolor(right_single_gait_cycle_time_vec,size(right_single_gait_cycle_mat,1):-1:1,right_single_gait_cycle_mat(:,:,j,i));
             title(['Right ',chan_names{i},' ',freq_bands_names{j}]);
             shading interp
             hold on;
             scatter(RTO_relative_time(gc_sort_inds),sum(valid_gc):-1:1,'MarkerEdgeColor',marker_colors.RTO,'MarkerFaceColor',marker_colors.RTO);
             scatter(RHS_relative_time(gc_sort_inds),sum(valid_gc):-1:1,'MarkerEdgeColor',marker_colors.RHS,'MarkerFaceColor',marker_colors.RHS);
             scatter(LTO_relative_time(gc_sort_inds),sum(valid_gc):-1:1,'MarkerEdgeColor',marker_colors.LTO,'MarkerFaceColor',marker_colors.LTO);
-            yticks([1:5:sum(valid_gc),sum(valid_gc)]);
+
+            if mod(size(right_single_gait_cycle_mat,1)-1,5)~=0
+                yticks([1:5:size(right_single_gait_cycle_mat,1),size(right_single_gait_cycle_mat,1)]);
+            else
+                yticks([1:5:size(right_single_gait_cycle_mat,1)])
+            end
+
             ylabel('Gait Cycle');
             xlabel('Time (sec)');
+            colorbar;
+            caxis([-3,5])
         end
     end
 end
@@ -231,8 +252,8 @@ for i = 1:size(freq_bands,1)
         data_clean(remove_inds) = [];
 
         normalization_mean(i,j) = mean(data_clean);
-        normalization_sd(i,j) = std(mean(data_clean));
-        normalization_var(i,j) = var(mean(data_clean));
+        normalization_sd(i,j) = std(data_clean);
+        normalization_var(i,j) = var(data_clean);
     end
 end
 
@@ -246,5 +267,22 @@ for i = 1:size(gait_cycle_cell,1)
         end
     end
 end
+end
+
+function data_artifact_removed = removeArtifactGC(data)
+data_artifact_removed = data;
+
+remove_mat = zeros(size(data,1),size(data,4));
+for i = 1:size(data,4)      % channel
+    for j = 1:size(data,1)  % gait cycle
+        if any(data(j,:,3,i)>5)
+            remove_mat(j,i) = 1;
+        end
+    end
+end
+
+remove_inds = sum(remove_mat,2)>0;
+
+data_artifact_removed(remove_inds,:,:,:) = [];
 
 end
