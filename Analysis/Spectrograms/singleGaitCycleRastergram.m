@@ -157,9 +157,9 @@ if exist('left_single_gait_cycle_mat','var')
             title(['Left ',chan_names{i},' ',freq_bands_names{j}]);
             shading interp
             hold on;
-            scatter(RTO_relative_time(gc_sort_inds),sum(valid_gc):-1:1,'MarkerEdgeColor',marker_colors.RTO,'MarkerFaceColor',marker_colors.RTO);
-            scatter(RHS_relative_time(gc_sort_inds),sum(valid_gc):-1:1,'MarkerEdgeColor',marker_colors.RHS,'MarkerFaceColor',marker_colors.RHS);
-            scatter(LTO_relative_time(gc_sort_inds),sum(valid_gc):-1:1,'MarkerEdgeColor',marker_colors.LTO,'MarkerFaceColor',marker_colors.LTO);
+            a(1) = scatter(RTO_relative_time(gc_sort_inds),sum(valid_gc):-1:1,10,'MarkerEdgeColor',marker_colors.RTO,'MarkerFaceColor',marker_colors.RTO,'DisplayName','RTO');
+            a(2) = scatter(RHS_relative_time(gc_sort_inds),sum(valid_gc):-1:1,10,'MarkerEdgeColor',marker_colors.RHS,'MarkerFaceColor',marker_colors.RHS,'DisplayName','RHS');
+            a(3) = scatter(LTO_relative_time(gc_sort_inds),sum(valid_gc):-1:1,10,'MarkerEdgeColor',marker_colors.LTO,'MarkerFaceColor',marker_colors.LTO,'DisplayName','LTO');
             
             if mod(size(left_single_gait_cycle_mat,1)-1,5)~=0
                 yticks([1:5:size(left_single_gait_cycle_mat,1),size(left_single_gait_cycle_mat,1)]);
@@ -183,9 +183,9 @@ if exist('right_single_gait_cycle_mat','var')
             title(['Right ',chan_names{i},' ',freq_bands_names{j}]);
             shading interp
             hold on;
-            scatter(RTO_relative_time(gc_sort_inds),sum(valid_gc):-1:1,'MarkerEdgeColor',marker_colors.RTO,'MarkerFaceColor',marker_colors.RTO);
-            scatter(RHS_relative_time(gc_sort_inds),sum(valid_gc):-1:1,'MarkerEdgeColor',marker_colors.RHS,'MarkerFaceColor',marker_colors.RHS);
-            scatter(LTO_relative_time(gc_sort_inds),sum(valid_gc):-1:1,'MarkerEdgeColor',marker_colors.LTO,'MarkerFaceColor',marker_colors.LTO);
+            scatter(RTO_relative_time(gc_sort_inds),sum(valid_gc):-1:1,10,'MarkerEdgeColor',marker_colors.RTO,'MarkerFaceColor',marker_colors.RTO);
+            scatter(RHS_relative_time(gc_sort_inds),sum(valid_gc):-1:1,10,'MarkerEdgeColor',marker_colors.RHS,'MarkerFaceColor',marker_colors.RHS);
+            scatter(LTO_relative_time(gc_sort_inds),sum(valid_gc):-1:1,10,'MarkerEdgeColor',marker_colors.LTO,'MarkerFaceColor',marker_colors.LTO);
 
             if mod(size(right_single_gait_cycle_mat,1)-1,5)~=0
                 yticks([1:5:size(right_single_gait_cycle_mat,1),size(right_single_gait_cycle_mat,1)]);
