@@ -19,6 +19,7 @@ end
 
 [left_data,right_data] = simplifyRCSDataTable(aligned_data);
 [left_settings,right_settings] = extractRCSDeviceSettings(aligned_data);
+gait_events = aligned_data.gait_events;
 
 % Save CSV files to save path
 if ~exist('save_name','var') || isempty(save_name)
@@ -46,6 +47,10 @@ end
 
 if ~isempty(right_settings)
     writetable(right_settings,[save_name,'RIGHT_SETTINGS.csv']);
+end
+
+if ~isempty(gait_events)
+    writetable(gait_events,[save_name,'Gait_Events.csv']);
 end
 
 end
