@@ -12,12 +12,12 @@ for i = 1:length(main.UserData.plot_axes)
             deletePreviousMarks(main.UserData.plot_axes(i));
             xline(main.UserData.plot_axes(i),main.UserData.alignment_times(2),'--r','Tag','alignment_marker');
         end
-    elseif contains(plot_title,'Left')  && contains(plot_title,'Accel')
+    elseif contains(plot_title,'Left')  && contains(plot_title,'Accel') && ~contains(plot_title,'Linear')
         if ~isnan(main.UserData.alignment_times(3))
             deletePreviousMarks(main.UserData.plot_axes(i));
             xline(main.UserData.plot_axes(i),main.UserData.alignment_times(3),'--r','Tag','alignment_marker');
         end
-    elseif contains(plot_title,'Right')  && contains(plot_title,'Accel')
+    elseif contains(plot_title,'Right')  && contains(plot_title,'Accel') && ~contains(plot_title,'Linear')
         if ~isnan(main.UserData.alignment_times(4))
             deletePreviousMarks(main.UserData.plot_axes(i));
             xline(main.UserData.plot_axes(i),main.UserData.alignment_times(4),'--r','Tag','alignment_marker');
@@ -37,10 +37,15 @@ for i = 1:length(main.UserData.plot_axes)
             deletePreviousMarks(main.UserData.plot_axes(i));
             xline(main.UserData.plot_axes(i),main.UserData.alignment_times(7),'--r','Tag','alignment_marker');
         end
-    elseif contains(plot_title,'Teensey')
+    elseif contains(plot_title,'Left')  && contains(plot_title,'Rover')
         if ~isnan(main.UserData.alignment_times(8))
             deletePreviousMarks(main.UserData.plot_axes(i));
-            xline(main.UserData.plot_axes(i),main.UserData.alignment_times(8),'--r','Tag','alignment_marker');
+            xline(main.UserData.plot_axes(i),main.UserData.Rover_data.Left.DateTime(main.UserData.alignment_times(8)),'--r','Tag','alignment_marker');
+        end
+    elseif contains(plot_title,'Right')  && contains(plot_title,'Rover')
+        if ~isnan(main.UserData.alignment_times(9))
+            deletePreviousMarks(main.UserData.plot_axes(i));
+            xline(main.UserData.plot_axes(i),main.UserData.Rover_data.Right.DateTime(main.UserData.alignment_times(9)),'--r','Tag','alignment_marker');
         end
     end
 end

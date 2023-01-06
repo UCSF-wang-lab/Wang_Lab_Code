@@ -47,15 +47,25 @@ elseif contains(window_data_source,'Xsens')
 elseif contains(window_data_source,'Force')
     time = (0:height(src.Parent.Parent.Parent.UserData.FP_data)-1)/1000;
     data = src.Parent.Parent.Parent.UserData.FP_data.(src.String{src.Value});
-elseif contains(window_data_source,'Teensey')
-    time = src.Parent.Parent.Parent.UserData.Teensey_data.Time;
-    data = src.Parent.Parent.Parent.UserData.Teensey_data.(src.String{src.Value});
+elseif contains(window_data_source,'Rover')
+    if contains(window_data_source,'Left')
+        time = src.Parent.Parent.Parent.UserData.Rover_data.Left.DateTime;       
+        data = src.Parent.Parent.Parent.UserData.Rover_data.Left.(src.String{src.Value});
+    elseif contains(window_data_source,'Right')
+        time = src.Parent.Parent.Parent.UserData.Rover_data.Right.DateTime;       
+        data = src.Parent.Parent.Parent.UserData.Rover_data.Right.(src.String{src.Value});
+    end
 end
 
 % Plot data
 cla(src.Parent.Parent.Parent.UserData.plot_axes(window));
 plot(src.Parent.Parent.Parent.UserData.plot_axes(window),time,data,'-k');
-xlabel(src.Parent.Parent.Parent.UserData.plot_axes(window),'Time (s)');
+
+if sum(contains(src.String,'Linear')) == 0 && sum(contains(src.String,'Quant')) == 0
+    xlabel(src.Parent.Parent.Parent.UserData.plot_axes(window),'Time (s)');
+else
+    xlabel(src.Parent.Parent.Parent.UserData.plot_axes(window),'Time');
+end
 title(src.Parent.Parent.Parent.UserData.plot_axes(window),[window_data_source,': ',src.String{src.Value}],'Interpreter','none');
 
 % Plot annotations 

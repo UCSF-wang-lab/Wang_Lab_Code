@@ -41,8 +41,12 @@ elseif strcmp(selection,'Xsens')
     str = getSubVariables(main,'Xsens');
 elseif strcmp(selection,'Force plate')
     str = getSubVariables(main,'FP');
-elseif strcmp(selection,'Teensey')
-    str = getSubVariables(main,'Teensey');
+elseif contains(selection,'Rover')
+    if contains(selection,'Left')
+        str = getSubVariables(main,'Rover','Left');
+    elseif contains(selection,'Right')
+        str = getSubVariables(main,'Rover','Right');
+    end
 else
     str = [];
 end
@@ -106,9 +110,14 @@ if ~isempty(data_struct.FP_data)
     names = [names;'Force plate'];
 end
 
-% Teensey data
-if ~isempty(data_struct.Teensey_data)
-    names = [names;'Teensey'];
+% Rover data
+if ~isempty(data_struct.Rover_data)
+    if isfield(data_struct.Rover_data,'Left')
+        names = [names;'Left Rover'];
+    end
+    if isfield(data_struct.Rover_data,'Right')
+        names = [names;'Right Rover'];
+    end
 end
 
 end
@@ -134,8 +143,10 @@ switch varargin{2}
         all_names = varargin{1}.UserData.FP_data.Properties.VariableNames;
         matches = cellfun(@(x) contains(x,'_'),all_names);
         sub_variables = all_names(matches);
-    case 'Teensey'
-        sub_variables = varargin{1}.UserData.Teensey_data.Properties.VariableNames;
+    case 'Rover'
+        all_names = varargin{1}.UserData.([varargin{2},'_data']).(varargin{3}).Properties.VariableNames;
+        matches = cellfun(@(x) ~contains(x,'Time'),all_names);
+        sub_variables = all_names(matches);
 end
 
 sub_variables = sub_variables(:);

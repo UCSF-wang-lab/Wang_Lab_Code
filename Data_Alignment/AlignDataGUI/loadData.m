@@ -7,7 +7,7 @@ else
 end
 
 
-if contains(src.Tag,'Xsens') || contains(src.Tag,'Force') || contains(src.Tag,'Teensey')
+if contains(src.Tag,'Xsens') || contains(src.Tag,'Force') || contains(src.Tag,'rover')
     [filename,path] = uigetfile([basePath,'/*.csv']);
 else
     [filename,path] = uigetfile(basePath);
@@ -68,10 +68,14 @@ switch src.Tag
         src.Parent.Parent.UserData.FP_data = data;
         src.Parent.Parent.UserData.indicators.fp.Value = true;
         str = sprintf('Loaded gait initiation force plate file: %s',fullfile(path,filename));
-    case 'Teensey_button'
-        src.Parent.Parent.UserData.Teensey_data = data;
-        src.Parent.Parent.UserData.indicators.teensey.Value = true;
-        str = sprintf('Loaded Teensey file: %s',fullfile(path,filename));
+    case 'Left_rover_button'
+        src.Parent.Parent.UserData.Rover_data.Left = data;
+        src.Parent.Parent.UserData.indicators.left_rover.Value = true;
+        str = sprintf('Loaded left Rover file: %s',fullfile(path,filename));
+    case 'Right_rover_button'
+        src.Parent.Parent.UserData.Rover_data.Right = data;
+        src.Parent.Parent.UserData.indicators.right_rover.Value = true;
+        str = sprintf('Loaded right Rover file: %s',fullfile(path,filename));
 end
 
 src.Parent.Parent.UserData.file_names{end+1} = fullfile(path,filename);

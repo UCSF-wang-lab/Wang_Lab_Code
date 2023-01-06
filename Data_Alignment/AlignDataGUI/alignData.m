@@ -199,18 +199,30 @@ if ~isempty(main.UserData.FP_data)
     aligned_data.FP = FP;
 end
 
-% Teensey
-if ~isempty(main.UserData.Teensey_data)
-    addEvent('Teensey...');
+% Rover
+if ~isempty(main.UserData.Rover_data)
+    addEvent('Left Rover...');
     if ~isnan(main.UserData.alignment_times(8))
         align_time = main.UserData.alignment_times(8);
     else
-        addEvent('No alignment point for Teensey data.',1);
+        addEvent('No alignment point for Left Rover data.',1);
         return;
     end
-    [~,Teensey] = trimData([],main.UserData.Teensey_data,[align_time-pre_align_time,align_time+post_align_time]);
+
+    [~,Rover] = trimData([],main.UserData.Rover_data.Left,[align_time,pre_align_time,post_align_time]);
     addEvent('Complete!',1);
-    aligned_data.Teensey = Teensey;
+    aligned_data.Rover.Left = Rover;
+
+    addEvent('Right Rover...');
+    if ~isnan(main.UserData.alignment_times(9))
+        align_time = main.UserData.alignment_times(9);
+    else
+        addEvent('No alignment point for Right Rover data.',1);
+        return;
+    end
+    [~,Rover] = trimData([],main.UserData.Rover_data.Right,[align_time,pre_align_time,post_align_time]);
+    addEvent('Complete!',1);
+    aligned_data.Rover.Right = Rover;
 end
 
 %% Add alignment to UserData struct
@@ -256,6 +268,25 @@ elseif isempty(time_vec) && istable(data) && sum(ismember(data.Properties.Variab
     aligned_time_vec = [];
     aligned_data = data(start_alignment_ind:end_alignment_ind,:);
     aligned_data.Time = aligned_data.Time-alignment_time(1);
+elseif isempty(time_vec) && istable(data) && sum(ismember(data.Properties.VariableNames,'DateTime')) == 1   % Special Rover data case.
+    % alignment_time variable has three entries, the alignment point as a
+    % data index and the pre and post time in seconds.
+    align_time = data.DateTime(alignment_time(1));
+    
+    % Calculate pre and post alignment time
+    pre_align_time = align_time-seconds(alignment_time(2));
+    post_align_time = align_time+seconds(alignment_time(3));
+
+    % Calculate pre and post align ind
+    [~,pre_align_ind] = min(abs(data.DateTime-pre_align_time));
+    if ~isinf(post_align_time)
+        [~,post_align_ind] = min(abs(data.DateTime-post_align_time));
+    else
+        post_align_ind = height(data);
+    end
+
+    aligned_time_vec = [];
+    aligned_data = data(pre_align_ind:post_align_ind,:);
 end
 
 varargout{1} = aligned_time_vec;
