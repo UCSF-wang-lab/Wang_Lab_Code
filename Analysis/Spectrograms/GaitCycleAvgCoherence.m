@@ -42,7 +42,7 @@ function GaitCycleAvgCoherence(aligned_data,varargin)
 % Author:   Kenneth H. Louie (kenneth.louie@ucsf.edu)
 % Project:  MJFF aDBS Gait
 
-for i = 2:2:nargin-2
+for i = 1:2:nargin-1
     switch varargin{i}
         case 'cycleStartEvent'
             cycleStartEvent = varargin{i+1};
