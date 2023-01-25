@@ -44,7 +44,7 @@ def loadData(file_path: str,type: str = "data") -> pd.DataFrame:
         formatted_input.power_bands[0] = formatted_input.power_bands[0].reshape(int(len(formatted_input.power_bands[0])/2),2)
         return formatted_input
     else:
-        sys.exit('In proper data load type passed in.')
+        sys.exit('Data type flag not supported.')
 
 
 def calcRCSFFT(rcs_data: pd.DataFrame,rcs_settings: pd.DataFrame,pb: bool=False) -> pd.DataFrame:

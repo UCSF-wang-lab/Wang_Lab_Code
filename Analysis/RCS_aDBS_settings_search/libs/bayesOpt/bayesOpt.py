@@ -33,7 +33,7 @@ from scipy.optimize import minimize
 """
 Module functions
 """
-def expectedImprovement(x_samples,y_evaluated,gp_model,min_fun: bool = False):
+def expectedImprovement(x_samples,y_evaluated,gp_model,n_params,min_fun: bool = False):
     """
     Expected Improvement Acquisition Function
         Calculates the expected improvement value given the mean and standard deviation of a
@@ -63,7 +63,7 @@ def expectedImprovement(x_samples,y_evaluated,gp_model,min_fun: bool = False):
         flip_val = 1
 
     # Grab GP mean and std of x_sample points
-    x_sample_mean,x_sample_std = gp_model.predict(x_samples,return_std = True)
+    x_sample_mean,x_sample_std = gp_model.predict(x_samples.reshape(-1,n_params),return_std = True)
 
 
     # Error checking to see if dividing by 0. 
@@ -86,9 +86,14 @@ def getNextSamplePoint(acq_fun,gp_model,y_evaluated,search_bounds,min_fun: bool 
         The acquisition function does take into account a sign flip such that minimizing the
         acquisition function still produces the maximum value.
 
-    Inputs:
+    Inputs:     acq_fun         [=] The acquisition function to determine the next parameter to sample. 
+                gp_model        [=] A gaussian process model of the points evaluated already.
+                y_evaluated     [=] The acquisition function value at the evaluated sample points. 
+                search_bounds   [=] The search range to consider the next sample points. Should be the same throughout the optimization.
+                min_fun         [=] Boolean flag to determine if you are minimizing the funtion (True) or if you're trying to maximize the function (False).
+                search_restarts [=] How many random samples points to evaluate in the acquisition function before deciding on a point.
 
-    Outputs:
+    Outputs:    next_point      [=] The next sample point to evaluate the optimizing function.
     """
     next_point = None
     next_point_val = None
@@ -99,7 +104,8 @@ def getNextSamplePoint(acq_fun,gp_model,y_evaluated,search_bounds,min_fun: bool 
 
     # Loop through initial sample points to determine the minimal value of the acquisition function
     for initial_sample in initial_samples:
-        curr_results = minimize(fun = acq_fun, x0 = initial_sample,bounds = search_bounds, method='L-BFGS-B', args=(gp_model,y_evaluated,min_fun,n_params))
+        initial_sample = initial_sample.reshape(1,-1)   # This is needed because this is how the gp code references a single sample
+        curr_results = minimize(fun = acq_fun, x0 = initial_sample,bounds = search_bounds, method='L-BFGS-B', args=(y_evaluated,gp_model,n_params,min_fun))
 
         # Check to see if the current results ended up with a lower value than the current best
         if next_point is None:
@@ -112,7 +118,7 @@ def getNextSamplePoint(acq_fun,gp_model,y_evaluated,search_bounds,min_fun: bool 
     return next_point
 
 
-def createGP(gp_params: dict = None):
+def createGP(gp_params: dict = None, norm_data: bool = False):
     """
     This function generates a Gaussian process regressor object. The object
         is created using passed in parameters, such as the length constant and
@@ -125,18 +131,18 @@ def createGP(gp_params: dict = None):
     Returns a Gaussian process regressor object with default or set parameters
     """
     if gp_params is not None:
-        gp_model = gp.GaussianProcessRegressor(**gp_params)
+        cov_fun = gp.kernels.Matern(**gp_params)
     else:
         # Set Matern covariance function.
         # Use default values. It will optimize the length scale, 
         # but smoothness parameter nu is fixed at 3/2 which is good for our purposes.
         cov_fun = gp.kernels.Matern()
-        gp_model= gp.GaussianProcessRegressor(kernel = cov_fun,n_restarts_optimizer=10,normalize_y=True)
     
+    gp_model= gp.GaussianProcessRegressor(kernel = cov_fun,n_restarts_optimizer=0,normalize_y=norm_data)
     return gp_model
 
 
-def runBO(func_2_optimize: function, search_bounds: np.array, RCS_data: pd.DataFrame, event_timings:pd.DataFrame, n_itr: int = 15, gp_params: dict = None, initial_samples: list = None, initial_outcomes: list = None):
+def runBO(func_2_optimize, search_bounds: np.array, RCS_data: pd.DataFrame, event_timings:pd.DataFrame, event_strings: list = None, n_itr: int = 15, gp_params: dict = None, initial_samples: list = None, initial_outcomes: list = None, n_random_initial_samples: int = 5):
     """
     This function runs the Bayesian optimization algorithm. The data follows this flow:
         (1) Create a GP with the tested parameters optimizing for,
@@ -148,8 +154,9 @@ def runBO(func_2_optimize: function, search_bounds: np.array, RCS_data: pd.DataF
 
     Inputs:     n_itr               [=] The number of iterations the Bayesian optimization should do (Optional)
                 gp_params           [=] Parameters for the Gaussian process regressor object (Optional)
-                initial_samples     [=]
-                initial_outcomes    [=]
+                initial_samples     [=] Initial evaluations of the function to optimize to cut down on repeats. 
+                                        nxd where n is the number of samples evaluated and d is the dimensions to optimize for. 
+                initial_outcomes    [=] The accuracy value of the optimizing function evaluated at the initial samples above. 
 
     Outputs:
     """
@@ -157,25 +164,30 @@ def runBO(func_2_optimize: function, search_bounds: np.array, RCS_data: pd.DataF
     n_param = search_bounds.shape[0]
 
     # Create Gaussian process regression object
-    gp_model = createGP()
+    if gp_params is None:
+        gp_model = createGP()
+    else:
+        gp_model = createGP(gp_params)
 
     # Fit a Gaussian process using the initial samples and outcomes
     if initial_samples is None:
-        # If there were no initial samples, randomly select 3 parameters in the search space to evaluate
-        initial_samples = np.random.uniform(search_bounds[:,0],search_bounds[:,1],(3,n_param))
-        initial_samples[:,1] = initial_samples[:,1].round()
+
+        # If there were no initial samples, randomly select 5 parameters in the search space to evaluate
+        np.random.seed(123)
+        initial_samples = np.random.uniform(search_bounds[:,0],search_bounds[:,1],(n_random_initial_samples,n_param))
+        initial_samples[:,0] = initial_samples[:,0].round()
 
         # Unlikely, but check to make sure none of the random samples are repeats
         # TODO
 
-        # Evaluate the randomly selected parameters
-        initial_outcomes = np.empty((3,1))
-        RCS_time = RCS_data.time
-        for i in range(initial_samples.shape[0]):
-            pb_data = RCS_data.iloc[:,initial_samples[i,1]].to_numpy()
-            threshold_val = initial_samples[i,0]
-            initial_outcomes[i] = func_2_optimize(RCS_time,pb_data,event_timings,threshold_val)
-
+    # Evaluate the randomly selected parameters
+    initial_outcomes = np.zeros((n_random_initial_samples,1))
+    RCS_time = RCS_data.time
+    for i in range(initial_samples.shape[0]):
+        pb_data = RCS_data.iloc[:,initial_samples[i,0].astype(int)].to_numpy()
+        threshold_val = initial_samples[i,1]
+        initial_outcomes[i] = func_2_optimize(RCS_time,pb_data,event_timings,threshold_val)
+    
     # Convert list to numpy arrays
     X = np.array(initial_samples)
     Y = np.array(initial_outcomes)
@@ -185,17 +197,24 @@ def runBO(func_2_optimize: function, search_bounds: np.array, RCS_data: pd.DataF
         gp_model.fit(X,Y)
 
         # Determine next sample point
-        next_sample_point = getNextSamplePoint(expectedImprovement,gp_model,Y,search_bounds,True)
+        next_sample_point = getNextSamplePoint(expectedImprovement,gp_model,Y,search_bounds)
 
         # Evaluate the next sample point
-        pb_data = RCS_data.iloc[:,round(next_sample_point[0,1])].to_numpy()
-        threshold_val = next_sample_point[0,0]
+        # Can use a different type of rounding because this is not a numpy array...
+        pb_data = RCS_data.iloc[:,round(next_sample_point[0])].to_numpy()
+        threshold_val = next_sample_point[1]
         new_outcome = func_2_optimize(RCS_time,pb_data,event_timings,threshold_val)
 
         # Update the list of evaluated sample points and outcomes
-        X = np.append(X,next_sample_point)
-        Y = np.append(Y,new_outcome)
+        next_sample_point[0] = round(next_sample_point[0])
+        next_sample_point = next_sample_point.reshape(1,2)
+        X = np.append(X,next_sample_point,axis=0)
+        Y = np.append(Y,new_outcome.reshape(1,1),axis=0)
+
+
+    # Create output
+    result_table = pd.DataFrame(np.hstack((X,Y)),columns = ["Frequency Band Ind","Threshold","Accuracy"])
 
     # Return sampled values and outputs. 
     # Possibly add in the EI and GP output for each iteration as well.
-    return X,Y
+    return result_table, X, Y

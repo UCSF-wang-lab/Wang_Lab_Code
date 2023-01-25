@@ -639,6 +639,10 @@ if save_flag && ~strcmp(save_type,'stat_table')
                 save_name = [save_name,' ', curr_axes.Parent.Children(2).Title.String{j}];
             end
         end
+
+        if isfield(aligned_data,'trial_num') && ~isempty(aligned_data.trial_num)
+            save_name = [save_name,' ',sprintf('Trial%i',aligned_data.trial_num)];
+        end
         
         if strcmp(analysis_type,'FT')
             savefig(fig_vec(i),fullfile(save_dir,'GaitBiomarkerSearch',[aligned_data.stim_condition,'_STIM'],[aligned_data.med_condition,'_MED'],'FT',folders_to_check{1},strrep(strrep(save_name,' ','_'),'.','')));
