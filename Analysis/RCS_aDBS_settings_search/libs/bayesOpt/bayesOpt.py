@@ -28,6 +28,9 @@ import sklearn.gaussian_process as gp
 from scipy.stats import norm 
 from scipy.optimize import minimize
 
+# import timer for code timing
+import time
+
 
 
 """
@@ -193,6 +196,10 @@ def runBO(func_2_optimize, search_bounds: np.array, RCS_data: pd.DataFrame, even
     Y = np.array(initial_outcomes)
 
     for itr in range(n_itr):
+        # Timer to see how long it takes to run each iteration
+        print(f"Running iteration {itr}...", end = " ")
+        itr_tic = time.perf_counter()
+
         # Fit Gaussian process regressor with current sampled points and outcomes
         gp_model.fit(X,Y)
 
@@ -210,6 +217,10 @@ def runBO(func_2_optimize, search_bounds: np.array, RCS_data: pd.DataFrame, even
         next_sample_point = next_sample_point.reshape(1,2)
         X = np.append(X,next_sample_point,axis=0)
         Y = np.append(Y,new_outcome.reshape(1,1),axis=0)
+
+        # write out how long this iteration took
+        itr_toc = time.perf_counter()
+        print(f"took {itr_toc-itr_tic} seconds")
 
 
     # Create output
