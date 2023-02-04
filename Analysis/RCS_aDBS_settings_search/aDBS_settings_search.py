@@ -31,6 +31,7 @@ import time
 # import datetime
 import numpy as np
 import pandas as pd
+from libs.gridSearch import gridSearch as gs # grid search class
 from libs.bayesOpt import bayesOpt as bo # Bayesopt class
 from libs.optimizingFunctions import thresholdAccuracy as ta # function to evaluate new settings
 
@@ -71,7 +72,7 @@ def BOItrDF(X_samples,Y_samples,search_bounds,search_bounds_resolution,n_initial
         param_combos = np.array([[p1,p2,p3] for p1 in param_space[0] for p2 in param_space[1] for p3 in param_space[2]])
 
     # Get iteration numbers to calculate the Gaussian process and acquisition function
-    n_itr_indexes = np.zeros((1000,1),dtype=int)   # Allocate memory
+    n_itr_indexes = np.zeros(1000,dtype=int)   # Allocate memory
     count = 0
     idx_value = 0
     if itr_spacing is not None:
@@ -81,7 +82,7 @@ def BOItrDF(X_samples,Y_samples,search_bounds,search_bounds_resolution,n_initial
             else:
                 idx_value = n_itr_indexes[count-1] + itr_spacing[i]
             spacing = np.arange(idx_value,idx_value+itr_spacing[i]*itr_reps[i],itr_spacing[i])
-            n_itr_indexes[count:count + itr_reps[i]] = spacing.reshape(itr_reps[i],1)
+            n_itr_indexes[count:count + itr_reps[i]] = spacing
             count += itr_reps[i]
     else:
         n_itr_indexes = np.arange(n_initial_samples-1,n_samples,1) # subtract one so you get the initial random sampling of the space
@@ -90,8 +91,12 @@ def BOItrDF(X_samples,Y_samples,search_bounds,search_bounds_resolution,n_initial
     n_itr_indexes = n_itr_indexes[0:count]
 
     # Allocate memory for the Gaussian process and acquisition function iterations to calculate
-    GP_itr_values = np.zeros((count,param_combos.shape[0]))
-    AF_itr_values = np.zeros((count,param_combos.shape[0]))
+    # GP_itr_values = np.zeros((count,param_combos.shape[0]))
+    # AF_itr_values = np.zeros((count,param_combos.shape[0]))
+
+    # Allocate memory for a matrix output of all the iterations to plot
+    GP_mat = np.zeros((count,param_combos.shape[0]+1))
+    AF_mat = np.zeros((count,param_combos.shape[0]+1))
 
     # Create GP model
     if gp_params is not None:
@@ -101,6 +106,10 @@ def BOItrDF(X_samples,Y_samples,search_bounds,search_bounds_resolution,n_initial
 
     # Loop through the iterations.
     for i in range(0,count):
+        # Timer to see how long it takes to recreate each Gaussian process and acquisition function surface
+        print(f"Recreating GP and AF of iteration {n_itr_indexes[0] + 1}...", end = " ")
+        recreate_tic = time.perf_counter()
+
         # Fit the model to current sampled points
         curr_Y = Y_samples[0:n_itr_indexes[i]]
         gp_model.fit(X = X_samples[0:n_itr_indexes[i],:], y = curr_Y)
@@ -112,12 +121,18 @@ def BOItrDF(X_samples,Y_samples,search_bounds,search_bounds_resolution,n_initial
         af_vals = bo.expectedImprovement(param_combos,curr_Y,gp_model,n_param,min_fun=False)
 
         # Save outputs to a matrix
-        GP_itr_values[i,:] = mu
-        AF_itr_values[i,:] = af_vals
+        GP_mat[i,0] = n_itr_indexes[i]
+        GP_mat[i,1:param_combos.shape[0]+1] = mu
+        AF_mat[i,0] = n_itr_indexes[i]
+        AF_mat[i,1:param_combos.shape[0]+1] = af_vals
 
-    # Add in iteration number to the beginning
-    GP_mat = np.hstack((n_itr_indexes.reshape(len(n_itr_indexes),1),GP_itr_values))
-    AF_mat = np.hstack((n_itr_indexes.reshape(len(n_itr_indexes),1),AF_itr_values))
+        # write out how long this recreation took
+        recreate_toc = time.perf_counter()
+        print(f"took {recreate_toc-recreate_tic} seconds")
+
+    # # Add in iteration number to the beginning
+    # GP_mat = np.hstack((n_itr_indexes.reshape(len(n_itr_indexes),1),GP_itr_values))
+    # AF_mat = np.hstack((n_itr_indexes.reshape(len(n_itr_indexes),1),AF_itr_values))
 
     return param_combos, GP_mat, AF_mat
 
@@ -179,13 +194,13 @@ def main(n_power_bands: int = 1,save_path: str = os.getcwd()):
     save_name_param_combos = save_path + "/" + data_file_name[0:len(data_file_name)-4] + "_param_combos.csv"
 
 
-    # Check what type of simulation to run and save output
+    # Run Bayesian optimization
     # event_strings = []    # TODO add in options to specify gait phase
     gp_options = {'nu':0.5,'length_scale':np.array([1e-2,2.5]),'length_scale_bounds':"fixed"}
-    n_itrs = 55269  # 10% of the total parameter space
-    out_DF,raw_X,raw_Y = bo.runBO(ta.calcThresholdAccuracyDST,search_bounds,rcs_power_data,gait_events,n_itr=n_itrs,gp_params=gp_options,n_random_initial_samples=6141) # n_random_initial_sample is 1% of total parameter space
-    # n_itrs = 10  # 10% of the total parameter space
-    # out_DF,raw_X,raw_Y = bo.runBO(ta.calcThresholdAccuracyDST,search_bounds,rcs_power_data,gait_events,n_itr=n_itrs,gp_params=gp_options,n_random_initial_samples=10) # n_random_initial_sample is 1% of total parameter space
+    # n_itrs = 55269  # 10% of the total parameter space
+    n_itrs = 100
+    # out_DF,raw_X,raw_Y = bo.runBO(ta.calcThresholdAccuracyDST,search_bounds,search_bounds_resolution,rcs_power_data,gait_events,n_itr=n_itrs,gp_params=gp_options,n_random_initial_samples=6141) # n_random_initial_sample is 1% of total parameter space
+    out_DF,raw_X,raw_Y = bo.runBO(ta.calcThresholdAccuracyDST,search_bounds,search_bounds_resolution,rcs_power_data,gait_events,n_itr=n_itrs,gp_params=gp_options,n_random_initial_samples=100) # n_random_initial_sample is 1% of total parameter space
     out_DF.to_csv(save_name_results,index = False)
 
     # Generate dataframes of the Gaussian process and acquisition function so I can plot in MATLAB
@@ -193,11 +208,13 @@ def main(n_power_bands: int = 1,save_path: str = os.getcwd()):
     # param_combos,GP_itr,AF_itr = BOItrDF(raw_X,raw_Y,search_bounds,search_bounds_resolution,n_initial_samples=out_DF.shape[0]-n_itrs,gp_params = gp_options)
 
     # Save the iteration outputs and parameter combos that were evaluated
-    np.savetxt(save_name_param_combos,param_combos,delimiter = ",")
+    # np.savetxt(save_name_param_combos,param_combos,delimiter = ",")
     save_multiple_csv(GP_itr,n_entries = 50,base_path = save_name_GP_itr)
     save_multiple_csv(AF_itr,n_entries = 50,base_path = save_name_AF_itr)
-    # np.savetxt(save_name_GP_itr,GP_itr,delimiter = ",")
-    # np.savetxt(save_name_AF_itr,AF_itr,delimiter = ",")
+
+    # Run grid search
+    # out_DF= gs.runGS(ta.calcThresholdAccuracyDST,search_bounds,search_bounds_resolution,rcs_power_data,gait_events)
+    # out_DF.to_csv(save_name_results,index = False)
 
     # End run time
     toc = time.perf_counter()
