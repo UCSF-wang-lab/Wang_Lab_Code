@@ -197,10 +197,10 @@ def main(n_power_bands: int = 1,save_path: str = os.getcwd()):
     # Run Bayesian optimization
     # event_strings = []    # TODO add in options to specify gait phase
     gp_options = {'nu':0.5,'length_scale':np.array([1e-2,2.5]),'length_scale_bounds':"fixed"}
-    # n_itrs = 55269  # 10% of the total parameter space
-    n_itrs = 100
+    n_itrs = 10000  # 10% of the total parameter space
+    # n_itrs = 100
     # out_DF,raw_X,raw_Y = bo.runBO(ta.calcThresholdAccuracyDST,search_bounds,search_bounds_resolution,rcs_power_data,gait_events,n_itr=n_itrs,gp_params=gp_options,n_random_initial_samples=6141) # n_random_initial_sample is 1% of total parameter space
-    out_DF,raw_X,raw_Y = bo.runBO(ta.calcThresholdAccuracyDST,search_bounds,search_bounds_resolution,rcs_power_data,gait_events,n_itr=n_itrs,gp_params=gp_options,n_random_initial_samples=100) # n_random_initial_sample is 1% of total parameter space
+    out_DF,raw_X,raw_Y = bo.runBO(ta.calcThresholdAccuracyDST,search_bounds,search_bounds_resolution,rcs_power_data,gait_events,n_itr=n_itrs,gp_params=gp_options,n_random_initial_samples=1000) # n_random_initial_sample is 1% of total parameter space
     out_DF.to_csv(save_name_results,index = False)
 
     # Generate dataframes of the Gaussian process and acquisition function so I can plot in MATLAB

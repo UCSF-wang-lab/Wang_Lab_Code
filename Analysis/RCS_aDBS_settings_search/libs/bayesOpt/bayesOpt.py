@@ -301,11 +301,11 @@ def runBO(func_2_optimize, search_bounds: np.array, search_bounds_resolution: np
         itr_tic = time.perf_counter()
 
         # Fit Gaussian process regressor with current sampled points and outcomes
-        gp_model.fit(X,Y)
+        gp_model.fit(X[0:n_random_initial_samples+itr,:],Y[0:n_random_initial_samples+itr])
 
         # Determine next sample point
         # next_sample_point = getNextSamplePoint_OLD(expectedImprovement_OLD,gp_model,Y,search_bounds)
-        next_sample_point = getNextSamplePoint(expectedImprovement,gp_model,Y,param_combos)
+        next_sample_point = getNextSamplePoint(expectedImprovement,gp_model,Y[0:n_random_initial_samples+itr],param_combos)
 
         # Evaluate the next sample point
         # Can use a different type of rounding because this is not a numpy array...
