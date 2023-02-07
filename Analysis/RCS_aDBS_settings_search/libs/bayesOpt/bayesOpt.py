@@ -122,7 +122,7 @@ def getNextSamplePoint_OLD(acq_fun,gp_model,y_evaluated,search_bounds,min_fun: b
 
 
 
-def expectedImprovement(x_samples,y_evaluated,gp_model,n_params,min_fun: bool = False):
+def expectedImprovement(x_samples,curr_best,gp_model,n_params,min_fun: bool = False):
     """
     Expected Improvement Acquisition Function
         Calculates the expected improvement value given the mean and standard deviation of a
@@ -133,7 +133,7 @@ def expectedImprovement(x_samples,y_evaluated,gp_model,n_params,min_fun: bool = 
 
     Inputs
         x_samples       [=] Samples to calculate the expected improvement on. Can be [1,n_parameters] or [1...,n_parameters]
-        y_evaluated     [=] Values of all evaluated Current evaluated point values
+        curr_best       [=] "Best" value of the current sampled points. Best is relative if you want the min or max value. 
         gp_model        [=] Gaussian process regressor object
         minFun          [=] Boolean flag to denote if the function should be calculated such that you
                             obtain the correct min or max of the acquisition function.
@@ -145,10 +145,8 @@ def expectedImprovement(x_samples,y_evaluated,gp_model,n_params,min_fun: bool = 
     # Check to see if minimizing or maximizing the function. If minimizing the function,
     # flip the values so that you're "maximizing" the function. Also grabs the current best value.
     if min_fun:
-        curr_best = np.min(y_evaluated)
         flip_val = -1
     else:
-        curr_best = np.max(y_evaluated)
         flip_val = 1
 
     # Grab GP mean and std of x_sample points
@@ -170,7 +168,7 @@ def expectedImprovement(x_samples,y_evaluated,gp_model,n_params,min_fun: bool = 
 
 
 
-def getNextSamplePoint(acq_fun,gp_model,y_evaluated,param_combos,min_fun: bool = False):
+def getNextSamplePoint(acq_fun,gp_model,curr_best,param_combos,min_fun: bool = False):
     """
     This function determines the next point to sample by minimizing the acquisition function.
         The acquisition function does take into account a sign flip such that minimizing the
@@ -188,7 +186,7 @@ def getNextSamplePoint(acq_fun,gp_model,y_evaluated,param_combos,min_fun: bool =
     n_param = param_combos.shape[1]   # determine how many parameters we are search through. Each row is a different bound for a parameter.
         
     # Calculate the expected improvement of the parameter space
-    ei_vals = acq_fun(param_combos,y_evaluated,gp_model,n_param)
+    ei_vals = acq_fun(param_combos,curr_best,gp_model,n_param)
 
     # Locate the index of the maximum expected improvement
     next_point = param_combos[ei_vals.argmax(axis=0)]
@@ -221,7 +219,7 @@ def createGP(gp_params: dict = None, norm_data: bool = False):
     return gp_model
 
 
-def runBO(func_2_optimize, search_bounds: np.array, search_bounds_resolution: np.array, RCS_data: pd.DataFrame, event_timings:pd.DataFrame, event_strings: list = None, n_itr: int = 15, gp_params: dict = None, initial_samples: list = None, initial_outcomes: list = None, n_random_initial_samples: int = 5):
+def runBO(func_2_optimize, search_bounds: np.array, search_bounds_resolution: np.array, RCS_data: pd.DataFrame, event_timings:pd.DataFrame, event_strings: list = None, n_itr: int = 15, gp_params: dict = None, initial_samples: list = None, initial_outcomes: list = None, n_random_initial_samples: int = 5, min_fun: bool = False):
     """
     This function runs the Bayesian optimization algorithm. The data follows this flow:
         (1) Create a GP with the tested parameters optimizing for,
@@ -281,6 +279,12 @@ def runBO(func_2_optimize, search_bounds: np.array, search_bounds_resolution: np
     X[0:n_random_initial_samples,:] = initial_samples
     Y[0:n_random_initial_samples] = initial_outcomes
 
+    # Determine current best outcome
+    if min_fun:
+        curr_best = np.min(initial_outcomes)
+    else:
+        curr_best = np.max(initial_outcomes)
+
     ## Calculate all possible parameter combinations. Used to evaluate the Gaussian process and acquisition fuction
     # Allocate memory
     param_space = [None] * n_param
@@ -305,7 +309,7 @@ def runBO(func_2_optimize, search_bounds: np.array, search_bounds_resolution: np
 
         # Determine next sample point
         # next_sample_point = getNextSamplePoint_OLD(expectedImprovement_OLD,gp_model,Y,search_bounds)
-        next_sample_point = getNextSamplePoint(expectedImprovement,gp_model,Y[0:n_random_initial_samples+itr],param_combos)
+        next_sample_point = getNextSamplePoint(expectedImprovement,gp_model,curr_best,param_combos,min_fun)
 
         # Evaluate the next sample point
         # Can use a different type of rounding because this is not a numpy array...
@@ -321,6 +325,13 @@ def runBO(func_2_optimize, search_bounds: np.array, search_bounds_resolution: np
         Y[n_random_initial_samples+itr] = new_outcome
         # X = np.append(X,next_sample_point,axis=0)
         # Y = np.append(Y,new_outcome.reshape(1,1),axis=0)
+
+        if min_fun:
+            if new_outcome < curr_best:
+                curr_best = new_outcome
+        else:
+            if new_outcome > curr_best:
+                curr_best = new_outcome
 
         # write out how long this iteration took
         itr_toc = time.perf_counter()
