@@ -1,4 +1,4 @@
-function STFT = calcRCS_STFT(aligned_data,gapFillType,windowLength,percentOverlap,nfft,varargin)
+function STFT = calcRCS_STFT(aligned_data,gapFillType,windowLength,percentOverlap,nfft,)
 %% 
 % A = calcRCS_STFT(aligned_data,[],0.1,0.5,[]);
 % A = calcRCS_STFT(aligned_data,[],[],0.996,[]); % Legacy
@@ -19,66 +19,6 @@ end
 
 if ~exist('nfft','var') || isempty(nfft)
     NFFT = [];
-end
-
-for i = 1:2:nargin-6
-    switch varargin{i}
-        case 'stim'
-            if isstring(varargin{i+1})
-                if strcmpi(varargin{i+1},'on')
-                    stimOn = 1;
-                else
-                    stimOn = 0;
-                end
-            elseif isnumeric(varargin{i+1}) || islogical(varargin{i+1})
-                stimOn = varargin{i+1};
-            else
-                stimOn = [];
-            end
-        case 'stimFreq'
-            stimFreq = varargin{i+1};
-    end
-end
-
-if ~exist('stimOn','var') || isempty(stimOn)
-    stimOn = 0;
-end
-
-if ~exist('stimFreq','var')
-    stimFreq = 130.2;
-end
-
-%% Basic filtering
-if stimOn
-    if isfield(aligned_data,'left_lFP_table')
-        left_sr = aligned_data.DeviceSettings.Left.timeDomainSettings.samplingRate(end);
-        [b,a] = butter(4,120/(left_sr/2));
-        [d,c] = butter(2,stimFreq/(left_sr/2));
-    
-        chan_names_ind = cellfun(@(x)contains(x,'key'),fields(aligned_data.left_LFP_table));
-        chan_names = aligned_data.left_LFP_table.Properties.VariableNames(chan_names_ind);
-        
-        for i = 1:length(chan_names)
-            filt_stage1 = filtfilt(b,a,aligned_data.left_LFP_table.(chan_names{i}));
-            filt_stage2 = filtfilt(d,c,filt_stage2);
-            aligned_data.left_LFP_table.(chan_names{i}) = filt_stage2;
-        end
-    end
-    
-    if isfield(aligned_data,'right_LFP_table')
-        right_sr = aligned_data.DeviceSettings.Right.timeDomainSettings.samplingRate(end);
-        [b,a] = butter(4,120/(right_sr/2));
-        [d,c] = butter(2,stimFreq/(right_sr/2));
-    
-        chan_names_ind = cellfun(@(x)contains(x,'key'),fields(aligned_data.right_LFP_table));
-        chan_names = aligned_data.right_LFP_table.Properties.VariableNames(chan_names_ind);
-        
-        for i = 1:length(chan_names)
-            filt_stage1 = filtfilt(b,a,aligned_data.right_LFP_table.(chan_names{i}));
-            filt_stage2 = filtfilt(d,c,filt_stage2);
-            aligned_data.right_LFP_table.(chan_names{i}) = filt_stage2;
-        end
-    end
 end
 
 %% Left RCS
