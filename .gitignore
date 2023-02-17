@@ -1,6 +1,8 @@
 # System files
 *.DS_Store
 *.asv
+*.asd	# Custom save file type for gait initiation
+*.m~	# Matlab autosave file
 
 # OS generated files #
 ######################
