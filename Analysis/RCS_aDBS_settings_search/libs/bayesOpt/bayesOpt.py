@@ -215,11 +215,52 @@ def createGP(gp_params: dict = None, norm_data: bool = False):
         # but smoothness parameter nu is fixed at 3/2 which is good for our purposes.
         cov_fun = gp.kernels.Matern()
     
-    gp_model = gp.GaussianProcessRegressor(kernel = cov_fun,n_restarts_optimizer=0,normalize_y=norm_data)
+    gp_model = gp.GaussianProcessRegressor(kernel = cov_fun,n_restarts_optimizer=0,normalize_y=norm_data,copy_X_train=False)
     return gp_model
 
 
-def runBO(func_2_optimize, search_bounds: np.array, search_bounds_resolution: np.array, RCS_data: pd.DataFrame, event_timings:pd.DataFrame, event_strings: list = None, n_itr: int = 15, gp_params: dict = None, initial_samples: list = None, initial_outcomes: list = None, n_random_initial_samples: int = 5, min_fun: bool = False):
+
+def createParamSpace(RCS_data,type,search_bounds: np.array = None,search_bounds_resolution:np.array = None):
+    # Get number of parameters
+    if search_bounds is None:
+        search_bounds = np.zeros((2,2))
+        
+        # set first limit to all columns. First column is time so ignore.
+        search_bounds[0,0] = 1
+        search_bounds[0,1] = RCS_data.shape[1]
+
+        # set second limit to the 5th and 95th quartile. search bounds should cover ~90% of the data
+        data_quantiles = np.quantile(RCS_data.values[:,1:RCS_data.shape[1]],[0.05,0.95])
+        search_bounds[1,:] = data_quantiles
+
+        search_bounds_resolution = np.zeros(2)
+        search_bounds_resolution[0] = 1
+        search_bounds_resolution[1] = 5
+                
+    n_param = search_bounds.shape[0]
+    if type is None or type == "linear":
+        param_space = [None] * n_param  # Allocate memory for an empty list
+
+        # Calculate the parameter space as two separate np arrays and save to the list
+        for i in range(0,n_param):
+            param_space[i] = np.arange(search_bounds[i,0],search_bounds[i,1],search_bounds_resolution[i]).tolist()
+    elif type == "log":
+        param_space = [None] * n_param  # Allocate memory for an empty list
+        param_space[0] = np.arange(search_bounds[0,0],search_bounds[0,1],1).tolist()
+
+        log_transform_limit = np.log10(search_bounds[1,:]).round(2)
+        param_space[1] = np.logspace(log_transform_limit[0],log_transform_limit[1],num=50).round(2)
+
+    # Create a [?,n_param] array of evaluation points using the parameter space to be evaluated by the acquisition function
+        if n_param == 2:
+            param_combos = np.array([[p1,p2] for p1 in param_space[0] for p2 in param_space[1]])
+        elif n_param == 3:
+            param_combos = np.array([[p1,p2,p3] for p1 in param_space[0] for p2 in param_space[1] for p3 in param_space[2]])
+
+        return param_combos
+
+
+def runBO(func_2_optimize, RCS_data: pd.DataFrame, event_timings:pd.DataFrame,bo_options:dict):
     """
     This function runs the Bayesian optimization algorithm. The data follows this flow:
         (1) Create a GP with the tested parameters optimizing for,
@@ -237,29 +278,52 @@ def runBO(func_2_optimize, search_bounds: np.array, search_bounds_resolution: np
 
     Outputs:
     """
+    # Go through variable inputs
+    for arg, value in bo_options.items():
+        match arg:
+            case "search_bounds":
+                search_bounds = value
+            case "search_bounds_resolution":
+                search_bounds_resolution = value
+            case "param_combos":
+                param_combos = value
+            case "event_strings":
+                event_strings = value   # FUTURE CAPABILITY, RIGHT NOW ONLY DOUBLE SUPPORT TIME
+            case "n_itr":
+                n_itr = value
+            case "gp_params":
+                gp_params = value
+            case "initial_samples":
+                initial_samples = value
+            case "initial_outcomes":
+                initial_outcomes = value
+            case "min_fun":
+                min_fun = value
+
+    # Set default values for variables needed to run Bayesian optimization
     # Grab number of parameters of the search space
-    n_param = search_bounds.shape[0]
-
-    # Create Gaussian process regression object
-    if gp_params is None:
-        gp_model = createGP()
+    if param_combos is not None:
+        n_param = param_combos.shape[1]
     else:
-        gp_model = createGP(gp_params)
+        n_param = search_bounds.shape[0]
 
-    # Fit a Gaussian process using the initial samples and outcomes
-    if initial_samples is None:
+    # Generate and evaluate initial samples if none have been passed in
+    if 'initial_samples' not in locals():
+        np.random.seed(123) # For reproducability
+        initial_samples_X = np.arange(1,RCS_data.shape[1])
+        initial_samples_X = initial_samples_X.reshape(RCS_data.shape[1]-1,1)
 
-        # If there were no initial samples, randomly select 5 parameters in the search space to evaluate
-        np.random.seed(123)
-        initial_samples = np.random.uniform(search_bounds[:,0],search_bounds[:,1],(n_random_initial_samples,n_param))
-        initial_samples[:,0] = initial_samples[:,0].round()
-        initial_samples[:,1] = initial_samples[:,1].round(np.log10(1/search_bounds_resolution[1]).astype(int))
+        if param_combos is None:
+            initial_samples_Y = np.random.uniform(search_bounds[1,0],search_bounds[1,1],(initial_samples_X.shape[0],1))
+            initial_samples_Y = initial_samples_Y.round()
+        else:
+            threshold_unique = np.unique(param_combos[:,1])
+            initial_samples_Y = np.random.choice(threshold_unique,initial_samples_X.shape[0])
+            initial_samples_Y = initial_samples_Y.reshape(RCS_data.shape[1]-1,1)
 
-        # Unlikely, but check to make sure none of the random samples are repeats
-        # TODO
+        initial_samples = np.hstack((initial_samples_X,initial_samples_Y))
 
-    # Evaluate the randomly selected parameters
-    initial_outcomes = np.zeros((n_random_initial_samples,1))
+    initial_outcomes = np.zeros((initial_samples.shape[0],1))
     RCS_time = RCS_data.time
     for i in range(initial_samples.shape[0]):
         print(f"Running initial random sample {i}...", end = " ")
@@ -272,12 +336,12 @@ def runBO(func_2_optimize, search_bounds: np.array, search_bounds_resolution: np
         itr_toc = time.perf_counter()
         print(f"took {itr_toc-itr_tic} seconds")
     
-    # Convert list to numpy arrays
-    X = np.zeros((n_random_initial_samples+n_itr,n_param))
-    Y = np.zeros((n_random_initial_samples+n_itr,1))
-
-    X[0:n_random_initial_samples,:] = initial_samples
-    Y[0:n_random_initial_samples] = initial_outcomes
+    # Allocate memory to hold sampled parameters and their outcomes. Populates with the all previously evaluated parametesr
+    X = np.zeros((initial_samples.shape[0]+n_itr,n_param))
+    Y = np.zeros((initial_samples.shape[0]+n_itr,1))
+    
+    X[0:initial_samples.shape[0],:] = initial_samples
+    Y[0:initial_samples.shape[0]] = initial_outcomes
 
     # Determine current best outcome
     if min_fun:
@@ -285,19 +349,15 @@ def runBO(func_2_optimize, search_bounds: np.array, search_bounds_resolution: np
     else:
         curr_best = np.max(initial_outcomes)
 
-    ## Calculate all possible parameter combinations. Used to evaluate the Gaussian process and acquisition fuction
-    # Allocate memory
-    param_space = [None] * n_param
+    # Create Gaussian process regression object
+    if gp_params is None:
+        gp_model = createGP()
+    else:
+        gp_model = createGP(gp_params)
 
-    # Calculate the parameter space as two separate np arrays and save to the list
-    for i in range(0,n_param):
-        param_space[i] = np.arange(search_bounds[i,0],search_bounds[i,1],search_bounds_resolution[i]).tolist()
-
-    # Create a [?,n_param] array of evaluation points using the parameter space to be evaluated by the acquisition function
-    if n_param == 2:
-        param_combos = np.array([[p1,p2] for p1 in param_space[0] for p2 in param_space[1]])
-    elif n_param == 3:
-        param_combos = np.array([[p1,p2,p3] for p1 in param_space[0] for p2 in param_space[1] for p3 in param_space[2]])
+    # Calculate all possible parameter combinations in a linear space. 
+    if param_combos is None:
+        param_combos = createParamSpace(RCS_data,type="log")
 
     for itr in range(n_itr):
         # Timer to see how long it takes to run each iteration
@@ -305,7 +365,7 @@ def runBO(func_2_optimize, search_bounds: np.array, search_bounds_resolution: np
         itr_tic = time.perf_counter()
 
         # Fit Gaussian process regressor with current sampled points and outcomes
-        gp_model.fit(X[0:n_random_initial_samples+itr,:],Y[0:n_random_initial_samples+itr])
+        gp_model.fit(X[0:initial_samples.shape[0]+itr,:],Y[0:initial_samples.shape[0]+itr])
 
         # Determine next sample point
         # next_sample_point = getNextSamplePoint_OLD(expectedImprovement_OLD,gp_model,Y,search_bounds)
@@ -321,8 +381,8 @@ def runBO(func_2_optimize, search_bounds: np.array, search_bounds_resolution: np
         next_sample_point[0] = round(next_sample_point[0])
         next_sample_point = next_sample_point.reshape(1,2)
 
-        X[n_random_initial_samples+itr,:] = next_sample_point
-        Y[n_random_initial_samples+itr] = new_outcome
+        X[initial_samples.shape[0]+itr,:] = next_sample_point
+        Y[initial_samples.shape[0]+itr] = new_outcome
         # X = np.append(X,next_sample_point,axis=0)
         # Y = np.append(Y,new_outcome.reshape(1,1),axis=0)
 
