@@ -315,6 +315,8 @@ def main(n_power_bands: int = 1,save_path: str = os.getcwd()):
             data_file_name = os.path.basename(args[i+1])        # grabs the current filename to be used as a filename.
         elif args[i] == "-gait_events":
             gait_events = loadData(args[i+1],type="gait_events")
+        elif args[i] == "search_type":
+            search_type = args[i+1]
         elif args[i] == "-n_power_bands":
             n_power_bands = args[i+1]       # Set number of power bands to consider for a control signal. Leave at 1 for now. TODO, add in two power band search
         elif args[i] == "-search_bounds":
@@ -337,57 +339,71 @@ def main(n_power_bands: int = 1,save_path: str = os.getcwd()):
     save_name_param_combos = save_path + "/" + data_file_name[0:len(data_file_name)-4] + "_param_combos.csv"
 
 
-    # Set Bayesian optimization parameters
-    # event_strings = []    # TODO add in options to specify gait phase
-    # gp_options = {'nu':0.5,'length_scale':np.array([1e-2,2.5]),'length_scale_bounds':"fixed"}
-    # gp_options = {'nu':1.5,'length_scale':np.array([1,2.5]),'length_scale_bounds':"fixed"}
-    n_itr = 1000
-    gp_options = {"nu":1.5,"length_scale":np.array([1,2.5]),"length_scale_bounds":"fixed"}
-    bo_options = {"n_itr":n_itr,"gp_params":gp_options,"min_fun":False}
+    if search_type == "BayesianOptimization":
+        # Set Bayesian optimization parameters
+        # event_strings = []    # TODO add in options to specify gait phase
+        # gp_options = {'nu':0.5,'length_scale':np.array([1e-2,2.5]),'length_scale_bounds':"fixed"}
+        # gp_options = {'nu':1.5,'length_scale':np.array([1,2.5]),'length_scale_bounds':"fixed"}
+        n_itr = 1000
+        gp_options = {"nu":1.5,"length_scale":np.array([1,2.5]),"length_scale_bounds":"fixed"}
+        bo_options = {"n_itr":n_itr,"gp_params":gp_options,"min_fun":False}
 
-    # Run Bayesian optimization for all keys
-    for i in range(4):
-        print(f"================Running key{i} Bayesian optimization================")
-        key_tic = time.perf_counter()
+        # Run Bayesian optimization for all keys
+        for i in range(4):
+            print(f"================Running key{i} Bayesian optimization================")
+            key_tic = time.perf_counter()
 
-        # # Set search bounds
-        # search_bounds_key = search_bounds
-        # search_bounds_key[0,0] = 0
-        # search_bounds_key[0,1] = eval("key" + str(i) + "_pb_DF").shape[1]
-        # bo_options["search_bounds"] = search_bounds_key
+            # Generate parameter combos
+            param_combos = bo.createParamSpace(eval("key" + str(i) + "_pb_DF"),type = "log")
+            bo_options["param_combos"] = param_combos
+            out_DF,raw_X,raw_Y = bo.runBO(ta.calcThresholdAccuracyDST,eval("key" + str(i) + "_pb_DF"),gait_events,bo_options)
 
-        # Generate parameter combos
-        param_combos = bo.createParamSpace(eval("key" + str(i) + "_pb_DF"),type = "log")
-        bo_options["param_combos"] = param_combos
-        out_DF,raw_X,raw_Y = bo.runBO(ta.calcThresholdAccuracyDST,eval("key" + str(i) + "_pb_DF"),gait_events,bo_options)
+            # Save data to save progress
+            save_name_results.replace("full_spec","key"+str(i))
+            out_DF.to_csv(save_name_results,index = False)
 
-        # Save data to save progress
-        save_name_results.replace("full_spec","key"+str(i))
-        out_DF.to_csv(save_name_results,index = False)
+            # Generate dataframes of the Gaussian process and acquisition function so I can plot in MATLAB
+            GP_itr,AF_itr = BOItrDF(raw_X,raw_Y,n_initial_samples=out_DF.shape[0]-n_itr,gp_params = gp_options,itr_spacing = [100,50,10,1], itr_reps = [8,2,7,30])
 
-        # Generate dataframes of the Gaussian process and acquisition function so I can plot in MATLAB
-        GP_itr,AF_itr = BOItrDF(raw_X,raw_Y,n_initial_samples=out_DF.shape[0]-n_itr,gp_params = gp_options,itr_spacing = [100,50,10,1], itr_reps = [8,2,7,30])
+            # Save the iteration outputs and parameter combos that were evaluated
+            save_name_param_combos.replace("full_spec","Bayes_Opt_key"+str(i))
+            save_name_GP_itr.replace("full_spec","Bayes_Opt_key"+str(i))
+            save_name_AF_itr.replace("full_spec","Bayes_Opt_key"+str(i))
+            np.savetxt(save_name_param_combos,param_combos,delimiter = ",")
+            save_multiple_csv(GP_itr,n_entries = 50,base_path = save_name_GP_itr)
+            save_multiple_csv(AF_itr,n_entries = 50,base_path = save_name_AF_itr)
 
-        # Save the iteration outputs and parameter combos that were evaluated
-        save_name_param_combos.replace("full_spec","key"+str(i))
-        save_name_GP_itr.replace("full_spec","key"+str(i))
-        save_name_AF_itr.replace("full_spec","key"+str(i))
-        np.savetxt(save_name_param_combos,param_combos,delimiter = ",")
-        save_multiple_csv(GP_itr,n_entries = 50,base_path = save_name_GP_itr)
-        save_multiple_csv(AF_itr,n_entries = 50,base_path = save_name_AF_itr)
+            # Output how long it took to generate
+            key_toc = time.perf_counter()
+            print(f"took {key_toc-key_tic} seconds")
 
-        # Output how long it took to generate
-        key_toc = time.perf_counter()
-        print(f"took {key_toc-key_tic} seconds")
+        # Run grid search
+        # out_DF= gs.runGS(ta.calcThresholdAccuracyDST,search_bounds,search_bounds_resolution,rcs_power_data,gait_events)
+        # out_DF.to_csv(save_name_results,index = False)
 
-    # Run grid search
-    # out_DF= gs.runGS(ta.calcThresholdAccuracyDST,search_bounds,search_bounds_resolution,rcs_power_data,gait_events)
-    # out_DF.to_csv(save_name_results,index = False)
+        # End run time
+        toc = time.perf_counter()
 
-    # End run time
-    toc = time.perf_counter()
+        print(f"Code ran in {toc-tic:0.4f} seconds")
+    elif search_type == "grid_search":
+        for i in range(4):
+            print(f"================Running key{i} Grid Search================")
+            key_tic = time.perf_counter()
+            param_combos = bo.createParamSpace(eval("key" + str(i) + "_pb_DF"),type = "log")
+            grid_search_options = {"param_combos":param_combos}
 
-    print(f"Code ran in {toc-tic:0.4f} seconds")
+            # Run grid search
+            out_DF = gs.runGS(ta.calcThresholdAccuracyDST,eval("key" + str(i) + "_pb_DF"),gait_events,grid_search_options)
+            
+            save_name_results.replace("full_spec","Grid_Search_key"+str(i))
+            out_DF.to_csv(save_name_results,index = False)
+
+
+            # Output how long it took to generate
+            key_toc = time.perf_counter()
+            print(f"took {key_toc-key_tic} seconds")
+
+
 
 
 """
