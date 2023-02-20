@@ -92,8 +92,12 @@ def runGS(func_2_optimize, RCS_data: pd.DataFrame, event_timings:pd.DataFrame,gs
     RCS_time = RCS_data.time
     for i in range(param_combos.shape[0]):
         # Timer to see how long it takes to run each iteration
-        print(f"Running parameter combo {i}/{param_combos.shape[0]}...", end = " ")
-        param_tic = time.perf_counter()
+        if "key" in gs_options.keys():
+            channel = gs_options["key"]
+            print(f"Running key{channel} parameter combo {i+1}/{param_combos.shape[0]}")
+        else:
+            print(f"Running parameter combo {i}/{param_combos.shape[0]}...", end = " ")
+            param_tic = time.perf_counter()
 
         # Evaluate the next sample point
         # Can use a different type of rounding because this is not a numpy array...
@@ -102,8 +106,9 @@ def runGS(func_2_optimize, RCS_data: pd.DataFrame, event_timings:pd.DataFrame,gs
         Y[i] = func_2_optimize(RCS_time,pb_data,event_timings,threshold_val)
 
         # write out how long this iteration took
-        param_toc = time.perf_counter()
-        print(f"took {param_toc-param_tic} seconds")
+        if "key" not in gs_options.keys():
+            param_toc = time.perf_counter()
+            print(f"took {param_toc-param_tic} seconds")
 
     # Create output
     result_table = pd.DataFrame(np.hstack((param_combos,Y)),columns = ["Frequency Band Ind","Threshold","Accuracy"])

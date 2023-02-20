@@ -231,7 +231,11 @@ def createParamSpace(RCS_data,type,search_bounds: np.array = None,search_bounds_
 
         # set second limit to the 5th and 95th quartile. search bounds should cover ~90% of the data
         data_quantiles = np.quantile(RCS_data.values[:,1:RCS_data.shape[1]],[0.05,0.95])
-        search_bounds[1,:] = data_quantiles
+        if data_quantiles[0] == 0:
+            data_quantiles[0] = 1e-3
+            search_bounds[1,:] = data_quantiles
+        else:
+            search_bounds[1,:] = data_quantiles
 
         search_bounds_resolution = np.zeros(2)
         search_bounds_resolution[0] = 1
@@ -326,8 +330,12 @@ def runBO(func_2_optimize, RCS_data: pd.DataFrame, event_timings:pd.DataFrame,bo
     initial_outcomes = np.zeros((initial_samples.shape[0],1))
     RCS_time = RCS_data.time
     for i in range(initial_samples.shape[0]):
-        print(f"Running initial random sample {i}...", end = " ")
-        itr_tic = time.perf_counter()
+        if "key" in bo_options.keys():
+            channel = bo_options["key"]
+            print(f"Running key{channel} initial random sample {i+1}/{initial_samples.shape[0]}")
+        else:
+            print(f"Running initial random sample {i+1}/{initial_samples.shape[0]}...", end = " ")
+            itr_tic = time.perf_counter()
 
         pb_data = RCS_data.iloc[:,initial_samples[i,0].astype(int)].to_numpy()
         threshold_val = initial_samples[i,1]
@@ -361,8 +369,12 @@ def runBO(func_2_optimize, RCS_data: pd.DataFrame, event_timings:pd.DataFrame,bo
 
     for itr in range(n_itr):
         # Timer to see how long it takes to run each iteration
-        print(f"Running iteration {itr}...", end = " ")
-        itr_tic = time.perf_counter()
+        if "key" in bo_options.keys():
+            channel = bo_options["key"]
+            print(f"Key{channel} - Running iteration {itr}...", end = " ")
+        else:
+            print(f"Running iteration {itr}...", end = " ")
+            itr_tic = time.perf_counter()
 
         # Fit Gaussian process regressor with current sampled points and outcomes
         gp_model.fit(X[0:initial_samples.shape[0]+itr,:],Y[0:initial_samples.shape[0]+itr])
@@ -394,8 +406,9 @@ def runBO(func_2_optimize, RCS_data: pd.DataFrame, event_timings:pd.DataFrame,bo
                 curr_best = new_outcome
 
         # write out how long this iteration took
-        itr_toc = time.perf_counter()
-        print(f"took {itr_toc-itr_tic} seconds")
+        if "key" not in bo_options.keys():
+            itr_toc = time.perf_counter()
+            print(f"took {itr_toc-itr_tic} seconds")
 
 
     # Create output
