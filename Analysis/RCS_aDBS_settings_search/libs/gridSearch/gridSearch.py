@@ -87,6 +87,8 @@ def runGS(func_2_optimize, RCS_data: pd.DataFrame, event_timings:pd.DataFrame,gs
     
     # Allocate memory to hold sampled parameters and their outcomes.
     Y = np.zeros((param_combos.shape[0],1))
+    Y_dst = np.zeros((param_combos.shape[0],1))
+    Y_full = np.zeros((param_combos.shape[0],1))
 
     # Run through all parameter combos
     RCS_time = RCS_data.time
@@ -103,7 +105,11 @@ def runGS(func_2_optimize, RCS_data: pd.DataFrame, event_timings:pd.DataFrame,gs
         # Can use a different type of rounding because this is not a numpy array...
         pb_data = RCS_data.iloc[:,param_combos[i,0].astype(int)].to_numpy()
         threshold_val = param_combos[i,1]
-        Y[i] = func_2_optimize(RCS_time,pb_data,event_timings,threshold_val)
+        weighted_accuracy, dst_accuracy, full_accuracy = func_2_optimize(RCS_time,pb_data,event_timings,threshold_val)
+        Y[i] = weighted_accuracy
+        Y_dst[i] = dst_accuracy
+        Y_full[i] = full_accuracy
+
 
         # write out how long this iteration took
         if "key" not in gs_options.keys():
@@ -111,7 +117,7 @@ def runGS(func_2_optimize, RCS_data: pd.DataFrame, event_timings:pd.DataFrame,gs
             print(f"took {param_toc-param_tic} seconds")
 
     # Create output
-    result_table = pd.DataFrame(np.hstack((param_combos,Y)),columns = ["Frequency Band Ind","Threshold","Accuracy"])
+    result_table = pd.DataFrame(np.hstack((param_combos,Y,Y_dst,Y_full)),columns = ["Frequency Band Ind","Threshold","Weighted Accuracy","DST Accuracy","Full Accuracy"])
 
     # Return sampled values and outputs. 
     # Possibly add in the EI and GP output for each iteration as well.

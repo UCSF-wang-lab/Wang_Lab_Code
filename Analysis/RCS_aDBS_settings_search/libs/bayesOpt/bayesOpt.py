@@ -328,6 +328,8 @@ def runBO(func_2_optimize, RCS_data: pd.DataFrame, event_timings:pd.DataFrame,bo
         initial_samples = np.hstack((initial_samples_X,initial_samples_Y))
 
     initial_outcomes = np.zeros((initial_samples.shape[0],1))
+    initial_dst_outcomes = np.zeros((initial_samples.shape[0],1))
+    initial_full_outcomes = np.zeros((initial_samples.shape[0],1))
     RCS_time = RCS_data.time
     for i in range(initial_samples.shape[0]):
         if "key" in bo_options.keys():
@@ -339,7 +341,11 @@ def runBO(func_2_optimize, RCS_data: pd.DataFrame, event_timings:pd.DataFrame,bo
 
         pb_data = RCS_data.iloc[:,initial_samples[i,0].astype(int)].to_numpy()
         threshold_val = initial_samples[i,1]
-        initial_outcomes[i] = func_2_optimize(RCS_time,pb_data,event_timings,threshold_val)
+        weighted_accuracy,dst_accuracy,full_accuracy = func_2_optimize(RCS_time,pb_data,event_timings,threshold_val)
+
+        initial_outcomes[i] = weighted_accuracy
+        initial_dst_outcomes[i] = dst_accuracy
+        initial_full_outcomes[i] = full_accuracy
 
         itr_toc = time.perf_counter()
         print(f"took {itr_toc-itr_tic} seconds")
@@ -347,9 +353,13 @@ def runBO(func_2_optimize, RCS_data: pd.DataFrame, event_timings:pd.DataFrame,bo
     # Allocate memory to hold sampled parameters and their outcomes. Populates with the all previously evaluated parametesr
     X = np.zeros((initial_samples.shape[0]+n_itr,n_param))
     Y = np.zeros((initial_samples.shape[0]+n_itr,1))
+    Y_dst = np.zeros((initial_samples.shape[0]+n_itr,1))
+    Y_full = np.zeros((initial_samples.shape[0]+n_itr,1))
     
     X[0:initial_samples.shape[0],:] = initial_samples
     Y[0:initial_samples.shape[0]] = initial_outcomes
+    Y_dst[0:initial_samples.shape[0]] = initial_dst_outcomes
+    Y_full[0:initial_samples.shape[0]] = initial_full_outcomes
 
     # Determine current best outcome
     if min_fun:
@@ -387,7 +397,7 @@ def runBO(func_2_optimize, RCS_data: pd.DataFrame, event_timings:pd.DataFrame,bo
         # Can use a different type of rounding because this is not a numpy array...
         pb_data = RCS_data.iloc[:,round(next_sample_point[0])].to_numpy()
         threshold_val = next_sample_point[1]
-        new_outcome = func_2_optimize(RCS_time,pb_data,event_timings,threshold_val)
+        new_outcome,new_dst,new_full = func_2_optimize(RCS_time,pb_data,event_timings,threshold_val)
 
         # Update the list of evaluated sample points and outcomes
         next_sample_point[0] = round(next_sample_point[0])
@@ -395,6 +405,8 @@ def runBO(func_2_optimize, RCS_data: pd.DataFrame, event_timings:pd.DataFrame,bo
 
         X[initial_samples.shape[0]+itr,:] = next_sample_point
         Y[initial_samples.shape[0]+itr] = new_outcome
+        Y_dst[initial_samples.shape[0]+itr] = new_dst
+        Y_full[initial_samples.shape[0]+itr] = new_full
         # X = np.append(X,next_sample_point,axis=0)
         # Y = np.append(Y,new_outcome.reshape(1,1),axis=0)
 
@@ -412,8 +424,8 @@ def runBO(func_2_optimize, RCS_data: pd.DataFrame, event_timings:pd.DataFrame,bo
 
 
     # Create output
-    result_table = pd.DataFrame(np.hstack((X,Y)),columns = ["Frequency Band Ind","Threshold","Accuracy"])
+    result_table = pd.DataFrame(np.hstack((X,Y,Y_dst,Y_full)),columns = ["Frequency Band Ind","Threshold","Weighted Accuracy","DST Accuracy","Full Accuracy"])
 
     # Return sampled values and outputs. 
     # Possibly add in the EI and GP output for each iteration as well.
-    return result_table, X, Y
+    return result_table, X, Y, Y_dst, Y_full

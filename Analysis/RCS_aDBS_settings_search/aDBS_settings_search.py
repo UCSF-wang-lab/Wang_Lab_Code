@@ -315,7 +315,7 @@ def main(n_power_bands: int = 1,save_path: str = os.getcwd()):
             data_file_name = os.path.basename(args[i+1])        # grabs the current filename to be used as a filename.
         elif args[i] == "-gait_events":
             gait_events = loadData(args[i+1],type="gait_events")
-        elif args[i] == "search_type":
+        elif args[i] == "-search_type":
             search_type = args[i+1]
         elif args[i] == "-n_power_bands":
             n_power_bands = args[i+1]       # Set number of power bands to consider for a control signal. Leave at 1 for now. TODO, add in two power band search

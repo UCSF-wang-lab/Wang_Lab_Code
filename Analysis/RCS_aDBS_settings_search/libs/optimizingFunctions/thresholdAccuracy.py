@@ -49,9 +49,6 @@ def calcThresholdAccuracyDST(RCS_time,RCS_data,event_timings,threshold_val,flip_
     correct_state = np.zeros((n_data_points,1))
     correct_dst = np.zeros((n_events,1))
 
-    # Count variable to fill in array that tracks if the state is correct specifically during double support time
-    count = 1
-
     for i in range(len(RCS_data)):
         # Determine the detector state
         if RCS_data[i] >= threshold_val:
@@ -66,24 +63,40 @@ def calcThresholdAccuracyDST(RCS_time,RCS_data,event_timings,threshold_val,flip_
         B = RCS_time[i] <= event_timings.iloc[:,1]
         C = np.logical_and(A,B)
 
+
         if sum(C) >= 1 and detector_state[i] == 1:
             correct_state[i] = 1;   # detector should be in stim state since it is within the double support period
-            correct_dst[count] = 1
-            count = count + 1       # increment count variable
+            dst_ind = np.where(C==True)[0][0]
+            correct_dst[dst_ind] = 1
         elif sum(C) >= 1 and detector_state[i] == 0:
             correct_state[i] = 0;   # detector should be in stim state, but it is not
-            correct_dst[count] = 0
-            count = count + 1       # increment count
+            dst_ind = np.where(C==True)[0][0]
+            correct_dst[dst_ind] = 0
         elif sum(C) == 0 and detector_state[i] == 1:
             correct_state[i] = 0;   # detector in stim state, but it shouldn't be because it is not during double support period
         elif sum(C) == 0 and detector_state[i] == 0:
             correct_state[i] = 1;   # detector is not stim state, this is correct
 
+
+    # Determine how many nan's there are. These should not be counted in the accuracy calculations
+    D = np.where(event_timings.iloc[:,0].isnull().values==True)[0]
+    E = np.where(event_timings.iloc[:,1].isnull().values==True)[0]
+    n_nans = len(D|E)
+
+    # Determine how many double support times would not have been detected anyway
+    event_not_detected = np.zeros((event_timings.shape[0],1))
+    for j in range(event_timings.shape[0]):
+        if not np.isnan(event_timings.iloc[j,0]):
+            F = RCS_time >= event_timings.iloc[j,0]
+            G = RCS_time <= event_timings.iloc[j,1]
+            if not(sum(F&G) >= 1):
+                event_not_detected[j] = 1
+
     full_thresh_accuracy = sum(correct_state)/len(correct_state)
-    dst_thresh_accuracy = sum(correct_dst)/len(correct_dst)
+    dst_thresh_accuracy = sum(correct_dst)/(len(correct_dst)-n_nans-sum(event_not_detected))
 
     # weighted accuracy. puts more emphasis that the state should be correct during the double support time period
     # than during other time periods
-    overall_thresh_accuracy = 0.7*dst_thresh_accuracy + 0.3*full_thresh_accuracy    
+    overall_thresh_accuracy = 0.5*dst_thresh_accuracy + 0.5*full_thresh_accuracy    
 
-    return overall_thresh_accuracy
+    return overall_thresh_accuracy, full_thresh_accuracy, dst_thresh_accuracy
