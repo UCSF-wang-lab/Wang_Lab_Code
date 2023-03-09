@@ -96,15 +96,24 @@ def runGS(func_2_optimize, RCS_data: pd.DataFrame, event_timings:pd.DataFrame,gs
         # Timer to see how long it takes to run each iteration
         if "key" in gs_options.keys():
             channel = gs_options["key"]
-            print(f"Running key{channel} parameter combo {i+1}/{param_combos.shape[0]}")
+            print(f"Running {channel} parameter combo {i+1}/{param_combos.shape[0]}")
         else:
             print(f"Running parameter combo {i}/{param_combos.shape[0]}...", end = " ")
             param_tic = time.perf_counter()
 
         # Evaluate the next sample point
         # Can use a different type of rounding because this is not a numpy array...
-        pb_data = RCS_data.iloc[:,param_combos[i,0].astype(int)].to_numpy()
-        threshold_val = param_combos[i,1]
+        if "search_type" in gs_options.keys():
+            if gs_options["search_type"] == "all_combo":
+                pb_data = RCS_data.iloc[:,param_combos[i,0].astype(int)].to_numpy()
+                threshold_val = param_combos[i,1]
+            else:
+                pb_data = RCS_data.iloc[:,1].to_numpy()
+                threshold_val = param_combos[i,0]
+        else:
+            pb_data = RCS_data.iloc[:,param_combos[i,0].astype(int)].to_numpy()
+            threshold_val = param_combos[i,1]
+
         weighted_accuracy, dst_accuracy, full_accuracy = func_2_optimize(RCS_time,pb_data,event_timings,threshold_val)
         Y[i] = weighted_accuracy
         Y_dst[i] = dst_accuracy

@@ -195,7 +195,98 @@ def getNextSamplePoint(acq_fun,gp_model,curr_best,param_combos,min_fun: bool = F
 
 
 
-def createGP(gp_params: dict = None, norm_data: bool = False):
+# BOItrDF
+#   Calculates the Gaussian process and Acquisition function at a certain itration of Bayesian optimization.
+#
+#   Inputs:
+#       X_samples                   [=] Parameter pairs that have been evaluated. Shape is an (n x m) matrix, 
+#                                       where "n" is the number of all evaluations, and "m" is the number of 
+#                                       parameters being optimized over.
+#       Y_samples                   [=] Evaluations of the function being optimized over at the X_sample points. 
+#                                       Shape is a (n x 1) matrix.
+#       search_bounds               [=] The min and max values of the parameters to optimize over. Shape is an
+#                                       (p x 2) matrix, where p is the number of parameters to optimize over.
+#                                       The first parameter is the index numbers in the raw data table to look
+#                                       through.  
+#       search_bounds_resolution    [=] The spacing between the min and max value of the parameters above.
+#       n_initial_samples           [=] How many initial samples there were before starting Bayesian optimization.
+#       gp_params                   [=] Parameters of the Gaussian process used during the Bayesian optimization.
+#       itr_spacing                 [=] The spacing of the iterations. For example: [1000,100,10,1].
+#       itr_reps                    [=] How many times to repeat the itration spacing above. Continuing the example,
+#                                       itr_reps = [8,5,4,10] and the spacing above will result in the function
+#                                       generating 
+#   Outputs:
+#
+def BOItrDF(X_samples,Y_samples,param_combos,n_initial_samples: int = 0,gp_params: dict = None,itr_spacing: list = None, itr_reps: list = None):
+    # Get number of samples
+    n_samples = X_samples.shape[0]
+    
+    # Get number of parameters
+    n_param = X_samples.shape[1]
+
+    # Get iteration numbers to calculate the Gaussian process and acquisition function
+    n_itr_indexes = np.zeros(1000,dtype=int)   # Allocate memory
+    count = 0
+    idx_value = 0
+    if itr_spacing is not None:
+        for i in range(len(itr_spacing)):
+            if count == 0:
+                idx_value = n_initial_samples + itr_spacing[i] - 1
+            else:
+                idx_value = n_itr_indexes[count-1] + itr_spacing[i]
+            spacing = np.arange(idx_value,idx_value+itr_spacing[i]*itr_reps[i],itr_spacing[i])
+            n_itr_indexes[count:count + itr_reps[i]] = spacing
+            count += itr_reps[i]
+    else:
+        n_itr_indexes = np.arange(n_initial_samples-1,n_samples,1) # subtract one so you get the initial random sampling of the space
+        count = n_samples-n_initial_samples + 1 # add one so you get the correct number of iterations + the initial random sampling
+
+    n_itr_indexes = n_itr_indexes[0:count]
+
+    # Allocate memory for a matrix output of all the iterations to plot
+    GP_mat = np.zeros((count,param_combos.shape[0]+1))
+    AF_mat = np.zeros((count,param_combos.shape[0]+1))
+
+    # Create GP model
+    if gp_params is not None:
+        gp_model = createGP(gp_params = gp_params)
+    else:
+        gp_model = createGP()
+
+    # Loop through the iterations.
+    for i in range(0,count):
+        # Timer to see how long it takes to recreate each Gaussian process and acquisition function surface
+        print(f"Recreating GP and AF of iteration {n_itr_indexes[i] + 1}...", end = " ")
+        recreate_tic = time.perf_counter()
+
+        # Fit the model to current sampled points
+        curr_Y = Y_samples[0:n_itr_indexes[i]]
+        gp_model.fit(X = X_samples[0:n_itr_indexes[i],:], y = curr_Y)
+
+        # Get current best Y value
+        curr_best_Y = max(curr_Y)
+
+        # Predict the values of the parameter space
+        mu,std = gp_model.predict(param_combos, return_std=True)
+
+        # Calculate acquisition funtion values
+        af_vals = expectedImprovement(param_combos,curr_best_Y,gp_model,n_param,min_fun=False)
+
+        # Save outputs to a matrix
+        GP_mat[i,0] = n_itr_indexes[i]
+        GP_mat[i,1:param_combos.shape[0]+1] = mu
+        AF_mat[i,0] = n_itr_indexes[i]
+        AF_mat[i,1:param_combos.shape[0]+1] = af_vals
+
+        # write out how long this recreation took
+        recreate_toc = time.perf_counter()
+        print(f"took {recreate_toc-recreate_tic} seconds")
+
+    return GP_mat, AF_mat
+
+
+
+def createGP(gp_params: dict = None, norm_data: bool = True):
     """
     This function generates a Gaussian process regressor object. The object
         is created using passed in parameters, such as the length constant and
@@ -220,48 +311,56 @@ def createGP(gp_params: dict = None, norm_data: bool = False):
 
 
 
-def createParamSpace(RCS_data,type,search_bounds: np.array = None,search_bounds_resolution:np.array = None):
+def createParamSpace(parameter_range: np.array = None,spacing: str = "linear",n_spacings: np.array = None):
     # Get number of parameters
-    if search_bounds is None:
-        search_bounds = np.zeros((2,2))
+    n_param = parameter_range.shape[0]
+    param_space = [None] * n_param  # Allocate memory for an empty list
+
+    # Check the n_spacings variable. If single value, will apply it to all parameters, 
+    # otherwise it should have the same length as the number of parameters.
+    if n_spacings is None or (isinstance(n_spacings,int)) or (len(n_spacings)<n_param & len(n_spacings == 1)):
+        n_spacings = np.repeat(n_spacings,n_param)
+    
+    # Check the spacing variable. If single value, will apply it to all parameters, 
+    # otherwise it should have the same length as the number of parameters.
+    if spacing is None or ((len(spacing)<n_param) & (len(spacing) == 1)):
+        spacing = np.repeat(spacing,n_param)
+
+    for i in range(n_param):
+        if spacing[i] == "linear":
+            param_space[i] = np.linspace(parameter_range[i,0],parameter_range[i,1],n_spacings[i])
+        elif spacing[i] == "log":
+            log_transform_limit = np.log10(parameter_range[i,:]).round(2)
+            param_space[i] = np.logspace(log_transform_limit[0],log_transform_limit[1],num=n_spacings[i]).round(2)
+
+    # if search_bounds is None:
+    #     search_bounds = np.zeros((2,2))
         
-        # set first limit to all columns. First column is time so ignore.
-        search_bounds[0,0] = 1
-        search_bounds[0,1] = RCS_data.shape[1]
+    #     # set first limit to all columns. First column is time so ignore.
+    #     search_bounds[0,0] = 1
+    #     search_bounds[0,1] = RCS_data.shape[1]
 
-        # set second limit to the 5th and 95th quartile. search bounds should cover ~90% of the data
-        data_quantiles = np.quantile(RCS_data.values[:,1:RCS_data.shape[1]],[0.05,0.95])
-        if data_quantiles[0] == 0:
-            data_quantiles[0] = 1e-3
-            search_bounds[1,:] = data_quantiles
-        else:
-            search_bounds[1,:] = data_quantiles
+    #     # set second limit to the 5th and 95th quartile. search bounds should cover ~90% of the data
+    #     data_quantiles = np.quantile(RCS_data.values[:,1:RCS_data.shape[1]],[0.05,0.95])
+    #     if data_quantiles[0] == 0:
+    #         data_quantiles[0] = 1e-3
+    #         search_bounds[1,:] = data_quantiles
+    #     else:
+    #         search_bounds[1,:] = data_quantiles
 
-        search_bounds_resolution = np.zeros(2)
-        search_bounds_resolution[0] = 1
-        search_bounds_resolution[1] = 5
-                
-    n_param = search_bounds.shape[0]
-    if type is None or type == "linear":
-        param_space = [None] * n_param  # Allocate memory for an empty list
-
-        # Calculate the parameter space as two separate np arrays and save to the list
-        for i in range(0,n_param):
-            param_space[i] = np.arange(search_bounds[i,0],search_bounds[i,1],search_bounds_resolution[i]).tolist()
-    elif type == "log":
-        param_space = [None] * n_param  # Allocate memory for an empty list
-        param_space[0] = np.arange(search_bounds[0,0],search_bounds[0,1],1).tolist()
-
-        log_transform_limit = np.log10(search_bounds[1,:]).round(2)
-        param_space[1] = np.logspace(log_transform_limit[0],log_transform_limit[1],num=50).round(2)
+    #     search_bounds_resolution = np.zeros(2)
+    #     search_bounds_resolution[0] = 1
+    #     search_bounds_resolution[1] = 5
 
     # Create a [?,n_param] array of evaluation points using the parameter space to be evaluated by the acquisition function
-        if n_param == 2:
-            param_combos = np.array([[p1,p2] for p1 in param_space[0] for p2 in param_space[1]])
-        elif n_param == 3:
-            param_combos = np.array([[p1,p2,p3] for p1 in param_space[0] for p2 in param_space[1] for p3 in param_space[2]])
+    if n_param == 1:
+        param_combos = np.array(param_space).reshape((-1,1))
+    elif n_param == 2:
+        param_combos = np.array([[p1,p2] for p1 in param_space[0] for p2 in param_space[1]])
+    elif n_param == 3:
+        param_combos = np.array([[p1,p2,p3] for p1 in param_space[0] for p2 in param_space[1] for p3 in param_space[2]])
 
-        return param_combos
+    return param_combos
 
 
 def runBO(func_2_optimize, RCS_data: pd.DataFrame, event_timings:pd.DataFrame,bo_options:dict):
@@ -314,18 +413,43 @@ def runBO(func_2_optimize, RCS_data: pd.DataFrame, event_timings:pd.DataFrame,bo
     # Generate and evaluate initial samples if none have been passed in
     if 'initial_samples' not in locals():
         np.random.seed(123) # For reproducability
-        initial_samples_X = np.arange(1,RCS_data.shape[1])
-        initial_samples_X = initial_samples_X.reshape(RCS_data.shape[1]-1,1)
+
+        if "search_type" in bo_options.keys():
+            if bo_options["search_type"] == "all_combo":
+                initial_samples_X = np.arange(1,RCS_data.shape[1])
+                initial_samples_X = initial_samples_X.reshape(RCS_data.shape[1]-1,1)
+            elif bo_options["search_type"] == "specific_freq":
+                initial_samples_X = np.repeat(1,round(param_combos.shape[0]*0.1))
+                initial_samples_X = initial_samples_X.reshape(-1,1)
+        else:
+            initial_samples_X = np.arange(1,RCS_data.shape[1])
+            initial_samples_X = initial_samples_X.reshape(RCS_data.shape[1]-1,1)
 
         if param_combos is None:
             initial_samples_Y = np.random.uniform(search_bounds[1,0],search_bounds[1,1],(initial_samples_X.shape[0],1))
             initial_samples_Y = initial_samples_Y.round()
         else:
-            threshold_unique = np.unique(param_combos[:,1])
-            initial_samples_Y = np.random.choice(threshold_unique,initial_samples_X.shape[0])
-            initial_samples_Y = initial_samples_Y.reshape(RCS_data.shape[1]-1,1)
+            if "search_type" in bo_options.keys():
+                if bo_options["search_type"] == "all_combo":
+                    threshold_unique = np.unique(param_combos[:,1])
+                    initial_samples_Y = np.random.choice(threshold_unique,initial_samples_X.shape[0])
+                    initial_samples_Y = initial_samples_Y.reshape(RCS_data.shape[1]-1,1)
+                elif bo_options["search_type"] == "specific_freq":
+                    initial_samples_Y = np.random.choice(param_combos.reshape((param_combos.shape[0],)),initial_samples_X.shape[0])
+                    initial_samples_Y = initial_samples_Y.reshape(initial_samples_X.shape[0],1)
+            else:
+                threshold_unique = np.unique(param_combos[:,1])
+                initial_samples_Y = np.random.choice(threshold_unique,initial_samples_X.shape[0])
+                initial_samples_Y = initial_samples_Y.reshape(RCS_data.shape[1]-1,1)
 
-        initial_samples = np.hstack((initial_samples_X,initial_samples_Y))
+        if "search_type" in bo_options.keys():
+            if bo_options["search_type"] == "all_combo":
+                initial_samples = np.hstack((initial_samples_X,initial_samples_Y))
+            elif bo_options["search_type"] == "specific_freq":
+                initial_samples = initial_samples_Y
+
+        else:
+            initial_samples = np.hstack((initial_samples_X,initial_samples_Y))
 
     initial_outcomes = np.zeros((initial_samples.shape[0],1))
     initial_dst_outcomes = np.zeros((initial_samples.shape[0],1))
@@ -334,21 +458,31 @@ def runBO(func_2_optimize, RCS_data: pd.DataFrame, event_timings:pd.DataFrame,bo
     for i in range(initial_samples.shape[0]):
         if "key" in bo_options.keys():
             channel = bo_options["key"]
-            print(f"Running key{channel} initial random sample {i+1}/{initial_samples.shape[0]}")
+            print(f"Running {channel} initial random sample {i+1}/{initial_samples.shape[0]}")
         else:
             print(f"Running initial random sample {i+1}/{initial_samples.shape[0]}...", end = " ")
             itr_tic = time.perf_counter()
 
-        pb_data = RCS_data.iloc[:,initial_samples[i,0].astype(int)].to_numpy()
-        threshold_val = initial_samples[i,1]
+        if "search_type" in bo_options.keys():
+            if bo_options["search_type"] == "all_combo":
+                pb_data = RCS_data.iloc[:,param_combos[i,0].astype(int)].to_numpy()
+                threshold_val = param_combos[i,1]
+            elif bo_options["search_type"] == "specific_freq":
+                pb_data = RCS_data.iloc[:,1].to_numpy()
+                threshold_val = initial_samples[i]
+        else:
+            pb_data = RCS_data.iloc[:,initial_samples[i,0].astype(int)].to_numpy()
+            threshold_val = initial_samples[i,1]
+        
         weighted_accuracy,dst_accuracy,full_accuracy = func_2_optimize(RCS_time,pb_data,event_timings,threshold_val)
 
         initial_outcomes[i] = weighted_accuracy
         initial_dst_outcomes[i] = dst_accuracy
         initial_full_outcomes[i] = full_accuracy
 
-        itr_toc = time.perf_counter()
-        print(f"took {itr_toc-itr_tic} seconds")
+        if "key" not in bo_options.keys():
+            itr_toc = time.perf_counter()
+            print(f"took {itr_toc-itr_tic} seconds")
     
     # Allocate memory to hold sampled parameters and their outcomes. Populates with the all previously evaluated parametesr
     X = np.zeros((initial_samples.shape[0]+n_itr,n_param))
@@ -381,7 +515,7 @@ def runBO(func_2_optimize, RCS_data: pd.DataFrame, event_timings:pd.DataFrame,bo
         # Timer to see how long it takes to run each iteration
         if "key" in bo_options.keys():
             channel = bo_options["key"]
-            print(f"Key{channel} - Running iteration {itr}...", end = " ")
+            print(f"{channel} - Running iteration {itr+1}/{n_itr}")
         else:
             print(f"Running iteration {itr}...", end = " ")
             itr_tic = time.perf_counter()
@@ -395,13 +529,27 @@ def runBO(func_2_optimize, RCS_data: pd.DataFrame, event_timings:pd.DataFrame,bo
 
         # Evaluate the next sample point
         # Can use a different type of rounding because this is not a numpy array...
-        pb_data = RCS_data.iloc[:,round(next_sample_point[0])].to_numpy()
-        threshold_val = next_sample_point[1]
+        if "search_type" in bo_options.keys():
+            if bo_options["search_type"] == "all_combo":
+                pb_data = RCS_data.iloc[:,round(next_sample_point[0])].to_numpy()
+                threshold_val = next_sample_point[1]
+            elif bo_options["search_type"] == "specific_freq":
+                pb_data = RCS_data.iloc[:,1].to_numpy()
+                threshold_val = next_sample_point[0]
+        else:
+            pb_data = RCS_data.iloc[:,round(next_sample_point[0])].to_numpy()
+            threshold_val = next_sample_point[1]
+        
         new_outcome,new_dst,new_full = func_2_optimize(RCS_time,pb_data,event_timings,threshold_val)
 
         # Update the list of evaluated sample points and outcomes
-        next_sample_point[0] = round(next_sample_point[0])
-        next_sample_point = next_sample_point.reshape(1,2)
+        if "search_type" in bo_options.keys():
+            if bo_options["search_type"] == "all_combo":
+                next_sample_point[0] = round(next_sample_point[0])
+                next_sample_point = next_sample_point.reshape(1,2)
+        else:
+            next_sample_point[0] = round(next_sample_point[0])
+            next_sample_point = next_sample_point.reshape(1,2)
 
         X[initial_samples.shape[0]+itr,:] = next_sample_point
         Y[initial_samples.shape[0]+itr] = new_outcome
