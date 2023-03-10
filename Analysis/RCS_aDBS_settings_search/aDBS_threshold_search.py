@@ -240,19 +240,23 @@ def main(n_power_bands: int = 1,parallized_flag: bool = False,save_path: str = o
             frequency_range_str = args[i+1]       # Depends on search_type value
             frequency_range = np.array(literal_eval(frequency_range_str))
         elif args[i] == "-parameter_space_spacing_type":    # Depends on search_bounds does not have to be set, will assume some default values
-            spacing_type = args[i+1].split(",")
+            spacing_type_str = args[i+1]
         elif args[i] == "-parameter_space_spacing_n":
             spacing_str = args[i+1]
-            spacing = np.array(literal_eval(spacing_str))
         elif args[i] == "-keys": # Options key0|key1|key2|key3|all. To include more than one key, used a "," to separate keys
             if args[i+1] == "all":
-                search_keys = ["key0","key1","key2","key3"]
+                search_keys_str = ["key0","key1","key2","key3"]
             else:
-                search_keys = args[i+1].split(",")
+                search_keys_str = args[i+1]
         elif args[i] == "-parallized":  # boolean string
             parallized_flag = args[i+1]
         elif args[i] == "-save_path":
             save_path = args[i+1]           # Set the save path if given, otherwise will use the current working directory of the code
+
+    # Set spacing and search key values
+    spacing = np.array(literal_eval(spacing_str))
+    spacing_type = spacing_type_str.split(",")
+    search_keys = search_keys_str.split(",")
 
     # check if parallized_flag exist, if not, set to false
     if "parallized_flag" not in locals():
@@ -291,6 +295,10 @@ def main(n_power_bands: int = 1,parallized_flag: bool = False,save_path: str = o
             bo_option_list = [None] * len(search_keys)
 
         for i in range(len(search_keys)):
+            # Reset spacing type and spacing values
+            spacing_type = spacing_type_str.split(",")
+            spacing = np.array(literal_eval(spacing_str))
+
             # Set search parameters
             bo_options = {"method_function":bo.runBO,"optimizing_function":ta.calcThresholdAccuracyDST,"gait_events":gait_events,"gp_params":gp_options,"min_fun":False}
             bo_options["data"] = pb_DataFrame_dict[search_keys[i]]
