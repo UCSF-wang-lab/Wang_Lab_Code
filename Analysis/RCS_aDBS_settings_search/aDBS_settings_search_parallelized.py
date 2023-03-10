@@ -370,7 +370,7 @@ def main(n_power_bands: int = 1,save_path: str = os.getcwd()):
         # gp_options = {'nu':0.5,'length_scale':np.array([1e-2,2.5]),'length_scale_bounds':"fixed"}
         # gp_options = {'nu':1.5,'length_scale':np.array([1,2.5]),'length_scale_bounds':"fixed"}
         n_itr = 1000
-        gp_options = {"nu":1.5,"length_scale":np.array([1,2.5]),"length_scale_bounds":"fixed"}
+        gp_options = {"nu":0.5,"length_scale":np.array([1,2.5]),"length_scale_bounds":"fixed"}
 
         bo_option_list = [None] * 4
 
@@ -387,9 +387,10 @@ def main(n_power_bands: int = 1,save_path: str = os.getcwd()):
             bo_options["save_name_param_combos"] = save_name_param_combos.replace("full_spec","Bayes_Opt_key"+str(i))
             bo_option_list[i] = bo_options
 
-        runSearch(bo.runBO,bo_option_list[0])
-        # with processing_pool as pool:
-        #     pool.map(runSearch,bo_option_list)
+        # runSearch(bo_option_list[0])
+
+        with processing_pool as pool:
+            pool.map(runSearch,bo_option_list)
 
         # End run time
         toc = time.perf_counter()
@@ -411,9 +412,12 @@ def main(n_power_bands: int = 1,save_path: str = os.getcwd()):
         with processing_pool as pool:
             pool.map(runSearch,grid_search_option_list)
 
+        # End run time
+        toc = time.perf_counter()
+        print(f"Code ran in {toc-tic:0.4f} seconds")
 
     # Close the processing pool
-    # processing_pool.Close()
+    processing_pool.Close()
 
 
 

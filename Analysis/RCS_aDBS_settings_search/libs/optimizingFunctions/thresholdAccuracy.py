@@ -81,15 +81,15 @@ def calcThresholdAccuracyDST(RCS_time,RCS_data,event_timings,threshold_val,flip_
     # Determine how many nan's there are. These should not be counted in the accuracy calculations
     D = np.where(event_timings.iloc[:,0].isnull().values==True)[0]
     E = np.where(event_timings.iloc[:,1].isnull().values==True)[0]
-    n_nans = len(D|E)
+    n_nans = len(list(set().union(D,E)))
 
     # Determine how many double support times would not have been detected anyway
     event_not_detected = np.zeros((event_timings.shape[0],1))
     for j in range(event_timings.shape[0]):
-        if not np.isnan(event_timings.iloc[j,0]):
+        if not (np.isnan(event_timings.iloc[j,0])) | (np.isnan(event_timings.iloc[j,1])):
             F = RCS_time >= event_timings.iloc[j,0]
             G = RCS_time <= event_timings.iloc[j,1]
-            if not(sum(F&G) >= 1):
+            if sum(F&G) == 0:
                 event_not_detected[j] = 1
 
     full_thresh_accuracy = sum(correct_state)/len(correct_state)

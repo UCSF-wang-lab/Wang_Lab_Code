@@ -114,7 +114,7 @@ def runGS(func_2_optimize, RCS_data: pd.DataFrame, event_timings:pd.DataFrame,gs
             pb_data = RCS_data.iloc[:,param_combos[i,0].astype(int)].to_numpy()
             threshold_val = param_combos[i,1]
 
-        weighted_accuracy, dst_accuracy, full_accuracy = func_2_optimize(RCS_time,pb_data,event_timings,threshold_val)
+        weighted_accuracy, full_accuracy, dst_accuracy = func_2_optimize(RCS_time,pb_data,event_timings,threshold_val)
         Y[i] = weighted_accuracy
         Y_dst[i] = dst_accuracy
         Y_full[i] = full_accuracy

@@ -540,7 +540,7 @@ def runBO(func_2_optimize, RCS_data: pd.DataFrame, event_timings:pd.DataFrame,bo
             pb_data = RCS_data.iloc[:,round(next_sample_point[0])].to_numpy()
             threshold_val = next_sample_point[1]
         
-        new_outcome,new_dst,new_full = func_2_optimize(RCS_time,pb_data,event_timings,threshold_val)
+        new_outcome,new_full,new_dst = func_2_optimize(RCS_time,pb_data,event_timings,threshold_val)
 
         # Update the list of evaluated sample points and outcomes
         if "search_type" in bo_options.keys():
@@ -572,7 +572,12 @@ def runBO(func_2_optimize, RCS_data: pd.DataFrame, event_timings:pd.DataFrame,bo
 
 
     # Create output
-    result_table = pd.DataFrame(np.hstack((X,Y,Y_dst,Y_full)),columns = ["Frequency Band Ind","Threshold","Weighted Accuracy","DST Accuracy","Full Accuracy"])
+    column_names = [None]*(n_param+3)
+    for i in range(n_param):
+        column_names[i] = "x%d" % (i+1)
+    column_names[n_param:n_param+3] = ["Weighted Accuracy","DST Accuracy","Full Accuracy"]
+
+    result_table = pd.DataFrame(np.hstack((X,Y,Y_dst,Y_full)),columns = column_names)
 
     # Return sampled values and outputs. 
     # Possibly add in the EI and GP output for each iteration as well.

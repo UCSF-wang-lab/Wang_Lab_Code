@@ -196,18 +196,19 @@ def save_multiple_csv(data,n_entries,base_path: str = os.getcwd()):
 def runSearch(search_arguments):
     if "bayesOpt" in search_arguments["method_function"].__module__:
         bo_options = {dict_key: search_arguments[dict_key] for dict_key in ("n_itr","gp_params","min_fun","param_combos","key","search_type")}
-        out_DF,raw_X,raw_Y = search_arguments["method_function"](search_arguments["optimizing_function"],search_arguments["data"],search_arguments["gait_events"],bo_options)
+        out_DF,X,Y_weighted,Y_dst,Y_raw = search_arguments["method_function"](search_arguments["optimizing_function"],search_arguments["data"],search_arguments["gait_events"],bo_options)
 
         # Save data to save progress
         out_DF.to_csv(search_arguments["save_name_results"],index = False)
 
         # Generate dataframes of the Gaussian process and acquisition function so I can plot in MATLAB
-        GP_itr,AF_itr = bo.BOItrDF(raw_X,raw_Y,n_initial_samples=out_DF.shape[0]-search_arguments["n_itr"],gp_params = search_arguments["gp_options"],itr_spacing = [100,50,10,1], itr_reps = [8,2,7,30])
+        # GP_itr,AF_itr = bo.BOItrDF(X,Y_weighted,n_initial_samples=out_DF.shape[0]-search_arguments["n_itr"],gp_params = search_arguments["gp_params"],itr_spacing = [100,50,10,1], itr_reps = [8,2,7,30])
+        GP_itr,AF_itr = bo.BOItrDF(X,Y_weighted,search_arguments["param_combos"],n_initial_samples=out_DF.shape[0]-search_arguments["n_itr"],gp_params = search_arguments["gp_params"])
 
         # Save the iteration outputs and parameter combos that were evaluated
         np.savetxt(search_arguments["save_name_param_combos"],search_arguments["param_combos"],delimiter = ",")
-        save_multiple_csv(GP_itr,n_entries = 50,base_path = search_arguments["save_name_GP_itr"])
-        save_multiple_csv(AF_itr,n_entries = 50,base_path = search_arguments["save_name_AF_itr"])
+        save_multiple_csv(GP_itr,n_entries = 100,base_path = search_arguments["save_name_GP_itr"])
+        save_multiple_csv(AF_itr,n_entries = 100,base_path = search_arguments["save_name_AF_itr"])
 
     elif "gridSearch" in search_arguments["method_function"].__module__:
         gs_options = {dict_key: search_arguments[dict_key] for dict_key in ("param_combos","key","search_type")}
@@ -280,7 +281,6 @@ def main(n_power_bands: int = 1,parallized_flag: bool = False,save_path: str = o
         # event_strings = []    # TODO add in options to specify gait phase
         # gp_options = {'nu':0.5,'length_scale':np.array([1e-2,2.5]),'length_scale_bounds':"fixed"}
         # gp_options = {'nu':1.5,'length_scale':np.array([1,2.5]),'length_scale_bounds':"fixed"}
-        n_itr = 1000
 
         if search_type == "all_combo":
             gp_options = {"nu":0.5,"length_scale":np.array([1,2.5]),"length_scale_bounds":"fixed"}
@@ -292,9 +292,8 @@ def main(n_power_bands: int = 1,parallized_flag: bool = False,save_path: str = o
 
         for i in range(len(search_keys)):
             # Set search parameters
-            bo_options = {"method_function":bo.runBO,"optimizing_function":ta.calcThresholdAccuracyDST,"gait_events":gait_events,"n_itr":n_itr,"gp_params":gp_options,"min_fun":False}
+            bo_options = {"method_function":bo.runBO,"optimizing_function":ta.calcThresholdAccuracyDST,"gait_events":gait_events,"gp_params":gp_options,"min_fun":False}
             bo_options["data"] = pb_DataFrame_dict[search_keys[i]]
-            bo_options["n_itr"] = n_itr
             bo_options["key"] = search_keys[i]
             bo_options["search_type"] = search_type
             bo_options["save_name_results"] = save_name_results.replace("full_spec","Bayes_Opt_"+search_keys[i])
@@ -321,6 +320,9 @@ def main(n_power_bands: int = 1,parallized_flag: bool = False,save_path: str = o
                 parameter_range = data_quantiles.reshape((-1,2))
                 param_combos = bo.createParamSpace(parameter_range,spacing_type,n_spacings=spacing)
                 bo_options["param_combos"] = param_combos
+
+            # Set the number of iterations to be 50% of the total number of parameter combos
+            bo_options["n_itr"] = round(param_combos.shape[0]*0.5)
 
             if parallized_flag == "True":
                 bo_option_list[i] = bo_options
