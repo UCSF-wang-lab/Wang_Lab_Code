@@ -32,6 +32,7 @@ import time # code timing / debugging purposes
 import numpy as np
 import pandas as pd
 import itertools
+import csv
 from libs.gridSearch import gridSearch as gs # grid search class
 from libs.bayesOpt import bayesOpt as bo # Bayesopt class
 from libs.optimizingFunctions import thresholdAccuracy as ta # function to evaluate new settings
@@ -215,6 +216,13 @@ def runSearch(search_arguments):
         out_DF = search_arguments["method_function"](search_arguments["optimizing_function"],search_arguments["data"],search_arguments["gait_events"],gs_options)
         out_DF.to_csv(search_arguments["save_name_results"],index = False)
 
+        column_names = list(search_arguments["data"].columns)
+        myfile = open(search_arguments["save_name_freq_bands"],"w+",newline='')
+        with myfile:
+            w = csv.writer(myfile)
+            for name in column_names:
+                w.writerow([name])
+
 
 
 # main function to start aDBS settings search
@@ -356,6 +364,7 @@ def main(n_power_bands: int = 1,parallized_flag: bool = False,save_path: str = o
             grid_search_options["data"] = pb_DataFrame_dict[search_keys[i]]
             grid_search_options["key"] = search_keys[i]
             grid_search_options["save_name_results"] = save_name_results.replace("full_spec","Grid_Search_"+search_keys[i])
+            grid_search_options["save_name_freq_bands"] = grid_search_options["save_name_results"].replace("results","freq_bands")
             grid_search_options["search_type"] = search_type
 
             # Set parameter space options
