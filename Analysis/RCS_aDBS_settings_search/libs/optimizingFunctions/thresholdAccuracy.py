@@ -12,7 +12,81 @@ Dependencies:   numpy       [=] Common library and can be obtained using pip
 import numpy as np
 import pandas as pd
 
-def calcThresholdAccuracyTO2HS(parameter_values,RCS_data,event_timings,RCS_fs: int = 500):
+def calcThresholdAccuracySwingPhase(RCS_time,RCS_data,event_timings,threshold_val,flip_vals: bool = False):
+    """
+    Inputs:     parameter_values[=] The parameter values to use when calculating accuracy. [1,n] size, where n is the number of parameters
+                RCS_data        [=] Neural power data that is used to check the parameter values.
+                event_timings   [=] The timings of the gait event to determine if the threshold is accurate or not.
+                RCS_fs          [=] RCS neural data sampling rate. Optional. Default is set to 500 Hz.
+
+    Outputs:    accuracy        [=] The accuracy of detecting a toe off or heel strike from the neural data. Ranges from 0 to 1
+    """
+
+    if flip_vals:
+        RCS_data = -RCS_data
+        threshold_val = -threshold_val
+
+    # Get number of data points and gait events
+    n_data_points = RCS_data.shape[0]
+    n_events = event_timings.shape[0]
+
+    # initialize arrays
+    detector_state = np.zeros((n_data_points,1))
+    correct_state = np.zeros((n_data_points,1))
+    correct_swing = np.zeros((n_events,1))
+
+    for i in range(len(RCS_data)):
+        # Determine the detector state
+        if RCS_data[i] >= threshold_val:
+            detector_state[i] = 1
+        else:
+            detector_state[i] = 0
+
+        # Check to see if the current time point is within the double support
+        # period. Then, compare if the state is correct.
+        A = RCS_time[i] >= event_timings.iloc[:,0]
+        B = RCS_time[i] <= event_timings.iloc[:,1]
+        C = np.logical_and(A,B)
+
+        if sum(C) >= 1 and detector_state[i] == 1:
+            correct_state[i] = 1;   # detector should be in stim state since it is within the double support period
+            swing_ind = np.where(C==True)[0][0]
+            correct_swing[swing_ind] = 1
+        elif sum(C) >= 1 and detector_state[i] == 0:
+            correct_state[i] = 0;   # detector should be in stim state, but it is not
+            swing_ind = np.where(C==True)[0][0]
+            correct_swing[swing_ind] = 0
+        elif sum(C) == 0 and detector_state[i] == 1:
+            correct_state[i] = 0;   # detector in stim state, but it shouldn't be because it is not during double support period
+        elif sum(C) == 0 and detector_state[i] == 0:
+            correct_state[i] = 1;   # detector is not stim state, this is correct
+    
+    # Determine how many nan's there are. These should not be counted in the accuracy calculations
+    D = np.where(event_timings.iloc[:,0].isnull().values==True)[0]
+    E = np.where(event_timings.iloc[:,1].isnull().values==True)[0]
+    n_nans = len(list(set().union(D,E)))
+
+    # Determine how many double support times would not have been detected anyway
+    event_not_detected = np.zeros((event_timings.shape[0],1))
+    for j in range(event_timings.shape[0]):
+        if not (np.isnan(event_timings.iloc[j,0])) | (np.isnan(event_timings.iloc[j,1])):
+            F = RCS_time >= event_timings.iloc[j,0]
+            G = RCS_time <= event_timings.iloc[j,1]
+            if sum(F&G) == 0:
+                event_not_detected[j] = 1
+
+    full_thresh_accuracy = sum(correct_state)/len(correct_state)
+    swing_thresh_accuracy = sum(correct_swing)/(len(correct_swing)-n_nans-sum(event_not_detected))
+
+    # weighted accuracy. puts more emphasis that the state should be correct during the double support time period
+    # than during other time periods
+    overall_thresh_accuracy = 0.5*swing_thresh_accuracy + 0.5*full_thresh_accuracy    
+
+    return overall_thresh_accuracy, full_thresh_accuracy, swing_thresh_accuracy
+
+
+
+def calcThresholdAccuracyStancePhase(RCS_time,RCS_data,event_timings,threshold_val,flip_vals: bool = False):
     """
     Inputs:     parameter_values[=] The parameter values to use when calculating accuracy. [1,n] size, where n is the number of parameters
                 RCS_data        [=] Neural power data that is used to check the parameter values.
@@ -22,6 +96,8 @@ def calcThresholdAccuracyTO2HS(parameter_values,RCS_data,event_timings,RCS_fs: i
     Outputs:    accuracy        [=] The accuracy of detecting a toe off or heel strike from the neural data. Ranges from 0 to 1
     """
     return 0
+
+
 
 def calcThresholdAccuracyDST(RCS_time,RCS_data,event_timings,threshold_val,flip_vals: bool = False):
     """

@@ -64,6 +64,40 @@ def loadData(file_path: str,type: str = "data") -> pd.DataFrame:
         sys.exit('Data type flag not supported.')
 
 
+
+def sortGaitEvents(gait_events,start_event):
+    if gait_events.columns[0] == start_event:
+        return gait_events
+    else:
+        match start_event:
+            case "LHS":
+                gait_event_order = ["LHS","RTO","RHS","LTO"]
+            case "RTO":
+                gait_event_order = ["RTO","RHS","LTO","LHS"]
+            case "RHS":
+                gait_event_order = ["RHS","LTO","LHS","RTO"]
+            case "LTO":
+                gait_event_order = ["LTO","LHS","RTO","RHS"]
+
+        shift_ind = list(gait_events.columns).index(start_event)
+        sorted_gait_events = np.empty((gait_events.shape[0]+1,gait_events.shape[1]))
+        sorted_gait_events.fill(np.nan)
+
+        for i in range(len(gait_event_order)-shift_ind):        
+            sorted_gait_events[1:,i] = gait_events[gait_event_order[i]]
+
+        for j in range(len(gait_event_order)-shift_ind,len(gait_event_order)):
+            sorted_gait_events[0:-1,j] = gait_events[gait_event_order[j]]
+        
+        # Remove rows with all nan
+        remove_inds = np.where(np.isnan(sorted_gait_events).all(axis=1))
+        sorted_gait_events = np.delete(sorted_gait_events,remove_inds,axis=0)
+        sorted_gait_event_table = pd.DataFrame(sorted_gait_events,columns = gait_event_order)
+        
+        return sorted_gait_event_table
+
+
+
 def createPowerBands(rcs_power_data,keys,frequency_range,band_type):
     # If number of elements in keys is larger than the number
     # of rows in the frequency range, repeat the elements to match
@@ -236,8 +270,12 @@ def main(n_power_bands: int = 1,parallized_flag: bool = False,save_path: str = o
         if args[i] == "-data":
             rcs_power_data = loadData(args[i+1],type="data")
             data_file_name = os.path.basename(args[i+1])        # grabs the current filename to be used as a filename.
-        elif args[i] == "-gait_events":
+        elif args[i] == "-gait_events_table":
             gait_events = loadData(args[i+1],type="gait_events")
+        elif args[i] == "-gait_events":
+            gait_events_str = args[i+1]
+        elif args[i] == "-gait_phase":
+            gait_phase = args[i+1]
         elif args[i] == "-search_method":     # Options: bayesian_optimization|grid_search
             search_method = args[i+1]
         elif args[i] == "-search_type":       # Options: all_combo|specific_freq
@@ -285,6 +323,10 @@ def main(n_power_bands: int = 1,parallized_flag: bool = False,save_path: str = o
     elif search_method == "grid_search":
         save_name_results = save_path + "/" + data_file_name[0:len(data_file_name)-4] + "_results.csv"
 
+    # Trim the gait event table to the relavant events
+    gait_events_sorted = sortGaitEvents(gait_events,gait_events_str.split(",")[0])
+    gait_events_trimmed = gait_events_sorted[gait_events_str.split(",")]
+
     # timing measurement for debugging
     tic = time.perf_counter()
 
@@ -308,7 +350,7 @@ def main(n_power_bands: int = 1,parallized_flag: bool = False,save_path: str = o
             spacing = np.array(literal_eval(spacing_str))
 
             # Set search parameters
-            bo_options = {"method_function":bo.runBO,"optimizing_function":ta.calcThresholdAccuracyDST,"gait_events":gait_events,"gp_params":gp_options,"min_fun":False}
+            bo_options = {"method_function":bo.runBO,"gait_events":gait_events_trimmed,"gp_params":gp_options,"min_fun":False}
             bo_options["data"] = pb_DataFrame_dict[search_keys[i]]
             bo_options["key"] = search_keys[i]
             bo_options["search_type"] = search_type
@@ -316,6 +358,14 @@ def main(n_power_bands: int = 1,parallized_flag: bool = False,save_path: str = o
             bo_options["save_name_GP_itr"] = save_name_GP_itr.replace("full_spec","Bayes_Opt_"+search_keys[i])
             bo_options["save_name_AF_itr"] = save_name_AF_itr.replace("full_spec","Bayes_Opt_"+search_keys[i])
             bo_options["save_name_param_combos"] = save_name_param_combos.replace("full_spec","Bayes_Opt_"+search_keys[i])
+
+            match gait_phase:
+                case "DST":
+                    bo_options["optimizing_function"] = ta.calcThresholdAccuracyDST
+                case "Swing":
+                    bo_options["optimizing_function"] = ta.calcThresholdAccuracySwingPhase
+                case "Stance":
+                    bo_options["optimizing_function"] = ta.calcThresholdAccuracyStancePhase
 
             # Set parameter space options
             data_quantiles = np.quantile(pb_DataFrame_dict[search_keys[i]].values[:,1:pb_DataFrame_dict[search_keys[i]].shape[1]],[0.05,0.95])
@@ -338,7 +388,7 @@ def main(n_power_bands: int = 1,parallized_flag: bool = False,save_path: str = o
                 bo_options["param_combos"] = param_combos
 
             # Set the number of iterations to be 50% of the total number of parameter combos
-            bo_options["n_itr"] = round(param_combos.shape[0]*0.5)
+            bo_options["n_itr"] = round(param_combos.shape[0]*0.25)
 
             if parallized_flag == "True":
                 bo_option_list[i] = bo_options
@@ -360,12 +410,20 @@ def main(n_power_bands: int = 1,parallized_flag: bool = False,save_path: str = o
 
         for i in range(len(search_keys)):
             # Set search options
-            grid_search_options = {"method_function":gs.runGS,"optimizing_function":ta.calcThresholdAccuracyDST,"gait_events":gait_events}
+            grid_search_options = {"method_function":gs.runGS,"gait_events":gait_events_trimmed}
             grid_search_options["data"] = pb_DataFrame_dict[search_keys[i]]
             grid_search_options["key"] = search_keys[i]
             grid_search_options["save_name_results"] = save_name_results.replace("full_spec","Grid_Search_"+search_keys[i])
             grid_search_options["save_name_freq_bands"] = grid_search_options["save_name_results"].replace("results","freq_bands")
             grid_search_options["search_type"] = search_type
+
+            match gait_phase:
+                case "DST":
+                    grid_search_options["optimizing_function"] = ta.calcThresholdAccuracyDST
+                case "Swing":
+                    grid_search_options["optimizing_function"] = ta.calcThresholdAccuracySwingPhase
+                case "Stance":
+                    grid_search_options["optimizing_function"] = ta.calcThresholdAccuracyStancePhase
 
             # Set parameter space options
             data_quantiles = np.quantile(pb_DataFrame_dict[search_keys[i]].values[:,1:pb_DataFrame_dict[search_keys[i]].shape[1]],[0.05,0.95])
