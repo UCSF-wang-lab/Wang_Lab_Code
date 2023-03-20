@@ -408,11 +408,11 @@ def main(n_power_bands: int = 1,parallized_flag: bool = False,save_path: str = o
         if parallized_flag == "True":
             grid_search_option_list = [None] * len(search_keys)
 
-        # Reset spacing type and spacing values
+        for i in range(len(search_keys)):
+            # Reset spacing type and spacing values
             spacing_type = spacing_type_str.split(",")
             spacing = np.array(literal_eval(spacing_str))
-
-        for i in range(len(search_keys)):
+            
             # Set search options
             grid_search_options = {"method_function":gs.runGS,"gait_events":gait_events_trimmed}
             grid_search_options["data"] = pb_DataFrame_dict[search_keys[i]]
