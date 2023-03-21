@@ -362,10 +362,13 @@ def main(n_power_bands: int = 1,parallized_flag: bool = False,save_path: str = o
             match gait_phase:
                 case "DST":
                     bo_options["optimizing_function"] = ta.calcThresholdAccuracyDST
+                    bo.options["gait_phase"] = 'DST'
                 case "Swing":
                     bo_options["optimizing_function"] = ta.calcThresholdAccuracySwingPhase
+                    bo.options["gait_phase"] = 'Swing'
                 case "Stance":
                     bo_options["optimizing_function"] = ta.calcThresholdAccuracyStancePhase
+                    bo.options["gait_phase"] = 'Stance'
 
             # Set parameter space options
             data_quantiles = np.quantile(pb_DataFrame_dict[search_keys[i]].values[:,1:pb_DataFrame_dict[search_keys[i]].shape[1]],[0.05,0.95])
@@ -412,7 +415,7 @@ def main(n_power_bands: int = 1,parallized_flag: bool = False,save_path: str = o
             # Reset spacing type and spacing values
             spacing_type = spacing_type_str.split(",")
             spacing = np.array(literal_eval(spacing_str))
-            
+
             # Set search options
             grid_search_options = {"method_function":gs.runGS,"gait_events":gait_events_trimmed}
             grid_search_options["data"] = pb_DataFrame_dict[search_keys[i]]
@@ -465,7 +468,7 @@ def main(n_power_bands: int = 1,parallized_flag: bool = False,save_path: str = o
 
     # Close the processing pool
     if parallized_flag == "True":
-        processing_pool.Close()
+        processing_pool.close()
 
 
 

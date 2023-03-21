@@ -575,7 +575,16 @@ def runBO(func_2_optimize, RCS_data: pd.DataFrame, event_timings:pd.DataFrame,bo
     column_names = [None]*(n_param+3)
     for i in range(n_param):
         column_names[i] = "x%d" % (i+1)
-    column_names[n_param:n_param+3] = ["Weighted Accuracy","DST Accuracy","Full Accuracy"]
+
+    match bo_options["gait_phase"]:
+        case "DST":
+            column_names[n_param:n_param+3] = ["Weighted Accuracy","DST Accuracy","Full Accuracy"]
+        case "Swing":
+            column_names[n_param:n_param+3] = ["Weighted Accuracy","Swing Accuracy","Full Accuracy"]
+        case "Stance":    
+            column_names[n_param:n_param+3] = ["Weighted Accuracy","Stance Accuracy","Full Accuracy"]
+        case _:
+            column_names[n_param:n_param+3] = ["Weighted Accuracy","Gait Phase Accuracy","Full Accuracy"]
 
     result_table = pd.DataFrame(np.hstack((X,Y,Y_dst,Y_full)),columns = column_names)
 
