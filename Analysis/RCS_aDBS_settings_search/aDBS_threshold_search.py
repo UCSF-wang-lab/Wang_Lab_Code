@@ -427,13 +427,13 @@ def main(n_power_bands: int = 1,parallized_flag: bool = False,save_path: str = o
             match gait_phase:
                 case "DST":
                     grid_search_options["optimizing_function"] = ta.calcThresholdAccuracyDST
-                    grid_search_options.options["gait_phase"] = 'DST'
+                    grid_search_options["gait_phase"] = 'DST'
                 case "Swing":
                     grid_search_options["optimizing_function"] = ta.calcThresholdAccuracySwingPhase
-                    grid_search_options.options["gait_phase"] = 'Swing'
+                    grid_search_options["gait_phase"] = 'Swing'
                 case "Stance":
                     grid_search_options["optimizing_function"] = ta.calcThresholdAccuracyStancePhase
-                    grid_search_options.options["gait_phase"] = 'Stance'
+                    grid_search_options["gait_phase"] = 'Stance'
 
             # Set parameter space options
             data_quantiles = np.quantile(pb_DataFrame_dict[search_keys[i]].values[:,1:pb_DataFrame_dict[search_keys[i]].shape[1]],[0.05,0.95])
