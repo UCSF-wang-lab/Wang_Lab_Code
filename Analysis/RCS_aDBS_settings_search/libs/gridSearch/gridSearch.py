@@ -125,8 +125,18 @@ def runGS(func_2_optimize, RCS_data: pd.DataFrame, event_timings:pd.DataFrame,gs
             param_toc = time.perf_counter()
             print(f"took {param_toc-param_tic} seconds")
 
+    match gs_options["gait_phase"]:
+        case "DST":
+            column_names = ["Frequency Band Ind","Threshold","Weighted Accuracy","DST Accuracy","Full Accuracy"]
+        case "Swing":
+            column_names = ["Frequency Band Ind","Threshold","Weighted Accuracy","Swing Accuracy","Full Accuracy"]
+        case "Stance":    
+            column_names = ["Frequency Band Ind","Threshold","Weighted Accuracy","Stance Accuracy","Full Accuracy"]
+        case _:
+            column_names = ["Frequency Band Ind","Threshold","Weighted Accuracy","Gait Phase Accuracy","Full Accuracy"]
+
     # Create output
-    result_table = pd.DataFrame(np.hstack((param_combos,Y,Y_dst,Y_full)),columns = ["Frequency Band Ind","Threshold","Weighted Accuracy","DST Accuracy","Full Accuracy"])
+    result_table = pd.DataFrame(np.hstack((param_combos,Y,Y_dst,Y_full)),columns = column_names)
 
     # Return sampled values and outputs. 
     # Possibly add in the EI and GP output for each iteration as well.
