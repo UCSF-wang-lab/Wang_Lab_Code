@@ -230,7 +230,7 @@ def save_multiple_csv(data,n_entries,base_path: str = os.getcwd()):
 
 def runSearch(search_arguments):
     if "bayesOpt" in search_arguments["method_function"].__module__:
-        bo_options = {dict_key: search_arguments[dict_key] for dict_key in ("n_itr","gp_params","min_fun","param_combos","key","search_type")}
+        bo_options = {dict_key: search_arguments[dict_key] for dict_key in ("n_itr","gp_params","min_fun","param_combos","key","search_type","gait_phase")}
         out_DF,X,Y_weighted,Y_dst,Y_raw = search_arguments["method_function"](search_arguments["optimizing_function"],search_arguments["data"],search_arguments["gait_events"],bo_options)
 
         # Save data to save progress
@@ -246,7 +246,7 @@ def runSearch(search_arguments):
         save_multiple_csv(AF_itr,n_entries = 100,base_path = search_arguments["save_name_AF_itr"])
 
     elif "gridSearch" in search_arguments["method_function"].__module__:
-        gs_options = {dict_key: search_arguments[dict_key] for dict_key in ("param_combos","key","search_type")}
+        gs_options = {dict_key: search_arguments[dict_key] for dict_key in ("param_combos","key","search_type","gait_phase")}
         out_DF = search_arguments["method_function"](search_arguments["optimizing_function"],search_arguments["data"],search_arguments["gait_events"],gs_options)
         out_DF.to_csv(search_arguments["save_name_results"],index = False)
 
@@ -362,13 +362,13 @@ def main(n_power_bands: int = 1,parallized_flag: bool = False,save_path: str = o
             match gait_phase:
                 case "DST":
                     bo_options["optimizing_function"] = ta.calcThresholdAccuracyDST
-                    bo.options["gait_phase"] = 'DST'
+                    bo_options["gait_phase"] = 'DST'
                 case "Swing":
                     bo_options["optimizing_function"] = ta.calcThresholdAccuracySwingPhase
-                    bo.options["gait_phase"] = 'Swing'
+                    bo_options["gait_phase"] = 'Swing'
                 case "Stance":
                     bo_options["optimizing_function"] = ta.calcThresholdAccuracyStancePhase
-                    bo.options["gait_phase"] = 'Stance'
+                    bo_options["gait_phase"] = 'Stance'
 
             # Set parameter space options
             data_quantiles = np.quantile(pb_DataFrame_dict[search_keys[i]].values[:,1:pb_DataFrame_dict[search_keys[i]].shape[1]],[0.05,0.95])

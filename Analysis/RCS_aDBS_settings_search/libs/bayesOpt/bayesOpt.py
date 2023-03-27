@@ -238,7 +238,7 @@ def BOItrDF(X_samples,Y_samples,param_combos,n_initial_samples: int = 0,gp_param
             n_itr_indexes[count:count + itr_reps[i]] = spacing
             count += itr_reps[i]
     else:
-        n_itr_indexes = np.arange(n_initial_samples-1,n_samples,1) # subtract one so you get the initial random sampling of the space
+        n_itr_indexes = np.arange(n_initial_samples,n_samples+1,1) # Have to add one as the way we are indexing lower only takes the range from [x1,x2) where x2 is not included.
         count = n_samples-n_initial_samples + 1 # add one so you get the correct number of iterations + the initial random sampling
 
     n_itr_indexes = n_itr_indexes[0:count]
@@ -256,7 +256,7 @@ def BOItrDF(X_samples,Y_samples,param_combos,n_initial_samples: int = 0,gp_param
     # Loop through the iterations.
     for i in range(0,count):
         # Timer to see how long it takes to recreate each Gaussian process and acquisition function surface
-        print(f"Recreating GP and AF of iteration {n_itr_indexes[i] + 1}...", end = " ")
+        print(f"Recreating GP and AF of iteration {n_itr_indexes[i]}...", end = " ")
         recreate_tic = time.perf_counter()
 
         # Fit the model to current sampled points
