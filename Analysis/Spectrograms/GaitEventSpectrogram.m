@@ -75,7 +75,7 @@ if isfield(signalAnalysisData,'Left')
     for i = 1:length(signalAnalysisData.Left.Chan_Names)
         fig_vec(end+1) = figure;
         if isfield(signalAnalysisData.Left,'PSD')
-            pcolor(signalAnalysisData.Left.Time{i},signalAnalysisData.Left.Freq_Values{i},20*log10(abs(signalAnalysisData.Left.PSD{i})));
+            pcolor(signalAnalysisData.Left.Time{i},signalAnalysisData.Left.Freq_Values{i},10*log10(abs(signalAnalysisData.Left.PSD{i})));
             shading flat;
             ylim([2.5,50]);
             A = caxis;
@@ -121,7 +121,7 @@ if isfield(signalAnalysisData,'Right')
     for i = 1:length(signalAnalysisData.Right.Chan_Names)
         fig_vec(end+1) = figure;
         if isfield(signalAnalysisData.Right,'PSD')
-            pcolor(signalAnalysisData.Right.Time{i},signalAnalysisData.Right.Freq_Values{i},20*log10(abs(signalAnalysisData.Right.PSD{i})));
+            pcolor(signalAnalysisData.Right.Time{i},signalAnalysisData.Right.Freq_Values{i},10*log10(abs(signalAnalysisData.Right.PSD{i})));
             shading flat;
             ylim([2.5,50]);
             A = caxis;

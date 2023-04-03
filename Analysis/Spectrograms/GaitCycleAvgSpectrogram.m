@@ -153,7 +153,7 @@ if isfield(signalAnalysisData,'Left')
                 [~,end_ind] = min(abs(signalAnalysisData.Left.Time{i}-gait_events_sorted.(cycleStartEvent)(j+1)));
                 
                 if isfield(signalAnalysisData.Left,'PSD')
-                    data_snip = 20*log10(abs(signalAnalysisData.Left.PSD{i}(:,start_ind:end_ind)));
+                    data_snip = 10*log10(abs(signalAnalysisData.Left.PSD{i}(:,start_ind:end_ind)));
                 else
                     data_snip = abs(signalAnalysisData.Left.Values{i}(:,start_ind:end_ind));
                 end
@@ -191,7 +191,7 @@ if isfield(signalAnalysisData,'Right')
                 [~,start_ind] = min(abs(signalAnalysisData.Right.Time{i}-gait_events_sorted.(cycleStartEvent)(j)));
                 [~,end_ind] = min(abs(signalAnalysisData.Right.Time{i}-gait_events_sorted.(cycleStartEvent)(j+1)));
                 if isfield(signalAnalysisData.Right,'PSD')
-                    data_snip = 20*log10(abs(signalAnalysisData.Right.PSD{i}(:,start_ind:end_ind)));
+                    data_snip = 10*log10(abs(signalAnalysisData.Right.PSD{i}(:,start_ind:end_ind)));
                 else
                     data_snip = abs(signalAnalysisData.Right.Values{i}(:,start_ind:end_ind));
                 end

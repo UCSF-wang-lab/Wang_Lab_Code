@@ -24,6 +24,38 @@ else
     for j = length(gait_event_order)-(shift_ind-1):length(gait_event_order)
         sorted_gait_events(1:end-1,j) = gait_events.(gait_event_order{j});
     end
+
+    orignal = sorted_gait_events;
+    end_of_table = false;
+    count = 1;
+    while ~end_of_table
+        for k = 2:size(sorted_gait_events,2)
+            event_diff = sorted_gait_events(count,k)-sorted_gait_events(count,k-1);
+            if event_diff > 1.5
+                X = sorted_gait_events(1:count,:);
+                Y = sorted_gait_events(count+1:end,:);
+                Z = X(end,:);
+
+                X(end,k:end) = nan;
+                Z(1:k-1) = nan;
+
+                sorted_gait_events = [X;Z;Y];
+            end
+        end
+        if count + 1 > size(sorted_gait_events,1)
+            end_of_table = true;
+        end
+        count = count + 1;
+    end
+
+    for k = 1:size(sorted_gait_events,1)
+        for m = 2:size(sorted_gait_events,2)
+            event_diff = sorted_gait_events(k,m)-sorted_gait_events(k,m-1);
+            if event_diff > 1.5
+                X = sorted_gait_events()
+            end
+        end
+    end
     
     sorted_gait_events = array2table(sorted_gait_events,'VariableNames',gait_event_order);
 end

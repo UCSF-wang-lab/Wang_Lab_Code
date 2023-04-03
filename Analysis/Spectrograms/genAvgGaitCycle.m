@@ -65,7 +65,7 @@ if isfield(signal_analysis_data,'Left')
                 [~,end_ind] = min(abs(signal_analysis_data.Left.Time{i}-gait_events_sorted.(cycle_start_event)(j+1)));
                 
                 if isfield(signal_analysis_data.Left,'PSD')
-                    data_snip = 20*log10(abs(signal_analysis_data.Left.PSD{i}(:,start_ind:end_ind)));
+                    data_snip = 10*log10(abs(signal_analysis_data.Left.PSD{i}(:,start_ind:end_ind)));
                 else
                     data_snip = abs(signal_analysis_data.Left.Values{i}(:,start_ind:end_ind));
                 end
@@ -103,7 +103,7 @@ if isfield(signal_analysis_data,'Right')
                 [~,start_ind] = min(abs(signal_analysis_data.Right.Time{i}-gait_events_sorted.(cycle_start_event)(j)));
                 [~,end_ind] = min(abs(signal_analysis_data.Right.Time{i}-gait_events_sorted.(cycle_start_event)(j+1)));
                 if isfield(signal_analysis_data.Right,'PSD')
-                    data_snip = 20*log10(abs(signal_analysis_data.Right.PSD{i}(:,start_ind:end_ind)));
+                    data_snip = 10*log10(abs(signal_analysis_data.Right.PSD{i}(:,start_ind:end_ind)));
                 else
                     data_snip = abs(signal_analysis_data.Right.Values{i}(:,start_ind:end_ind));
                 end
@@ -238,7 +238,7 @@ end
 function normalized_data = normalizeWithBaseline(gait_cycle_avg,baseline_data,normalize_type)
 normalized_data = gait_cycle_avg;
 if ~strcmp(normalize_type,'none')
-    baseline_vals = cellfun(@(x) mean(20*log10(abs(x)),2),baseline_data.Values,'UniformOutput',false);
+    baseline_vals = cellfun(@(x) mean(10*log10(abs(x)),2),baseline_data.Values,'UniformOutput',false);
     assert(length(baseline_data.Values)==length(gait_cycle_avg));
     
     switch normalize_type

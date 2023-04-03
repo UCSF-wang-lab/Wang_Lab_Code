@@ -1,4 +1,4 @@
-function STFT = calcRCS_STFT(aligned_data,gapFillType,windowLength,percentOverlap,nfft,)
+function STFT = calcRCS_STFT(aligned_data,gapFillType,windowLength,percentOverlap,nfft)
 %% 
 % A = calcRCS_STFT(aligned_data,[],0.1,0.5,[]);
 % A = calcRCS_STFT(aligned_data,[],[],0.996,[]); % Legacy
@@ -109,5 +109,4 @@ if isfield(aligned_data,'right_LFP_table')
     STFT.Right.Freq_Values = right_spect_freq;
     STFT.Right.PSD = right_PSD;
     STFT.Right.Chan_Names = right_chan_names;
-end
 end
