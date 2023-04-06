@@ -83,11 +83,34 @@ def sortGaitEvents(gait_events,start_event):
         sorted_gait_events = np.empty((gait_events.shape[0]+1,gait_events.shape[1]))
         sorted_gait_events.fill(np.nan)
 
+        # Create initial table
         for i in range(len(gait_event_order)-shift_ind):        
             sorted_gait_events[1:,i] = gait_events[gait_event_order[i]]
 
         for j in range(len(gait_event_order)-shift_ind,len(gait_event_order)):
             sorted_gait_events[0:-1,j] = gait_events[gait_event_order[j]]
+
+        # Adjust table so that events are time reasonable
+        end_of_table = False
+        count = 0
+        while not end_of_table:
+            for k in range(1,sorted_gait_events.shape[1]):
+                event_diff = sorted_gait_events[count,k] - sorted_gait_events[count,k-1]
+                if event_diff > 1.5:
+                    X = np.array(sorted_gait_events[0:count+1,:])
+                    Y = np.array(sorted_gait_events[count+1:sorted_gait_events.shape[0],:])
+                    Z = np.array(X[X.shape[0]-1,:])
+
+                    X[X.shape[0]-1,range(k,X.shape[1])] = np.nan
+                    Z[0:k] = np.nan
+
+                    sorted_gait_events = np.vstack((X,Z,Y))
+
+            if count + 1 >= sorted_gait_events.shape[0]:
+                end_of_table = True
+            
+            count+=1
+            
         
         # Remove rows with all nan
         remove_inds = np.where(np.isnan(sorted_gait_events).all(axis=1))

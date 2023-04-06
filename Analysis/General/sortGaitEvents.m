@@ -25,7 +25,6 @@ else
         sorted_gait_events(1:end-1,j) = gait_events.(gait_event_order{j});
     end
 
-    orignal = sorted_gait_events;
     end_of_table = false;
     count = 1;
     while ~end_of_table
