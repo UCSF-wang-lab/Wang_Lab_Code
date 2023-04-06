@@ -246,16 +246,23 @@ def runSearch(search_arguments):
         save_multiple_csv(AF_itr,n_entries = 100,base_path = search_arguments["save_name_AF_itr"])
 
     elif "gridSearch" in search_arguments["method_function"].__module__:
-        gs_options = {dict_key: search_arguments[dict_key] for dict_key in ("param_combos","key","search_type","gait_phase")}
+        gs_options = {dict_key: search_arguments[dict_key] for dict_key in ("param_combos","key","search_type","gait_phase","search_method")}
         out_DF = search_arguments["method_function"](search_arguments["optimizing_function"],search_arguments["data"],search_arguments["gait_events"],gs_options)
-        out_DF.to_csv(search_arguments["save_name_results"],index = False)
 
-        column_names = list(search_arguments["data"].columns)
-        myfile = open(search_arguments["save_name_freq_bands"],"w+",newline='')
-        with myfile:
-            w = csv.writer(myfile)
-            for name in column_names:
-                w.writerow([name])
+        if search_arguments["search_method"] == "grid_search_modified":
+            out_DF.rename(columns = {'Frequency Band Ind':'Frequency Band'},inplace = True)
+            out_DF["Frequency Band"] = list(search_arguments["data"].columns)[1]
+        else:
+            column_names = list(search_arguments["data"].columns)
+            myfile = open(search_arguments["save_name_freq_bands"],"w+",newline='')
+            with myfile:
+                w = csv.writer(myfile)
+                for name in column_names:
+                    w.writerow([name])
+
+        out_DF.to_csv(search_arguments["save_name_results"],mode = "a", header = not os.path.exists(search_arguments["save_name_results"]),index = False)
+
+        
 
 
 
@@ -320,7 +327,7 @@ def main(n_power_bands: int = 1,parallized_flag: bool = False,save_path: str = o
         save_name_GP_itr = save_path + "/" + data_file_name[0:len(data_file_name)-4] + "_GP_surf"
         save_name_AF_itr = save_path + "/" + data_file_name[0:len(data_file_name)-4] + "_AF_surf"
         save_name_param_combos = save_path + "/" + data_file_name[0:len(data_file_name)-4] + "_param_combos.csv"
-    elif search_method == "grid_search":
+    elif "grid_search" in search_method:
         save_name_results = save_path + "/" + data_file_name[0:len(data_file_name)-4] + "_results.csv"
 
     # Trim the gait event table to the relavant events
@@ -354,6 +361,7 @@ def main(n_power_bands: int = 1,parallized_flag: bool = False,save_path: str = o
             bo_options["data"] = pb_DataFrame_dict[search_keys[i]]
             bo_options["key"] = search_keys[i]
             bo_options["search_type"] = search_type
+            bo_options["search_method"] = search_method
             bo_options["save_name_results"] = save_name_results.replace("full_spec","Bayes_Opt_"+search_keys[i])
             bo_options["save_name_GP_itr"] = save_name_GP_itr.replace("full_spec","Bayes_Opt_"+search_keys[i])
             bo_options["save_name_AF_itr"] = save_name_AF_itr.replace("full_spec","Bayes_Opt_"+search_keys[i])
@@ -423,6 +431,7 @@ def main(n_power_bands: int = 1,parallized_flag: bool = False,save_path: str = o
             grid_search_options["save_name_results"] = save_name_results.replace("full_spec","Grid_Search_"+search_keys[i])
             grid_search_options["save_name_freq_bands"] = grid_search_options["save_name_results"].replace("results","freq_bands")
             grid_search_options["search_type"] = search_type
+            grid_search_options["search_method"] = search_method
 
             match gait_phase:
                 case "DST":
@@ -459,6 +468,59 @@ def main(n_power_bands: int = 1,parallized_flag: bool = False,save_path: str = o
                 grid_search_option_list[i] = grid_search_options
             else:
                 runSearch(grid_search_options)            
+            
+        if parallized_flag == "True":
+            processing_pool = mp.Pool(len(search_keys))
+            with processing_pool as pool:
+                pool.map(runSearch,grid_search_option_list)
+
+    elif search_method == "grid_search_modified":
+        if parallized_flag == "True":
+            n_total_freq_bands = 0
+            for i in range(len(search_keys)):
+                n_total_freq_bands += pb_DataFrame_dict[search_keys[i]].shape[1]-1
+            grid_search_option_list = [None] * n_total_freq_bands
+
+        
+        count = 0
+        for i in range(len(search_keys)):
+            # Reset spacing type and spacing values
+            spacing_type = spacing_type_str.split(",")
+            spacing = np.array(literal_eval(spacing_str))
+
+            # Loop through each frequency band and create a search parameter for it.
+            for j in range(1,pb_DataFrame_dict[search_keys[i]].shape[1]):
+
+                # Set search options
+                grid_search_options = {"method_function":gs.runGS,"gait_events":gait_events_trimmed}
+                grid_search_options["data"] = pb_DataFrame_dict[search_keys[i]].iloc[:,[0,j]]
+                grid_search_options["key"] = search_keys[i]
+                grid_search_options["save_name_results"] = save_name_results.replace("full_spec","Grid_Search_"+search_keys[i])
+                grid_search_options["save_name_freq_bands"] = grid_search_options["save_name_results"].replace("results","freq_bands")
+                grid_search_options["search_type"] = search_type
+                grid_search_options["search_method"] = search_method
+
+                match gait_phase:
+                    case "DST":
+                        grid_search_options["optimizing_function"] = ta.calcThresholdAccuracyDST
+                        grid_search_options["gait_phase"] = 'DST'
+                    case "Swing":
+                        grid_search_options["optimizing_function"] = ta.calcThresholdAccuracySwingPhase
+                        grid_search_options["gait_phase"] = 'Swing'
+                    case "Stance":
+                        grid_search_options["optimizing_function"] = ta.calcThresholdAccuracyStancePhase
+                        grid_search_options["gait_phase"] = 'Stance'
+
+                # Set parameter space options
+                data_quantiles = np.quantile(grid_search_options["data"].iloc[:,1],np.arange(0.10,0.95,0.025))
+                param_combos = np.hstack((np.ones((data_quantiles.size,1)),data_quantiles.reshape((-1,1))))
+                grid_search_options["param_combos"] = param_combos
+
+                if parallized_flag == "True":
+                    grid_search_option_list[count] = grid_search_options
+                    count += 1
+                else:
+                    runSearch(grid_search_options)            
             
         if parallized_flag == "True":
             processing_pool = mp.Pool(len(search_keys))
