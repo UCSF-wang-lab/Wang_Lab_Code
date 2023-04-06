@@ -46,15 +46,6 @@ else
         end
         count = count + 1;
     end
-
-    for k = 1:size(sorted_gait_events,1)
-        for m = 2:size(sorted_gait_events,2)
-            event_diff = sorted_gait_events(k,m)-sorted_gait_events(k,m-1);
-            if event_diff > 1.5
-                X = sorted_gait_events()
-            end
-        end
-    end
     
     sorted_gait_events = array2table(sorted_gait_events,'VariableNames',gait_event_order);
 end
