@@ -346,12 +346,12 @@ def main(n_power_bands: int = 1,parallized_flag: bool = False,save_path: str = o
 
     # generate base save name
     if search_method == "bayesian_optimization":
-        save_name_results = save_path + "/" + data_file_name[0:len(data_file_name)-4] + "_results.csv"
-        save_name_GP_itr = save_path + "/" + data_file_name[0:len(data_file_name)-4] + "_GP_surf"
-        save_name_AF_itr = save_path + "/" + data_file_name[0:len(data_file_name)-4] + "_AF_surf"
-        save_name_param_combos = save_path + "/" + data_file_name[0:len(data_file_name)-4] + "_param_combos.csv"
+        save_name_results = save_path + "/" + data_file_name[0:len(data_file_name)-4] + "_" + search_method + "_results.csv"
+        save_name_GP_itr = save_path + "/" + data_file_name[0:len(data_file_name)-4] + "_" + search_method + "_GP_surf"
+        save_name_AF_itr = save_path + "/" + data_file_name[0:len(data_file_name)-4] + "_" + search_method + "_AF_surf"
+        save_name_param_combos = save_path + "/" + data_file_name[0:len(data_file_name)-4] + "_" + search_method + "_param_combos.csv"
     elif "grid_search" in search_method:
-        save_name_results = save_path + "/" + data_file_name[0:len(data_file_name)-4] + "_results.csv"
+        save_name_results = save_path + "/" + data_file_name[0:len(data_file_name)-4] + "_" + search_method + "_results.csv"
 
     # Trim the gait event table to the relavant events
     gait_events_sorted = sortGaitEvents(gait_events,gait_events_str.split(",")[0])
