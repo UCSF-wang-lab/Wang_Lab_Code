@@ -1,4 +1,4 @@
-function [band_indicies,band_names] = getFreqBandInd(freq_vec)
+function [band_indicies,band_names] = getCanonicalFreqBandInd(freq_vec)
 band_indicies = zeros(8,2);
 band_names = {'Delta','Theta','Alpha','Beta','Low Beta','High Beta','Gamma','High Gamma'};
 

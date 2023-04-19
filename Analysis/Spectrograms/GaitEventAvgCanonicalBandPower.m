@@ -96,9 +96,9 @@ if isfield(signalAnalysisData,'Left')
     end
     average_power.Left = {};
     std_power.Left = {};
-    [~,band_names] = getFreqBandInd(signalAnalysisData.Left.Freq_Values{1});
+    [~,band_names] = getCanonicalFreqBandInd(signalAnalysisData.Left.Freq_Values{1});
     for i = 1:length(signalAnalysisData.Left.Chan_Names)
-        band_inds = getFreqBandInd(signalAnalysisData.Left.Freq_Values{i});
+        band_inds = getCanonicalFreqBandInd(signalAnalysisData.Left.Freq_Values{i});
         if band_inds(1,2) < band_inds(1,1)
             band_inds = fliplr(band_inds);
         end
@@ -142,8 +142,8 @@ if isfield(signalAnalysisData,'Left')
             average_phase.Left.(aligned_data.gait_events.Properties.VariableNames{j}){i} = squeeze(mean(vals_phase,1));
             
             if strcmp(spreadType,'SE')
-                std_power.Left.(aligned_data.gait_events.Properties.VariableNames{j}){i} = squeeze(std(vals,0,1))./size(vals,1);
-                std_phase.Left.(aligned_data.gait_events.Properties.VariableNames{j}){i} = squeeze(std(vals_phase,0,1))./size(vals_phase,1);
+                std_power.Left.(aligned_data.gait_events.Properties.VariableNames{j}){i} = squeeze(std(vals,0,1))./sqrt(size(vals,1));
+                std_phase.Left.(aligned_data.gait_events.Properties.VariableNames{j}){i} = squeeze(std(vals_phase,0,1))./sqrt(size(vals_phase,1));
             else
                 std_power.Left.(aligned_data.gait_events.Properties.VariableNames{j}){i} = squeeze(std(vals,0,1));
                 std_phase.Left.(aligned_data.gait_events.Properties.VariableNames{j}){i} = squeeze(std(vals_phase,0,1));
@@ -162,9 +162,9 @@ if isfield(signalAnalysisData,'Right')
     end
     average_power.Right = {};
     std_power.Right = {};
-    [~,band_names] = getFreqBandInd(signalAnalysisData.Right.Freq_Values{1});
+    [~,band_names] = getCanonicalFreqBandInd(signalAnalysisData.Right.Freq_Values{1});
     for i = 1:length(signalAnalysisData.Right.Chan_Names)
-        band_inds = getFreqBandInd(signalAnalysisData.Right.Freq_Values{i});
+        band_inds = getCanonicalFreqBandInd(signalAnalysisData.Right.Freq_Values{i});
         if band_inds(1,2) < band_inds(1,1)
             band_inds = fliplr(band_inds);
         end

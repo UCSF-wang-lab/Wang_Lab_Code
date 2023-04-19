@@ -558,27 +558,31 @@ if save_flag && strcmp(save_type,'stat_table')
         mkdir(fullfile(save_dir,'GaitBiomarkerSearch'));
     end
     
-    if ~isfolder(fullfile(save_dir,'GaitBiomarkerSearch',aligned_data.stim_condition))
-        mkdir(fullfile(save_dir,'GaitBiomarkerSearch',aligned_data.stim_condition))
+    if ~isfolder(fullfile(save_dir,'GaitBiomarkerSearch',[aligned_data.stim_condition,'_STIM']))
+        mkdir(fullfile(save_dir,'GaitBiomarkerSearch',[aligned_data.stim_condition,'_STIM']))
+    end
+
+    if ~isfolder(fullfile(save_dir,'GaitBiomarkerSearch',[aligned_data.stim_condition,'_STIM'],[aligned_data.med_condition,'_MED']))
+        mkdir(fullfile(save_dir,'GaitBiomarkerSearch',[aligned_data.stim_condition,'_STIM'],[aligned_data.med_condition,'_MED']))
     end
     
     if strcmp(analysis_type,'FT')
-        if ~isfolder(fullfile(save_dir,'GaitBiomarkerSearch',aligned_data.stim_condition,'FT'))
-            mkdir(fullfile(save_dir,'GaitBiomarkerSearch',aligned_data.stim_condition,'FT'));
-            writetable(multiple_comp_table,[fullfile(save_dir,'GaitBiomarkerSearch',aligned_data.stim_condition,'FT'),'/',subjectID,'_multi-comp_stat_table.csv']);
-            writetable(stat_table,[fullfile(save_dir,'GaitBiomarkerSearch',aligned_data.stim_condition,'FT'),'/',subjectID,'_anova_stat_table.csv']);
-        else
-            writetable(multiple_comp_table,[fullfile(save_dir,'GaitBiomarkerSearch',aligned_data.stim_condition,'FT'),'/',subjectID,'_multi-comp_stat_table.csv']);
-            writetable(stat_table,[fullfile(save_dir,'GaitBiomarkerSearch',aligned_data.stim_condition,'FT'),'/',subjectID,'_anova_stat_table.csv']);
+        if ~isfolder(fullfile(save_dir,'GaitBiomarkerSearch',[aligned_data.stim_condition,'_STIM'],[aligned_data.med_condition,'_MED'],'FT'))
+            mkdir(fullfile(save_dir,'GaitBiomarkerSearch',[aligned_data.stim_condition,'_STIM'],[aligned_data.med_condition,'_MED'],'FT'))
+            writetable(multiple_comp_table,[fullfile(save_dir,'GaitBiomarkerSearch',[aligned_data.stim_condition,'_STIM'],[aligned_data.med_condition,'_MED'],'FT'),'/',subjectID,'_multi-comp_stat_table.csv']);
+            writetable(stat_table,[fullfile(save_dir,'GaitBiomarkerSearch',[aligned_data.stim_condition,'_STIM'],[aligned_data.med_condition,'_MED'],'FT'),'/',subjectID,'_anova_stat_table.csv']);
+            else
+            writetable(multiple_comp_table,[fullfile(save_dir,'GaitBiomarkerSearch',[aligned_data.stim_condition,'_STIM'],[aligned_data.med_condition,'_MED'],'FT'),'/',subjectID,'_multi-comp_stat_table.csv']);
+            writetable(stat_table,[fullfile(save_dir,'GaitBiomarkerSearch',[aligned_data.stim_condition,'_STIM'],[aligned_data.med_condition,'_MED'],'FT'),'/',subjectID,'_anova_stat_table.csv']);
         end
     elseif strcmp(analysis_type,'CWT')
-        if ~isfolder(fullfile(save_dir,'GaitBiomarkerSearch',aligned_data.stim_condition,'CWT'))
-            mkdir(fullfile(save_dir,'GaitBiomarkerSearch',aligned_data.stim_condition,'CWT'));
-            writetable(multiple_comp_table,[fullfile(save_dir,'GaitBiomarkerSearch',aligned_data.stim_condition,'CWT'),'/',subjectID,'_multi-comp_stat_table.csv']);
-            writetable(stat_table,[fullfile(save_dir,'GaitBiomarkerSearch',aligned_data.stim_condition,'CWT'),'/',subjectID,'_anova_stat_table.csv']);
+        if ~isfolder(fullfile(save_dir,'GaitBiomarkerSearch',[aligned_data.stim_condition,'_STIM'],[aligned_data.med_condition,'_MED'],'CWT'))
+            mkdir(fullfile(save_dir,'GaitBiomarkerSearch',[aligned_data.stim_condition,'_STIM'],[aligned_data.med_condition,'_MED'],'CWT'))
+            writetable(multiple_comp_table,[fullfile(save_dir,'GaitBiomarkerSearch',[aligned_data.stim_condition,'_STIM'],[aligned_data.med_condition,'_MED'],'CWT'),'/',subjectID,'_multi-comp_stat_table.csv']);
+            writetable(stat_table,[fullfile(save_dir,'GaitBiomarkerSearch',[aligned_data.stim_condition,'_STIM'],[aligned_data.med_condition,'_MED'],'CWT'),'/',subjectID,'_anova_stat_table.csv']);
         else
-            writetable(multiple_comp_table,[fullfile(save_dir,'GaitBiomarkerSearch',aligned_data.stim_condition,'CWT'),'/',subjectID,'_multi-comp_stat_table.csv']);
-            writetable(stat_table,[fullfile(save_dir,'GaitBiomarkerSearch',aligned_data.stim_condition,'CWT'),'/',subjectID,'_anova_stat_table.csv']);
+            writetable(multiple_comp_table,[fullfile(save_dir,'GaitBiomarkerSearch',[aligned_data.stim_condition,'_STIM'],[aligned_data.med_condition,'_MED'],'CWT'),'/',subjectID,'_multi-comp_stat_table.csv']);
+            writetable(stat_table,[fullfile(save_dir,'GaitBiomarkerSearch',[aligned_data.stim_condition,'_STIM'],[aligned_data.med_condition,'_MED'],'CWT'),'/',subjectID,'_anova_stat_table.csv']);
         end
     end
 end
