@@ -218,8 +218,13 @@ end
 
 %% Save data if the file path was originally passed in
 if exist('file_path','var') && save_data
+    file_path2 = strrep(file_path,'TD.mat','TD_original.mat');
+    copyfile(file_path,file_path2);
+    
+    % Copy filt data as timeDomainDataTable to replicate original file
+    timeDomainDataTable = filt_data;
     [A,B,C] = fileparts(file_path);
     save_name = fullfile(A,[B,'_filtered',C]);
-    save(save_name,'filt_data');
+    save(save_name,'timeDomainDataTable');
 end
 end
