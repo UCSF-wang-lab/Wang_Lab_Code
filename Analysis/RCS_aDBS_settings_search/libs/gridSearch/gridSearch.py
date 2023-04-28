@@ -100,7 +100,8 @@ def runGS(func_2_optimize, RCS_data: pd.DataFrame, event_timings:pd.DataFrame,gs
             FFT_size = gs_options["FFT_size"]
             FFT_interval = gs_options["FFT_interval"]
             FFT_bitshift = gs_options["FFT_bitshift"]
-            print(f"Running {channel}, FFT_overlap = {FFT_overlap}, FFT_size = {FFT_size}, FFT_interval = {FFT_interval}, FFT_bitshift = {FFT_bitshift} - parameter combo {i+1}/{param_combos.shape[0]}")
+            freq_band = RCS_data.columns[1]
+            print(f"Running {channel} {freq_band}, FFT_overlap = {FFT_overlap}, FFT_size = {FFT_size}, FFT_interval = {FFT_interval}, FFT_bitshift = {FFT_bitshift} - parameter combo {i+1}/{param_combos.shape[0]}")
         elif "key" in gs_options.keys():
             channel = gs_options["key"]
             print(f"Running {channel} parameter combo {i+1}/{param_combos.shape[0]}")

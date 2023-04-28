@@ -412,7 +412,8 @@ def main(n_power_bands: int = 1,parallized_flag: bool = False,save_path: str = o
                         runSearch(grid_search_options)            
             
             if parallized_flag == "True":
-                processing_pool = mp.Pool(len(search_keys))
+                # processing_pool = mp.Pool(len(search_keys))
+                processing_pool = mp.Pool(20)   # This line for compute server only (uses 25% of available threads)
                 with processing_pool as pool:
                     pool.map(runSearch,grid_search_option_list)
 
