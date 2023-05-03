@@ -120,6 +120,10 @@ for i = 2:length(time_vec)
             chunk_time = time_vec{i};
             chunk_date = date_vec{i};
         else
+            temp = strsplit(num2str(990-(100-1)*1000/fs:1000/fs:990,'% 04i')," ")'; % Need one more in field width to account for space
+            mills = "." + temp;
+            time_out(start_chunk_ind:start_chunk_ind+99) = datestr(chunk_date(1:100))+ " " + chunk_time(1:100) + mills;
+            
             start_chunk_ind = i;
             chunk_time = time_vec{i};
             chunk_date = date_vec{i};
