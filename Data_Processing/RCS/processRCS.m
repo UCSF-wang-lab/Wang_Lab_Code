@@ -41,11 +41,18 @@ for i = 1:length(files2Convert)
     fprintf('Processing file: %s...\n',filename)
     switch filename
         case 'DeviceSettings.json'
-            [timeDomainSettings,powerSettings,fftSettings,metaData] = processDeviceSettings(folder_path);
+            [timeDomainSettings,powerSettings,fftSettings,metaData,...
+                stimSettings,stimMetaData,...
+                detectorSettings,adaptiveStimSettings,adaptiveEmbeddedStimSettings] = processDeviceSettings(folder_path);
             DeviceSettings.timeDomainSettings = timeDomainSettings;
             DeviceSettings.powerSettings = powerSettings;
             DeviceSettings.fftSettings = fftSettings;
             DeviceSettings.metaData = metaData;
+            DeviceSettings.stimSettings = stimSettings;
+            DeviceSettings.stimMetaData = stimMetaData;
+            DeviceSettings.detectorSettings = detectorSettings;
+            DeviceSettings.adaptiveStimSettings = adaptiveStimSettings;
+            DeviceSettings.adaptiveEmbeddedStimSettings = adaptiveEmbeddedStimSettings;
         case 'RawDataTD.json'
             timeDomainDataTable = processTDData(fullfile(folder_path,filename),shortGaps_systemTick);
         case 'RawDataAccel.json'
@@ -59,10 +66,15 @@ for i = 1:length(files2Convert)
         case 'StimLog.json'
             stimLogDataTable = processStimLog(folder_path);
         case 'AdaptiveLog.json'
-            adaptiveLogDataTable = processAdaptiveLog(fullfile(folder_path,filename),shortGaps_systemTick);
+            adaptiveLogDataTable = processAdaptiveLog(fullfile(folder_path,filename),shortGaps_systemTick,DeviceSettings.fftSettings);
     end
     fprintf('Complete.\n\n');
 end
+
+% Combine logs so it is only one thing
+LogTable.events = eventLogDataTable;
+LogTable.stim = stimLogDataTable;
+LogTable.adaptive = adaptiveLogDataTable;
 
 % Save data
 save_path = strrep(folder_path,'Raw Data','Processed Data');
@@ -88,18 +100,28 @@ save(fullfile(save_path,'RawDataFFT.mat'),'fftDataTable');
 save(fullfile(save_path,'EventLog.mat'),'eventLogDataTable');
 save(fullfile(save_path,'StimLog.mat'),'stimLogDataTable');
 save(fullfile(save_path,'AdaptiveLog.mat'),'adaptiveLogDataTable');
+save(fullfile(save_path,'LogTable.mat'),'LogTable');
 fprintf('Complete.\n\n');
 
 fprintf('All files in directory processed.\n');
 fprintf([repmat('=',1,100),'\n']);
 end
 
-function varargout = processDeviceSettings(folder_path)
-[timeDomainSettings,powerSettings,fftSettings,metaData] = createDeviceSettingsTable(folder_path);
+function varargout = processDeviceSettings(folderPath)
+[timeDomainSettings,powerSettings,fftSettings,metaData] = createDeviceSettingsTable(folderPath);
 varargout{1} = timeDomainSettings;
 varargout{2} = powerSettings;
 varargout{3} = fftSettings;
 varargout{4} = metaData;
+
+[stimSettingsOut, stimMetaData] = createStimSettingsFromDeviceSettings(folderPath);
+varargout{5} = stimSettingsOut;
+varargout{6} = stimMetaData;
+
+[DetectorSettings,AdaptiveStimSettings,AdaptiveEmbeddedRuns_StimSettings] = createAdaptiveSettingsfromDeviceSettings(folderPath);
+varargout{7} = DetectorSettings;
+varargout{8} = AdaptiveStimSettings;
+varargout{9} = AdaptiveEmbeddedRuns_StimSettings;
 end
 
 function timeDomainData = processTDData(filename,shortGaps_systemTick)
@@ -108,7 +130,7 @@ if isfield(jsonobj_TD,'TimeDomainData') && ~isempty(jsonobj_TD.TimeDomainData)
     disp('Loading Time Domain Data')
     [outtable_TD, srates_TD] = createTimeDomainTable(jsonobj_TD);
     disp('Creating derivedTimes for time domain:')
-    timeDomainData = assignTime(outtable_TD,shortGaps_systemTick);
+    timeDomainData = assignTime(outtable_TD, shortGaps_systemTick);
 else
     timeDomainData = [];
 end
@@ -117,40 +139,50 @@ end
 function accelData = processAccelData(filename,shortGaps_systemTick)
 jsonobj_Accel = deserializeJSON(filename);
 if isfield(jsonobj_Accel,'AccelData') && ~isempty(jsonobj_Accel.AccelData)
-    disp('Loading Accelerometer Data')
-    [outtable_Accel, srates_Accel] = createAccelTable(jsonobj_Accel);
-    disp('Creating derivedTimes for accelerometer:')
-    accelData = assignTime(outtable_Accel,shortGaps_systemTick);
+    try
+        disp('Loading Accelerometer Data')
+        [outtable_Accel, srates_Accel] = createAccelTable(jsonobj_Accel);
+        disp('Creating derivedTimes for accelerometer:')
+        accelData = assignTime(outtable_Accel, shortGaps_systemTick);
+    catch
+        warning('Accelerometer data present but error when trying to process. Will be excluded.')
+        accelData = [];
+    end
 else
     accelData = [];
 end
 end
 
-function powerData = processPowerData(folder_path,powerSettings,shortGaps_systemTick)
+function powerData = processPowerData(filename,powerSettings,shortGaps_systemTick)
 disp('Loading Power Data')
 % Checking if power data is empty happens within createPowerTable
 % function
-[outtable_Power] = createPowerTable(folder_path);
+[outtable_Power] = createPowerTable(filename);
 
 % Calculate power band cutoffs (in Hz) and add column to powerSettings
 if ~isempty(outtable_Power)
-    % Add samplerate and packetsizes column to outtable_Power -- samplerate is inverse
-    % of fftConfig.interval
-    numSettings = size(powerSettings,1);
-    % Determine if more than one sampling rate across recording
-    for iSetting = 1:numSettings
-        all_powerFs(iSetting) =  1/((powerSettings.fftConfig(iSetting).interval)/1000);
-    end
-    
-    if length(unique(all_powerFs)) > 1
-        % Multiple sample rates for power data in the full file
-        powerData = createDataTableWithMultipleSamplingRates(all_powerFs,powerSettings,outtable_Power,shortGaps_systemTick);
-    else
-        % Same sample rate for power data for the full file
-        powerDomain_sampleRate = unique(all_powerFs);
-        outtable_Power.samplerate(:) = powerDomain_sampleRate;
-        outtable_Power.packetsizes(:) = 1;
-        powerData = assignTime(outtable_Power,shortGaps_systemTick);
+    try
+        % Add samplerate and packetsizes column to outtable_Power -- samplerate is inverse
+        % of fftConfig.interval
+        numSettings = size(powerSettings,1);
+        % Determine if more than one sampling rate across recording
+        for iSetting = 1:numSettings
+            all_powerFs(iSetting) =  1/((powerSettings.fftConfig(iSetting).interval)/1000);
+        end
+        
+        if length(unique(all_powerFs)) > 1
+            % Multiple sample rates for power data in the full file
+            powerData = createDataTableWithMultipleSamplingRates(all_powerFs,powerSettings,outtable_Power,shortGaps_systemTick);
+        else
+            % Same sample rate for power data for the full file
+            powerDomain_sampleRate = unique(all_powerFs);
+            outtable_Power.samplerate(:) = powerDomain_sampleRate;
+            outtable_Power.packetsizes(:) = 1;
+            powerData = assignTime(outtable_Power, shortGaps_systemTick);
+        end
+    catch
+        warning('Power data present but error when trying to process. Will be excluded.')
+        powerData = [];
     end
 else
     powerData = [];
@@ -160,35 +192,40 @@ end
 function FFTData = processFFTData(filename,fftSettings,shortGaps_systemTick)
 jsonobj_FFT = deserializeJSON(filename);
 if isfield(jsonobj_FFT,'FftData') && ~isempty(jsonobj_FFT.FftData)
-    disp('Loading FFT Data')
-    outtable_FFT = createFFTtable(jsonobj_FFT);
-    
-    % Add FFT parameter info to fftSettings
-    numSettings = size(fftSettings,1);
-    for iSetting = 1:numSettings
-        currentFFTconfig = fftSettings.fftConfig(iSetting);
-        currentTDsampleRate = fftSettings.TDsampleRates(iSetting);
-        fftParameters = getFFTparameters(currentFFTconfig,currentTDsampleRate);
-        fftSettings.fftParameters(iSetting) = fftParameters;
-    end
-    % Add samplerate and packetsizes column to outtable_FFT -- samplerate is inverse
-    % of fftConfig.interval; in principle this interval could change
-    % over the course of the recording
-    
-    % Determine if more than one sampling rate across recording
-    for iSetting = 1:numSettings
-        all_fftFs(iSetting) =  1/((fftSettings.fftConfig(iSetting).interval)/1000);
-    end
-    
-    if length(unique(all_fftFs)) > 1
-        FFTData = createDataTableWithMultipleSamplingRates(all_fftFs,fftSettings,outtable_FFT,shortGaps_systemTick);
-    else
-        % Same sample rate for FFT data for the full file
-        FFT_sampleRate = unique(all_powerFs);
-        outtable_FFT.samplerate(:) = FFT_sampleRate;
-        outtable_FFT.packetsizes(:) = 1;
-        disp('Creating derivedTimes for FFT:')
-        FFTData = assignTime(outtable_FFT,shortGaps_systemTick);
+    try
+        disp('Loading FFT Data')
+        outtable_FFT = createFFTtable(jsonobj_FFT);
+        
+        % Add FFT parameter info to fftSettings
+        numSettings = size(fftSettings,1);
+        for iSetting = 1:numSettings
+            currentFFTconfig = fftSettings.fftConfig(iSetting);
+            currentTDsampleRate = fftSettings.TDsampleRates(iSetting);
+            fftParameters = getFFTparameters(currentFFTconfig,currentTDsampleRate);
+            fftSettings.fftParameters(iSetting) = fftParameters;
+        end
+        % Add samplerate and packetsizes column to outtable_FFT -- samplerate is inverse
+        % of fftConfig.interval; in principle this interval could change
+        % over the course of the recording
+        
+        % Determine if more than one sampling rate across recording
+        for iSetting = 1:numSettings
+            all_fftFs(iSetting) =  1/((fftSettings.fftConfig(iSetting).interval)/1000);
+        end
+        
+        if length(unique(all_fftFs)) > 1
+            FFTData = createDataTableWithMultipleSamplingRates(all_fftFs,fftSettings,outtable_FFT,shortGaps_systemTick);
+        else
+            % Same sample rate for FFT data for the full file
+            FFT_sampleRate = unique(all_fftFs);
+            outtable_FFT.samplerate(:) = FFT_sampleRate;
+            outtable_FFT.packetsizes(:) = 1;
+            disp('Creating derivedTimes for FFT:')
+            FFTData = assignTime(outtable_FFT, shortGaps_systemTick);
+        end
+    catch
+        warning('FFT data present but error when trying to process. Will be excluded.')
+        FFTData = [];
     end
 else
     FFTData = [];
@@ -218,7 +255,7 @@ else
 end
 end
 
-function AdaptiveData = processAdaptiveLog(filename,shortGaps_systemTick)
+function AdaptiveData = processAdaptiveLog(filename,shortGaps_systemTick,fftSettings)
 jsonobj_Adaptive = deserializeJSON(filename);
 if isfield(jsonobj_Adaptive,'AdaptiveUpdate') && ~isempty(jsonobj_Adaptive(1).AdaptiveUpdate)
     try

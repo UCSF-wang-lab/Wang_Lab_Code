@@ -124,6 +124,75 @@ if ~isempty(main.UserData.Accel_data) && isfield(main.UserData.Accel_data,'Right
     addEvent('Complete!',1);
 end
 
+%% Align adaptive data to LFP and Acceleration
+addEvent('Checking for adaptive data...');
+if isfield(main.UserData,'LogTable')
+    % Left adaptive data
+    if isfield(main.UserData.LogTable,'Left')
+        if height(main.UserData.LogTable.Left.LogTable.adaptive) > 0
+            addEvent('Left adaptive data...');
+            % Time adjustment to alignement source
+            if ~isnan(main.UserData.alignment_times(1))         % Left LFP mark
+                temp1 = datetime(main.UserData.LogTable.Left.LogTable.adaptive.DerivedTime(1),'ConvertFrom','epochtime','TicksPerSecond',1e3,'Format','dd-MMM-yyyy HH:mm:ss.SSS');
+                temp2 = datetime(main.UserData.LFP_data.Left.timeDomainDataTable.DerivedTime(1),'ConvertFrom','epochtime','TicksPerSecond',1e3,'Format','dd-MMM-yyyy HH:mm:ss.SSS');
+                alignment_adjust = seconds(temp2-temp1);
+                
+                align_time = main.UserData.alignment_times(1) + alignment_adjust;
+                
+            elseif ~isnan(main.UserData.alignment_times(3))     % Left Accel mark
+                temp1 = datetime(main.UserData.LogTable.Left.LogTable.adaptive.DerivedTime(1),'ConvertFrom','epochtime','TicksPerSecond',1e3,'Format','dd-MMM-yyyy HH:mm:ss.SSS');
+                temp2 = datetime(main.UserData.Accel_data.Left.accelDataTable.DerivedTime(1),'ConvertFrom','epochtime','TicksPerSecond',1e3,'Format','dd-MMM-yyyy HH:mm:ss.SSS');
+                alignment_adjust = seconds(temp2-temp1);
+                
+                align_time = main.UserData.alignment_times(3) + alignment_adjust;
+            else
+                addEvent('No alignment point for Left RC+S data.');
+            end
+            
+            adaptive_time = datetime(main.UserData.LogTable.Left.LogTable.adaptive.DerivedTime,'ConvertFrom','epochtime','TicksPerSecond',1e3,'Format','dd-MMM-yyyy HH:mm:ss.SSS');
+            adaptive_time = seconds(adaptive_time-adaptive_time(1));
+            [left_adaptive_taxis,left_adaptive_table] = trimData(adaptive_time,main.UserData.LogTable.Left.LogTable.adaptive,[align_time-pre_align_time,align_time+post_align_time]);
+            
+            aligned_data.left_adaptive_taxis = left_adaptive_taxis;
+            aligned_data.left_adaptive_table = left_adaptive_table;
+            
+            addEvent('Complete!',1);
+        end
+        
+    % Right adpative data
+    elseif isfield(main.UserData.LogTable,'Right')
+        if height(main.UserData.LogTable.Right.LogTable.adaptive) > 0
+            addEvent('Right adaptive data...');
+            % Time adjustment ot alignment source
+            if ~isnan(main.UserData.alignment_times(2))         % Right LFP mark
+                temp1 = datetime(main.UserData.LogTable.Right.LogTable.adaptive.DerivedTime(1),'ConvertFrom','epochtime','TicksPerSecond',1e3,'Format','dd-MMM-yyyy HH:mm:ss.SSS');
+                temp2 = datetime(main.UserData.LFP_data.Right.timeDomainDataTable.DerivedTime(1),'ConvertFrom','epochtime','TicksPerSecond',1e3,'Format','dd-MMM-yyyy HH:mm:ss.SSS');
+                alignment_adjust = seconds(temp2-temp1);
+                
+                align_time = main.UserData.alignment_times(2) + alignment_adjust;
+                
+            elseif ~isnan(main.UserData.alignment_times(4))     % Right Accel mark
+                temp1 = datetime(main.UserData.LogTable.Right.LogTable.adaptive.DerivedTime(1),'ConvertFrom','epochtime','TicksPerSecond',1e3,'Format','dd-MMM-yyyy HH:mm:ss.SSS');
+                temp2 = datetime(main.UserData.Accel_data.Right.accelDataTable.DerivedTime(1),'ConvertFrom','epochtime','TicksPerSecond',1e3,'Format','dd-MMM-yyyy HH:mm:ss.SSS');
+                alignment_adjust = seconds(temp2-temp1);
+                
+                align_time = main.UserData.alignment_times(4) + alignment_adjust;
+            else
+                addEvent('No alignment point for Right RC+S data.');
+            end
+            
+            adaptive_time = datetime(main.UserData.LogTable.Right.LogTable.adaptive.DerivedTime,'ConvertFrom','epochtime','TicksPerSecond',1e3,'Format','dd-MMM-yyyy HH:mm:ss.SSS');
+            adaptive_time = seconds(adaptive_time-adaptive_time(1));
+            [right_adaptive_taxis,right_adaptive_table] = trimData(adaptive_time,main.UserData.LogTable.Right.LogTable.adaptive,[align_time-pre_align_time,align_time+post_align_time]);
+            
+            aligned_data.right_adaptive_taxis = right_adaptive_taxis;
+            aligned_data.right_adaptive_table = right_adaptive_table;
+            
+            addEvent('Complete!',1);
+        end
+    end
+end
+
 %% Trim Other data
 % Delsys (if not marked, assumed same time as Xsens or Force plate)
 if ~isempty(main.UserData.Delsys_data)

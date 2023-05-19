@@ -9,53 +9,108 @@ end
 
 if contains(src.Tag,'Xsens') || contains(src.Tag,'Force') || contains(src.Tag,'rover')
     [filename,path] = uigetfile([basePath,'/*.csv']);
+elseif contains(src.Tag,'Delsys')
+    [filename,path] = uigetfile([basePath,'/*.mat']);
 else
-    [filename,path] = uigetfile(basePath);
-end
-
-try
-    [~,~,ext] = fileparts(filename);
-catch
-    addEvent('No file selected.');
-    return;
-end
-
-try
-    switch ext
-        case '.mat'
-            data = load(fullfile(path,filename));
-        case '.csv'
-            data = readtable(fullfile(path,filename));
+    path = uigetdir();
+    if path == 0
+        addEvent('No folder selected.');
+        return;
     end
-catch
-    warning('Could not open selected file.');
 end
+
+if exist('filename','var') && exist('path','var')
+    try
+        [~,~,ext] = fileparts(filename);
+    catch
+        addEvent('No file selected.');
+        return;
+    end
+    
+    try
+        switch ext
+            case '.mat'
+                data = load(fullfile(path,filename));
+            case '.csv'
+                data = readtable(fullfile(path,filename));
+        end
+    catch
+        warning('Could not open selected file.');
+    end
+    
+elseif ~exist('filename','var') && exist('path','var')
+    file_list = dir(fullfile(path,'*.mat'));
+    for i = 1:length(file_list)
+        if file_list(i).isdir == 0
+            filename = fullfile(file_list(i).folder,file_list(i).name);
+            switch file_list(i).name
+                case "DeviceSettings.mat"
+                    settings_data = load(filename);
+                    str = sprintf('Loaded RC+S DeviceSettings file: %s',filename);
+                    addEvent(str);
+                case "LogTable.mat"
+                    log_data = load(filename);
+                    str = sprintf('Loaded RC+S LogTable file: %s',filename);
+                    addEvent(str);
+                case "RawDataAccel.mat"
+                    accel_data = load(filename);
+                    str = sprintf('Loaded RC+S Acceleration file: %s',filename);
+                    addEvent(str);
+                case "RawDataTD.mat"
+                    td_data = load(filename);
+                    str = sprintf('Loaded RC+S LFP time domain file: %s',filename);
+                    addEvent(str);
+            end
+        end
+    end
+end
+    
 
 switch src.Tag
-    case 'Left_LFP_button'
-        src.Parent.Parent.UserData.LFP_data.Left = data;
-        src.Parent.Parent.UserData.indicators.left_LFP.Value = true;
-        str = sprintf('Loaded RC+S left brain LFP time domain file: %s',fullfile(path,filename));
-    case 'Right_LFP_button'
-        src.Parent.Parent.UserData.LFP_data.Right = data;
-        src.Parent.Parent.UserData.indicators.right_LFP.Value = true;
-        str = sprintf('Loaded RC+S right brain LFP time domain file: %s',fullfile(path,filename));
-    case 'Left_Accel_button'
-        src.Parent.Parent.UserData.Accel_data.Left = data;
-        src.Parent.Parent.UserData.indicators.left_accel.Value = true;
-        str = sprintf('Loaded RC+S left brain acceleration file: %s',fullfile(path,filename));
-    case 'Right_Accel_button'
-        src.Parent.Parent.UserData.Accel_data.Right = data;
-        src.Parent.Parent.UserData.indicators.right_accel.Value = true;
-        str = sprintf('Loaded RC+S right brain acceleration file: %s',fullfile(path,filename));
-    case 'Left_Device_Settings_button'
-        src.Parent.Parent.UserData.DeviceSettings.Left = data.DeviceSettings;
-        src.Parent.Parent.UserData.indicators.left_device_settings.Value = true;
-        str = sprintf('Loaded RC+S left brain recording setting file: %s',fullfile(path,filename));
-    case 'Right_Device_Settings_button'
-        src.Parent.Parent.UserData.DeviceSettings.Right = data.DeviceSettings;
-        src.Parent.Parent.UserData.indicators.right_device_settings.Value = true;
-        str = sprintf('Loaded RC+S right brain recording setting file: %s',fullfile(path,filename));
+    case 'Left_INS_button'
+        if exist('td_data','var')
+            src.Parent.Parent.UserData.LFP_data.Left = td_data;
+            src.Parent.Parent.UserData.indicators.left_LFP.ForegroundColor = [20,136,7]./256;
+        end
+        
+        if exist('accel_data','var')
+            src.Parent.Parent.UserData.Accel_data.Left = accel_data;
+            src.Parent.Parent.UserData.indicators.left_accel.ForegroundColor = [20,136,7]./256;
+        end
+        
+        if exist('settings_data','var')
+            src.Parent.Parent.UserData.DeviceSettings.Left = settings_data;
+            src.Parent.Parent.UserData.indicators.left_settings.ForegroundColor = [20,136,7]./256;
+            
+        end
+        
+        if exist('log_data','var')
+            src.Parent.Parent.UserData.LogTable.Left = log_data;
+            src.Parent.Parent.UserData.indicators.left_logs.ForegroundColor = [20,136,7]./256;
+        end
+        src.Parent.Parent.UserData.indicators.left_INS.Value = true;
+    case 'Right_INS_button'
+        if exist('td_data','var')
+            src.Parent.Parent.UserData.LFP_data.Right = td_data;
+            src.Parent.Parent.UserData.indicators.right_LFP.ForegroundColor = [20,136,7]./256;
+        end
+        
+        if exist('accel_data','var')
+            src.Parent.Parent.UserData.Accel_data.Right = accel_data;
+            src.Parent.Parent.UserData.indicators.right_accel.ForegroundColor = [20,136,7]./256;
+        end
+        
+        if exist('settings_data','var')
+            src.Parent.Parent.UserData.DeviceSettings.Right = settings_data;
+            src.Parent.Parent.UserData.indicators.right_settings.ForegroundColor = [20,136,7]./256;
+        end
+        
+        if exist('log_data','var')
+            src.Parent.Parent.UserData.LogTable.Right = log_data;
+            src.Parent.Parent.UserData.indicators.right_logs.ForegroundColor = [20,136,7]./256;
+        end
+        
+        src.Parent.Parent.UserData.indicators.right_INS.Value = true;
     case 'Delsys_button'
         src.Parent.Parent.UserData.Delsys_data = data;
         src.Parent.Parent.UserData.indicators.delsys.Value = true;
@@ -91,7 +146,9 @@ src.Parent.Parent.UserData.file_names{end+1} = fullfile(path,filename);
 % end
 
 % Add event to logger
-addEvent(str);
+if ~contains(src.Tag,'INS')
+    addEvent(str);
+end
 
 % Update data selection options for plot windows
 updatePlotSelectionOptions([],[]);

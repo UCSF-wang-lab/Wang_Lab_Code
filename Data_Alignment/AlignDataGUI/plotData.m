@@ -16,27 +16,47 @@ end
 window_data_source = src.Parent.Parent.Parent.UserData.plot_options.sources(window,1).String{src.Parent.Parent.Parent.UserData.plot_options.sources(window,1).Value};
 if contains(window_data_source,'LFP')
     if contains(window_data_source,'Left')
+        rcs_time_menu = findobj('Tag','RCSTimeUnit');
         A = src.Parent.Parent.Parent.UserData.LFP_data.Left.timeDomainDataTable.DerivedTime;
         B = datetime(A,'ConvertFrom','epochtime','TicksPerSecond',1e3,'Format','dd-MMM-yyyy HH:mm:ss.SSS');
-        time = seconds(B-B(1));
         data = src.Parent.Parent.Parent.UserData.LFP_data.Left.timeDomainDataTable.(src.String{src.Value});
+        if strcmp(rcs_time_menu.String{rcs_time_menu.Value},'0 Time Start')    
+            time = seconds(B-B(1));
+        else
+            time = B;
+        end
     elseif contains(window_data_source,'Right')
+        rcs_time_menu = findobj('Tag','RCSTimeUnit');
         A = src.Parent.Parent.Parent.UserData.LFP_data.Right.timeDomainDataTable.DerivedTime;
         B = datetime(A,'ConvertFrom','epochtime','TicksPerSecond',1e3,'Format','dd-MMM-yyyy HH:mm:ss.SSS');
-        time = seconds(B-B(1));
         data = src.Parent.Parent.Parent.UserData.LFP_data.Right.timeDomainDataTable.(src.String{src.Value});
+        if strcmp(rcs_time_menu.String{rcs_time_menu.Value},'0 Time Start')    
+            time = seconds(B-B(1));
+        else
+            time = B;
+        end
     end
 elseif contains(window_data_source,'Accel')
     if contains(window_data_source,'Left')
+        rcs_time_menu = findobj('Tag','RCSTimeUnit');
         A = src.Parent.Parent.Parent.UserData.Accel_data.Left.accelDataTable.DerivedTime;
         B = datetime(A,'ConvertFrom','epochtime','TicksPerSecond',1e3,'Format','dd-MMM-yyyy HH:mm:ss.SSS');
-        time = seconds(B-B(1));
         data = src.Parent.Parent.Parent.UserData.Accel_data.Left.accelDataTable.(src.String{src.Value});
+        if strcmp(rcs_time_menu.String{rcs_time_menu.Value},'0 Time Start')    
+            time = seconds(B-B(1));
+        else
+            time = B;
+        end
     elseif contains(window_data_source,'Right')
+        rcs_time_menu = findobj('Tag','RCSTimeUnit');
         A = src.Parent.Parent.Parent.UserData.Accel_data.Right.accelDataTable.DerivedTime;
         B = datetime(A,'ConvertFrom','epochtime','TicksPerSecond',1e3,'Format','dd-MMM-yyyy HH:mm:ss.SSS');
-        time = seconds(B-B(1));
         data = src.Parent.Parent.Parent.UserData.Accel_data.Right.accelDataTable.(src.String{src.Value});
+        if strcmp(rcs_time_menu.String{rcs_time_menu.Value},'0 Time Start')    
+            time = seconds(B-B(1));
+        else
+            time = B;
+        end
     end
 elseif contains(window_data_source,'Delsys')
     time = src.Parent.Parent.Parent.UserData.Delsys_data.out_struct.Time.(src.String{src.Value});

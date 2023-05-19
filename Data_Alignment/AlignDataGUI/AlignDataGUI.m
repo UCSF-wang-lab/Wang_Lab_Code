@@ -43,6 +43,7 @@ event_panel = uicontrol('Parent',main_window,...
 main_window.UserData.LFP_data = [];
 main_window.UserData.Accel_data = [];
 main_window.UserData.DeviceSettings = [];
+main_window.UserData.LogTable = [];
 main_window.UserData.Delsys_data = [];
 main_window.UserData.Xsens_data = [];
 main_window.UserData.FP_data = [];
