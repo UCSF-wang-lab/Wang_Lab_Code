@@ -129,7 +129,7 @@ addEvent('Checking for adaptive data...');
 if isfield(main.UserData,'LogTable')
     % Left adaptive data
     if isfield(main.UserData.LogTable,'Left')
-        if height(main.UserData.LogTable.Left.LogTable.adaptive) > 0
+        if ~isempty(main.UserData.LogTable.Left.LogTable.adaptive) && height(main.UserData.LogTable.Left.LogTable.adaptive) > 0
             addEvent('Left adaptive data...');
             % Time adjustment to alignement source
             if ~isnan(main.UserData.alignment_times(1))         % Left LFP mark
