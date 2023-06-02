@@ -158,9 +158,10 @@ if isfield(main.UserData,'LogTable')
             
             addEvent('Complete!',1);
         end
+    end
         
     % Right adpative data
-    elseif isfield(main.UserData.LogTable,'Right')
+    if isfield(main.UserData.LogTable,'Right')
         if height(main.UserData.LogTable.Right.LogTable.adaptive) > 0
             addEvent('Right adaptive data...');
             % Time adjustment ot alignment source
