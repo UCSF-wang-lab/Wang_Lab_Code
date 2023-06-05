@@ -79,9 +79,8 @@ switch src.Tag
         end
         
         if exist('settings_data','var')
-            src.Parent.Parent.UserData.DeviceSettings.Left = settings_data;
+            src.Parent.Parent.UserData.DeviceSettings.Left = settings_data.DeviceSettings;
             src.Parent.Parent.UserData.indicators.left_settings.ForegroundColor = [20,136,7]./256;
-            
         end
         
         if exist('log_data','var')
@@ -101,7 +100,7 @@ switch src.Tag
         end
         
         if exist('settings_data','var')
-            src.Parent.Parent.UserData.DeviceSettings.Right = settings_data;
+            src.Parent.Parent.UserData.DeviceSettings.Right = settings_data.DeviceSettings;
             src.Parent.Parent.UserData.indicators.right_settings.ForegroundColor = [20,136,7]./256;
         end
         
