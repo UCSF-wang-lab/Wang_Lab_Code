@@ -53,7 +53,7 @@ while ~feof(fid)
         for i = 1:length(vals)
             if i == 1
                 temp = strsplit(vals{i},'/');
-                date_vec{entry_count,1} = datetime(year(datetime),str2double(temp{1}),str2double(temp{2}));
+                date_vec{entry_count,1} = datetime(str2double(['20',temp{3}]),str2double(temp{1}),str2double(temp{2}));
             elseif i == 2
                 temp = strsplit(vals{i},':');
                 if length(temp{1}) == 1

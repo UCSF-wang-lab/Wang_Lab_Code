@@ -147,11 +147,15 @@ else
 end
 
 % power band info
-temp = [device_settings.powerSettings.powerBands(1).lowerBound';device_settings.powerSettings.powerBands(1).upperBound'];
-temp = temp(:)';      % slick way to interleave values
-temp = sprintf('%.4f|',temp);
-temp = temp(1:end-1);
-power_bands{1} = temp;
+if ~isempty(device_settings.powerSettings)
+    temp = [device_settings.powerSettings.powerBands(1).lowerBound';device_settings.powerSettings.powerBands(1).upperBound'];
+    temp = temp(:)';      % slick way to interleave values
+    temp = sprintf('%.4f|',temp);
+    temp = temp(1:end-1);
+    power_bands{1} = temp;
+else
+    power_bands{1} = [];
+end
 
 % adaptive settings
 if exist('adaptive_settings','var')
