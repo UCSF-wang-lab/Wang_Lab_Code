@@ -28,12 +28,25 @@ def calcThresholdAccuracySwingPhase(RCS_time,RCS_data,event_timings,threshold_va
 
     # Get number of data points and gait events
     n_data_points = RCS_data.shape[0]
-    n_events = event_timings.shape[0]
+    
+    temp = event_timings.iloc[:,1]>=RCS_time[0]
+    start_block = 0
+    for i in range(len(temp)):
+        if temp[i]:
+            start_block = i
+            break
+
+    temp = event_timings.iloc[:,1]<=RCS_time[RCS_time.shape[0]-1]
+    end_block = event_timings.shape[0]
+    for i in range(len(temp))[::-1]:
+        if temp[i]:
+            end_block = i
+            break
 
     # initialize arrays
     detector_state = np.zeros((n_data_points,1))
     correct_state = np.zeros((n_data_points,1))
-    correct_swing = np.zeros((n_events,1))
+    correct_swing = np.zeros(((end_block-start_block)+1,1))
 
     for i in range(len(RCS_data)):
         # Determine the detector state
@@ -51,11 +64,13 @@ def calcThresholdAccuracySwingPhase(RCS_time,RCS_data,event_timings,threshold_va
         if sum(C) >= 1 and detector_state[i] == 1:
             correct_state[i] = 1;   # detector should be in stim state since it is within the double support period
             swing_ind = np.where(C==True)[0][0]
-            correct_swing[swing_ind] = 1
+            if swing_ind <= end_block:
+                correct_swing[swing_ind-start_block] = 1
         elif sum(C) >= 1 and detector_state[i] == 0:
             correct_state[i] = 0;   # detector should be in stim state, but it is not
             swing_ind = np.where(C==True)[0][0]
-            correct_swing[swing_ind] = 0
+            if swing_ind <= end_block:
+                correct_swing[swing_ind-start_block] = 0
         elif sum(C) == 0 and detector_state[i] == 1:
             correct_state[i] = 0;   # detector in stim state, but it shouldn't be because it is not during double support period
         elif sum(C) == 0 and detector_state[i] == 0:
