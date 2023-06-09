@@ -55,14 +55,14 @@ def calcThresholdAccuracySwingPhase(RCS_time,RCS_data,event_timings,threshold_va
         else:
             detector_state[i] = 0
 
-        # Check to see if the current time point is within the double support
+        # Check to see if the current time point is within the swing phase
         # period. Then, compare if the state is correct.
         A = RCS_time[i] >= event_timings.iloc[:,0]
         B = RCS_time[i] <= event_timings.iloc[:,1]
         C = np.logical_and(A,B)
 
         if sum(C) >= 1 and detector_state[i] == 1:
-            correct_state[i] = 1;   # detector should be in stim state since it is within the double support period
+            correct_state[i] = 1;   # detector should be in stim state since it is within the swing phase period
             swing_ind = np.where(C==True)[0][0]
             if swing_ind <= end_block:
                 correct_swing[swing_ind-start_block] = 1
@@ -77,18 +77,20 @@ def calcThresholdAccuracySwingPhase(RCS_time,RCS_data,event_timings,threshold_va
             correct_state[i] = 1;   # detector is not stim state, this is correct
     
     # Determine how many nan's there are. These should not be counted in the accuracy calculations
-    D = np.where(event_timings.iloc[:,0].isnull().values==True)[0]
-    E = np.where(event_timings.iloc[:,1].isnull().values==True)[0]
+    D = np.where(event_timings.iloc[start_block:end_block,0].isnull().values==True)[0]
+    E = np.where(event_timings.iloc[start_block:end_block,1].isnull().values==True)[0]
     n_nans = len(list(set().union(D,E)))
 
     # Determine how many double support times would not have been detected anyway
-    event_not_detected = np.zeros((event_timings.shape[0],1))
-    for j in range(event_timings.shape[0]):
+    event_not_detected = np.zeros((correct_swing.shape[0],1))
+    count = 0
+    for j in range((end_block-start_block)+1):
         if not (np.isnan(event_timings.iloc[j,0])) | (np.isnan(event_timings.iloc[j,1])):
             F = RCS_time >= event_timings.iloc[j,0]
             G = RCS_time <= event_timings.iloc[j,1]
             if sum(F&G) == 0:
-                event_not_detected[j] = 1
+                event_not_detected[count] = 1
+        count += 1
 
     full_thresh_accuracy = sum(correct_state)/len(correct_state)
     swing_thresh_accuracy = sum(correct_swing)/(len(correct_swing)-n_nans-sum(event_not_detected))
