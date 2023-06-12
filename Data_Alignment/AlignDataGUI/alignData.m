@@ -274,6 +274,8 @@ if ~isempty(main.UserData.Rover_data)
     addEvent('Left Rover...');
     if ~isnan(main.UserData.alignment_times(8))
         align_time = main.UserData.alignment_times(8);
+    elseif isnan(main.UserData.alignment_times(8)) && ~isnan(main.UserData.alignment_times(9))  % Left Rover alignement doesn't exist but right Rover does. Use right rover to align
+        align_time = main.UserData.alignment_times(9);
     else
         addEvent('No alignment point for Left Rover data.',1);
         return;
@@ -286,6 +288,8 @@ if ~isempty(main.UserData.Rover_data)
     addEvent('Right Rover...');
     if ~isnan(main.UserData.alignment_times(9))
         align_time = main.UserData.alignment_times(9);
+    elseif isnan(main.UserData.alignment_times(9)) && ~isnan(main.UserData.alignment_times(8))  % Right Rover alignment doesn't exist but left Rover does. Use left rover to align
+        align_time = main.UserData.alignment_times(8);
     else
         addEvent('No alignment point for Right Rover data.',1);
         return;
