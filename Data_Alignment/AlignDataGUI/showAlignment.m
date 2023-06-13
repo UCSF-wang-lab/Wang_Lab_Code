@@ -66,7 +66,7 @@ if isfield(aligned_data,'left_Accel_table') || isfield(aligned_data,'right_Accel
             plot(ax(1),aligned_data.left_accel_taxis,aligned_data.left_Accel_table.(data_sources{3}),'-k');
             title(['Left RCS Accel ',data_sources{3}]);
         else
-            plot(ax(1),aaligned_data.left_accel_taxis,aligned_data.left_Accel_table.XSamples,'-k');
+            plot(ax(1),aligned_data.left_accel_taxis,aligned_data.left_Accel_table.XSamples,'-k');
             title('Left RCS Accel XSamples');
         end
     end
@@ -78,6 +78,7 @@ if isfield(aligned_data,'left_Accel_table') || isfield(aligned_data,'right_Accel
             title(['Right RCS Accel ',data_sources{4}]);
         else
             plot(ax(2),aligned_data.right_accel_taxis,aligned_data.right_Accel_table.XSamples,'-k');
+            title('Right RCS Accel XSamples');
         end
     end
     

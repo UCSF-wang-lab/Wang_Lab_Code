@@ -1,5 +1,6 @@
 function alignData(src,event)
 main = src.Parent.Parent;
+rcs_time_menu = findobj('Tag','RCSTimeUnit');
 aligned_data = [];
 
 if main.UserData.pre_alignment_time < 0
@@ -25,13 +26,23 @@ if ~isempty(main.UserData.LFP_data) && isfield(main.UserData.LFP_data,'Left')
     addEvent('Left LFP...');
     
     if ~isnan(main.UserData.alignment_times(1))         % Left LFP mark
-        align_time = main.UserData.alignment_times(1);
+        if (floor(main.UserData.alignment_times(1))~=main.UserData.alignment_times(1))
+            align_time = main.UserData.alignment_times(1);
+        else
+            time_mark = datetime(main.UserData.LFP_data.Left.timeDomainDataTable.DerivedTime(main.UserData.alignment_times(1)),'ConvertFrom','epochtime','TicksPerSecond',1e3,'Format','dd-MMM-yyyy HH:mm:ss.SSS');
+            start_time = datetime(main.UserData.LFP_data.Left.timeDomainDataTable.DerivedTime(1),'ConvertFrom','epochtime','TicksPerSecond',1e3,'Format','dd-MMM-yyyy HH:mm:ss.SSS');
+            align_time = seconds(time_mark-start_time);
+        end
     elseif ~isnan(main.UserData.alignment_times(3))     % Left Accel mark
         temp1 = datetime(main.UserData.LFP_data.Left.timeDomainDataTable.DerivedTime(1),'ConvertFrom','epochtime','TicksPerSecond',1e3,'Format','dd-MMM-yyyy HH:mm:ss.SSS');
         temp2 = datetime(main.UserData.Accel_data.Left.accelDataTable.DerivedTime(1),'ConvertFrom','epochtime','TicksPerSecond',1e3,'Format','dd-MMM-yyyy HH:mm:ss.SSS');
         alignment_adjust = seconds(temp2-temp1);
-        
-        align_time = main.UserData.alignment_times(3) + alignment_adjust;
+        if (floor(main.UserData.alignment_times(3))~=main.UserData.alignment_times(3))
+            align_time = main.UserData.alignment_times(3) + alignment_adjust;
+        else
+            temp3 = datetime(main.UserData.Accel_data.Left.accelDataTable.DerivedTime(main.UserData.alignment_times(3)),'ConvertFrom','epochtime','TicksPerSecond',1e3,'Format','dd-MMM-yyyy HH:mm:ss.SSS');
+            align_time = seconds(temp3-temp1) + alignment_adjust;
+        end
     else
         addEvent('No alignment point for Left RC+S data.');
     end
@@ -51,13 +62,24 @@ if ~isempty(main.UserData.Accel_data) && isfield(main.UserData.Accel_data,'Left'
     addEvent('Left Acceleration...');
     
     if ~isnan(main.UserData.alignment_times(3))         % Left Accel mark
-        align_time = main.UserData.alignment_times(3);
+        if (floor(main.UserData.alignment_times(3))~=main.UserData.alignment_times(3))
+            align_time = main.UserData.alignment_times(3);
+        else
+            time_mark = datetime(main.UserData.Accel_data.Left.accelDataTable.DerivedTime(main.UserData.alignment_times(3)),'ConvertFrom','epochtime','TicksPerSecond',1e3,'Format','dd-MMM-yyyy HH:mm:ss.SSS');
+            start_time = datetime(main.UserData.Accel_data.Left.accelDataTable.DerivedTime(1),'ConvertFrom','epochtime','TicksPerSecond',1e3,'Format','dd-MMM-yyyy HH:mm:ss.SSS');
+            align_time = seconds(time_mark-start_time);
+        end
     elseif ~isnan(main.UserData.alignment_times(1))     % Left LFP mark
         temp1 = datetime(main.UserData.Accel_data.Left.accelDataTable.DerivedTime(1),'ConvertFrom','epochtime','TicksPerSecond',1e3,'Format','dd-MMM-yyyy HH:mm:ss.SSS');
         temp2 = datetime(main.UserData.LFP_data.Left.timeDomainDataTable.DerivedTime(1),'ConvertFrom','epochtime','TicksPerSecond',1e3,'Format','dd-MMM-yyyy HH:mm:ss.SSS');
         alignment_adjust = seconds(temp2-temp1);
-        
-        align_time = main.UserData.alignment_times(1) + alignment_adjust;
+
+        if (floor(main.UserData.alignment_times(1))~=main.UserData.alignment_times(1))
+            align_time = main.UserData.alignment_times(1) + alignment_adjust;
+        else
+            temp3 = datetime(main.UserData.LFP_data.Left.timeDomainDataTable.DerivedTime(main.UserData.alignment_times(1)),'ConvertFrom','epochtime','TicksPerSecond',1e3,'Format','dd-MMM-yyyy HH:mm:ss.SSS');
+            align_time = seconds(temp3-temp1) + alignment_adjust;
+        end
     else
         addEvent('No alignment point for Left RC+S data.');
     end
@@ -77,13 +99,24 @@ if ~isempty(main.UserData.LFP_data) && isfield(main.UserData.LFP_data,'Right')
     addEvent('Right LFP...');
     
     if ~isnan(main.UserData.alignment_times(2))         % Right LFP mark
-        align_time = main.UserData.alignment_times(2);
+        if (floor(main.UserData.alignment_times(2))~=main.UserData.alignment_times(2))
+            align_time = main.UserData.alignment_times(2);
+        else
+            time_mark = datetime(main.UserData.LFP_data.Right.timeDomainDataTable.DerivedTime(main.UserData.alignment_times(2)),'ConvertFrom','epochtime','TicksPerSecond',1e3,'Format','dd-MMM-yyyy HH:mm:ss.SSS');
+            start_time = datetime(main.UserData.LFP_data.Right.timeDomainDataTable.DerivedTime(1),'ConvertFrom','epochtime','TicksPerSecond',1e3,'Format','dd-MMM-yyyy HH:mm:ss.SSS'); 
+            align_time = seconds(time_mark-start_time);
+        end
     elseif ~isnan(main.UserData.alignment_times(4))     % Right Accel mark
         temp1 = datetime(main.UserData.LFP_data.Right.timeDomainDataTable.DerivedTime(1),'ConvertFrom','epochtime','TicksPerSecond',1e3,'Format','dd-MMM-yyyy HH:mm:ss.SSS');
         temp2 = datetime(main.UserData.Accel_data.Right.accelDataTable.DerivedTime(1),'ConvertFrom','epochtime','TicksPerSecond',1e3,'Format','dd-MMM-yyyy HH:mm:ss.SSS');
         alignment_adjust = seconds(temp2-temp1);
-        
-        align_time = main.UserData.alignment_times(4) + alignment_adjust;
+
+        if (floor(main.UserData.alignment_times(4))~=main.UserData.alignment_times(4))
+            align_time = main.UserData.alignment_times(4) + alignment_adjust;
+        else
+            temp3 = datetime(main.UserData.Accel_data.Right.accelDataTable.DerivedTime(main.UserData.alignment_times(4)),'ConvertFrom','epochtime','TicksPerSecond',1e3,'Format','dd-MMM-yyyy HH:mm:ss.SSS');
+            align_time = seconds(temp3-temp1) + alignment_adjust;
+        end
     else
         addEvent('No alignment point for Right RC+S data.');
     end
@@ -103,13 +136,24 @@ if ~isempty(main.UserData.Accel_data) && isfield(main.UserData.Accel_data,'Right
     addEvent('Right Acceleration...');
     
     if ~isnan(main.UserData.alignment_times(4))         % Right Accel mark
-        align_time = main.UserData.alignment_times(4);
+        if (floor(main.UserData.alignment_times(4))~=main.UserData.alignment_times(4))
+            align_time = main.UserData.alignment_times(4);
+        else
+            time_mark = datetime(main.UserData.Accel_data.Right.accelDataTable.DerivedTime(main.UserData.alignment_times(4)),'ConvertFrom','epochtime','TicksPerSecond',1e3,'Format','dd-MMM-yyyy HH:mm:ss.SSS');
+            start_time = datetime(main.UserData.Accel_data.Right.accelDataTable.DerivedTime(1),'ConvertFrom','epochtime','TicksPerSecond',1e3,'Format','dd-MMM-yyyy HH:mm:ss.SSS');
+            align_time = seconds(time_mark-start_time);
+        end
     elseif ~isnan(main.UserData.alignment_times(2))     % Right LFP mark
         temp1 = datetime(main.UserData.Accel_data.Right.accelDataTable.DerivedTime(1),'ConvertFrom','epochtime','TicksPerSecond',1e3,'Format','dd-MMM-yyyy HH:mm:ss.SSS');
         temp2 = datetime(main.UserData.LFP_data.Right.timeDomainDataTable.DerivedTime(1),'ConvertFrom','epochtime','TicksPerSecond',1e3,'Format','dd-MMM-yyyy HH:mm:ss.SSS');
         alignment_adjust = seconds(temp2-temp1);
         
-        align_time = main.UserData.alignment_times(2) + alignment_adjust;
+        if (floor(main.UserData.alignment_times(2))~=main.UserData.alignment_times(2))
+            align_time = main.UserData.alignment_times(2) + alignment_adjust;
+        else
+            temp3 = datetime(main.UserData.LFP_data.Right.timeDomainDataTable.DerivedTime(main.UserData.alignment_times(2)),'ConvertFrom','epochtime','TicksPerSecond',1e3,'Format','dd-MMM-yyyy HH:mm:ss.SSS');
+            align_time = seconds(temp3-temp1) + alignment_adjust;
+        end
     else
         addEvent('No alignment point for Right RC+S data.');
     end

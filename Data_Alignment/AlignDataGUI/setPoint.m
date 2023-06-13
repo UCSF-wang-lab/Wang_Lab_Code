@@ -6,25 +6,46 @@ function txt = setPoint(~,cursor_info)
 % Date:     05/04/21
 
 main_window = findobj('Tag','AlignData_main_window');
+rcs_time_menu = findobj('Tag','RCSTimeUnit');
 
 plot_window_name = cursor_info.Target.Parent.Title.String;
 colon_ind = strfind(plot_window_name,':');
 data_source_name = plot_window_name(colon_ind+2:end);
 if contains(plot_window_name,'Left') && contains(plot_window_name,'LFP')
-    main_window.UserData.alignment_times(1) = cursor_info.Position(1);
-    main_window.UserData.alignment_times_text(1).String = sprintf('Left RC+S = %7.4f',main_window.UserData.alignment_times(1));
+    if strcmp(rcs_time_menu.String{rcs_time_menu.Value},'0 Time Start')  
+        main_window.UserData.alignment_times(1) = cursor_info.Position(1);
+        main_window.UserData.alignment_times_text(1).String = sprintf('Left RC+S = %7.4f',main_window.UserData.alignment_times(1));
+    else
+        main_window.UserData.alignment_times(1) = cursor_info.Target.Children.DataIndex;  % Use the data index instead of the data tip x position because it gives it in releative units
+        main_window.UserData.alignment_times_text(1).String = sprintf('Left RC+S = %s',string(timeofday(cursor_info.Target.XData(main_window.UserData.alignment_times(1))),'hh:mm:ss.SSS'));
+    end
     main_window.UserData.alignment_source{1} = data_source_name;
 elseif contains(plot_window_name,'Right') && contains(plot_window_name,'LFP')
-    main_window.UserData.alignment_times(2) = cursor_info.Position(1);
-    main_window.UserData.alignment_times_text(2).String = sprintf('Right RC+S = %7.4f',main_window.UserData.alignment_times(2));
+    if strcmp(rcs_time_menu.String{rcs_time_menu.Value},'0 Time Start')  
+        main_window.UserData.alignment_times(2) = cursor_info.Position(1);
+        main_window.UserData.alignment_times_text(2).String = sprintf('Right RC+S = %7.4f',main_window.UserData.alignment_times(2));
+    else
+        main_window.UserData.alignment_times(2) = cursor_info.Target.Children.DataIndex;  % Use the data index instead of the data tip x position because it gives it in releative units
+        main_window.UserData.alignment_times_text(2).String = sprintf('Right RC+S = %s',string(timeofday(cursor_info.Target.XData(main_window.UserData.alignment_times(2))),'hh:mm:ss.SSS'));
+    end
     main_window.UserData.alignment_source{2} = data_source_name;
 elseif contains(plot_window_name,'Left') && contains(plot_window_name,'Accel') && ~contains(plot_window_name,'Linear')
-    main_window.UserData.alignment_times(3) = cursor_info.Position(1);
-    main_window.UserData.alignment_times_text(3).String = sprintf('Left RC+S Accel = %7.4f',main_window.UserData.alignment_times(3));
+    if strcmp(rcs_time_menu.String{rcs_time_menu.Value},'0 Time Start')  
+        main_window.UserData.alignment_times(3) = cursor_info.Position(1);
+        main_window.UserData.alignment_times_text(3).String = sprintf('Left RC+S Accel = %7.4f',main_window.UserData.alignment_times(3));
+    else
+        main_window.UserData.alignment_times(3) = cursor_info.Target.Children.DataIndex;  % Use the data index instead of the data tip x position because it gives it in releative units
+        main_window.UserData.alignment_times_text(3).String = sprintf('Left RC+S Accel = %s',string(timeofday(cursor_info.Target.XData(main_window.UserData.alignment_times(3))),'hh:mm:ss.SSS'));
+    end
     main_window.UserData.alignment_source{3} = data_source_name;
 elseif contains(plot_window_name,'Right') && contains(plot_window_name,'Accel') && ~contains(plot_window_name,'Linear')
-    main_window.UserData.alignment_times(4) = cursor_info.Position(1);
-    main_window.UserData.alignment_times_text(4).String = sprintf('Right RC+S Accel = %7.4f',main_window.UserData.alignment_times(4));
+    if strcmp(rcs_time_menu.String{rcs_time_menu.Value},'0 Time Start')  
+        main_window.UserData.alignment_times(4) = cursor_info.Position(1);
+        main_window.UserData.alignment_times_text(4).String = sprintf('Right RC+S Accel = %7.4f',main_window.UserData.alignment_times(4));
+    else
+        main_window.UserData.alignment_times(4) = cursor_info.Target.Children.DataIndex;  % Use the data index instead of the data tip x position because it gives it in releative units
+        main_window.UserData.alignment_times_text(4).String = sprintf('Right RC+S Accel = %s',string(timeofday(cursor_info.Target.XData(main_window.UserData.alignment_times(4))),'hh:mm:ss.SSS'));
+    end
     main_window.UserData.alignment_source{4} = data_source_name;
 elseif contains(plot_window_name,'Delsys')
     main_window.UserData.alignment_times(5) = cursor_info.Position(1);
