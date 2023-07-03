@@ -1,6 +1,6 @@
-function singleGaitCycleRastergram(file_name,varargin)
+function singleGaitCycleRastergram(file_names,varargin)
 
-% go through optional inputs
+%% go through optional inputs
 for i = 1:2:nargin-1
     switch varargin{i}
         case 'analysisType'
@@ -30,116 +30,156 @@ if ~exist('savePlot','var')
     savePlot = false;
 end
 
-
-% load in data and calculate cwt
-load(file_name);
-
-% Calculate spectral data
-if strcmp(analysis_type,'FT')
-    lfp_spec = calcRCS_STFT(aligned_data,[],1,0.9,[]);
-elseif strcmp(analysis_type,'CWT')
-    lfp_spec = calcRCS_CWT(aligned_data);
-end
+% colors for gait events
+marker_colors = CBMap('GaitEvents');
 
 % set frequency bands and channel names
-% freq_bands = [1,4;...       % delta
-%               4,8;...       % theta
-%               8,13;...      % alpha
-%               13,30;...     % beta
-%               30,50];       % low gamma
-% freq_bands_names = {'Delta','Theta','Alpha','Beta','Low Gamma'};
-
 freq_bands = [4,8;...       % theta
-              8,13;...      % alpha
-              13,30;...     % beta
-              13,20;...     % low beta
-              20,30;...     % high beta
-              30,50];       % low gamma
+    8,13;...      % alpha
+    13,30;...     % beta
+    13,20;...     % low beta
+    20,30;...     % high beta
+    30,50];       % low gamma
 freq_bands_names = {'Theta','Alpha','Beta','Low Beta','High Beta','Low Gamma'};
 chan_names = {'+2-0','+3-1','+9-8','+11-10'};
 
-% sort gait events and extract valid gait cycles
-gait_events_ordered = sortGaitEvents(aligned_data.gait_events,'LHS');
+% varibles to hold all the data from all files passed in
+left_single_gait_cycle_cell_all = [];
+right_single_gait_cycle_cell_all = [];
 
-gc_test = ~isnan(gait_events_ordered.LHS(2:end)-gait_events_ordered.LHS(1:end-1));
-gc_test2 = (gait_events_ordered.LHS(2:end)-gait_events_ordered.LHS(1:end-1)) < 1.8;
-valid_gc = and(gc_test,gc_test2);
-left_single_gait_cycle_cell = cell(size(freq_bands,1),sum(valid_gc),4);   % freq_band x gait cycle x recording area
-right_single_gait_cycle_cell = cell(size(freq_bands,1),sum(valid_gc),4);   % freq_band x gait cycle x recording area
+left_RTO_relative_time = [];
+left_RHS_relative_time = [];
+left_LTO_relative_time = [];
+right_RTO_relative_time = [];
+right_RHS_relative_time = [];
+right_LTO_relative_time = [];
 
-% extract power data
-if isfield(lfp_spec,'Left')
-    count = 1;
-    for j = 1:length(valid_gc)
-        if valid_gc(j)
-            for k = 1:length(lfp_spec.Left.Chan_Names)
-                time_inds = getTimeInds(lfp_spec.Left.Time{k},gait_events_ordered.LHS(j),gait_events_ordered.LHS(j+1));
-                for m = 1:size(freq_bands,1)
-                    freq_inds = getFreqInds(lfp_spec.Left.Freq_Values{k},freq_bands(m,1),freq_bands(m,2));
-                    gc_data = lfp_spec.Left.Values{k}([freq_inds(1):freq_inds(2)],[time_inds(1):time_inds(2)]);
-                    left_single_gait_cycle_cell{m,count,k} = mean(abs(gc_data));
-                end
-            end
-            count = count + 1;
-        end
+%% Loop through files passed in
+for f = 1:length(file_names)
+    % load in data and calculate cwt
+    load(file_names{f});
+
+    % Calculate spectral data
+    if strcmp(analysis_type,'FT')
+        lfp_spec = calcRCS_STFT(aligned_data,[],1,0.9,[]);
+    elseif strcmp(analysis_type,'CWT')
+        lfp_spec = calcRCS_CWT(aligned_data);
     end
 
-    % normalize data
-    left_single_gait_cycle_cell_norm = normalizeSingleGaitCycle(left_single_gait_cycle_cell,lfp_spec.Left,gait_events_ordered,freq_bands,normalizationType);
-end
 
-if isfield(lfp_spec,'Right')
-    count = 1;
-    for j = 1:length(valid_gc)
-        if valid_gc(j)
-            for k = 1:length(lfp_spec.Right.Chan_Names)
-                time_inds = getTimeInds(lfp_spec.Right.Time{k},gait_events_ordered.LHS(j),gait_events_ordered.LHS(j+1));
-                for m = 1:size(freq_bands,1)
-                    freq_inds = getFreqInds(lfp_spec.Right.Freq_Values{k},freq_bands(m,1),freq_bands(m,2));
-                    gc_data = lfp_spec.Right.Values{k}([freq_inds(1):freq_inds(2)],[time_inds(1):time_inds(2)]);
-                    right_single_gait_cycle_cell{m,count,k} = mean(abs(gc_data));
+    % detect and remove turns from inclusion
+    gait_events_turns_removed = removeGaitCyclesTurns(aligned_data.gait_events);
+
+    % sort gait events and extract valid gait cycles
+    gait_events_ordered = sortGaitEvents(gait_events_turns_removed,'LHS');
+
+
+    % extract power data
+    if isfield(lfp_spec,'Left')
+        % determine valid gait cycles
+        gc_start_search = find(gait_events_ordered.LHS>=lfp_spec.Left.Time{1}(1),1,'first');
+        gc_end_search = find(gait_events_ordered.LHS<=lfp_spec.Left.Time{1}(end),1,'last');
+        gait_events_ordered_trim = gait_events_ordered(gc_start_search:gc_end_search,:);
+
+        gc_test = ~isnan(gait_events_ordered_trim.LHS(2:end)-gait_events_ordered_trim.LHS(1:end-1));
+        gc_test2 = (gait_events_ordered_trim.LHS(2:end)-gait_events_ordered_trim.LHS(1:end-1)) < 1.8;
+        valid_gc = gc_test&gc_test2;
+        left_single_gait_cycle_cell = cell(size(freq_bands,1),sum(valid_gc),4);   % freq_band x gait cycle x recording area
+
+        count = 1;
+        for j = 1:length(valid_gc)
+            if valid_gc(j)
+                for k = 1:length(lfp_spec.Left.Chan_Names)
+                    time_inds = getTimeInds(lfp_spec.Left.Time{k},gait_events_ordered_trim.LHS(j),gait_events_ordered_trim.LHS(j+1));
+                    for m = 1:size(freq_bands,1)
+                        freq_inds = getFreqInds(lfp_spec.Left.Freq_Values{k},freq_bands(m,1),freq_bands(m,2));
+                        gc_data = lfp_spec.Left.Values{k}([freq_inds(1):freq_inds(2)],[time_inds(1):time_inds(2)]);
+                        left_single_gait_cycle_cell{m,count,k} = mean(abs(gc_data));
+                    end
                 end
+                count = count + 1;
             end
-            count = count + 1;
         end
+
+        % normalize data
+        left_single_gait_cycle_cell_norm = normalizeSingleGaitCycle(left_single_gait_cycle_cell,lfp_spec.Left,gait_events_ordered_trim,freq_bands,normalizationType);
+        left_single_gait_cycle_cell_all = [left_single_gait_cycle_cell_all,left_single_gait_cycle_cell_norm];
+
+        % calc event time markers from LHS
+        left_RTO_relative_time = [left_RTO_relative_time;gait_events_ordered_trim.('RTO')(valid_gc)-gait_events_ordered_trim.LHS(valid_gc)];
+        left_RHS_relative_time = [left_RHS_relative_time;gait_events_ordered_trim.('RHS')(valid_gc)-gait_events_ordered_trim.LHS(valid_gc)];
+        left_LTO_relative_time = [left_LTO_relative_time;gait_events_ordered_trim.('LTO')(valid_gc)-gait_events_ordered_trim.LHS(valid_gc)];
     end
-    % normalize data
-    right_single_gait_cycle_cell_norm = normalizeSingleGaitCycle(right_single_gait_cycle_cell,lfp_spec.Right,gait_events_ordered,freq_bands,normalizationType);
+
+    if isfield(lfp_spec,'Right')
+        % determine valid gait cycles
+        gc_start_search = find(gait_events_ordered.LHS>=lfp_spec.Right.Time{1}(1),1,'first');
+        gc_end_search = find(gait_events_ordered.LHS<=lfp_spec.Right.Time{1}(end),1,'last');
+        gait_events_ordered_trim = gait_events_ordered(gc_start_search:gc_end_search,:);
+
+        gc_test = ~isnan(gait_events_ordered_trim.LHS(2:end)-gait_events_ordered_trim.LHS(1:end-1));
+        gc_test2 = (gait_events_ordered_trim.LHS(2:end)-gait_events_ordered_trim.LHS(1:end-1)) < 1.8;
+        valid_gc = gc_test&gc_test2;
+
+        right_single_gait_cycle_cell = cell(size(freq_bands,1),sum(valid_gc),4);   % freq_band x gait cycle x recording area
+        
+        count = 1;
+        for j = 1:length(valid_gc)
+            if valid_gc(j)
+                for k = 1:length(lfp_spec.Right.Chan_Names)
+                    time_inds = getTimeInds(lfp_spec.Right.Time{k},gait_events_ordered_trim.LHS(j),gait_events_ordered_trim.LHS(j+1));
+                    for m = 1:size(freq_bands,1)
+                        freq_inds = getFreqInds(lfp_spec.Right.Freq_Values{k},freq_bands(m,1),freq_bands(m,2));
+                        gc_data = lfp_spec.Right.Values{k}([freq_inds(1):freq_inds(2)],[time_inds(1):time_inds(2)]);
+                        right_single_gait_cycle_cell{m,count,k} = mean(abs(gc_data));
+                    end
+                end
+                count = count + 1;
+            end
+        end
+        % normalize data
+        right_single_gait_cycle_cell_norm = normalizeSingleGaitCycle(right_single_gait_cycle_cell,lfp_spec.Right,gait_events_ordered_trim,freq_bands,normalizationType);
+        right_single_gait_cycle_cell_all = [right_single_gait_cycle_cell_all,right_single_gait_cycle_cell_norm];
+
+        % calc event time markers from LHS
+        right_RTO_relative_time = [right_RTO_relative_time;gait_events_ordered_trim.('RTO')(valid_gc)-gait_events_ordered_trim.LHS(valid_gc)];
+        right_RHS_relative_time = [right_RHS_relative_time;gait_events_ordered_trim.('RHS')(valid_gc)-gait_events_ordered_trim.LHS(valid_gc)];
+        right_LTO_relative_time = [right_LTO_relative_time;gait_events_ordered_trim.('LTO')(valid_gc)-gait_events_ordered_trim.LHS(valid_gc)];
+    end
 end
 
-% Determine which gait cycle is the longest and setup visualization matrix
+%% Determine which gait cycle is the longest and setup visualization matrix
 if isfield(lfp_spec,'Left')
-    temp = {left_single_gait_cycle_cell{1,:,1}};
+    temp = left_single_gait_cycle_cell_all(1,:,1);
     gc_lengths = cellfun(@(x)size(x,2),temp);
     max_gc_length = max(gc_lengths);
     [gc_sort_lengths,gc_sort_inds] = sort(gc_lengths,'descend');
-    left_single_gait_cycle_mat = nan(sum(valid_gc),max_gc_length,length(freq_bands_names),4);       % gait cycle x time x freq band x channel
+    left_single_gait_cycle_mat = nan(length(gc_lengths),max_gc_length,length(freq_bands_names),4);       % gait cycle x time x freq band x channel
 
     for i = 1:length(lfp_spec.Left.Chan_Names)
         for j = 1:length(freq_bands_names)
             for k = 1:length(gc_sort_inds)
-                left_single_gait_cycle_mat(k,1:gc_sort_lengths(k),j,i) = left_single_gait_cycle_cell_norm{j,gc_sort_inds(k),i};
+                left_single_gait_cycle_mat(k,1:gc_sort_lengths(k),j,i) = left_single_gait_cycle_cell_all{j,gc_sort_inds(k),i};
             end
         end
     end
-    
+
     left_single_gait_cycle_mat = removeArtifactGC(left_single_gait_cycle_mat);
     left_sr = unique(aligned_data.DeviceSettings.Left.timeDomainSettings.samplingRate);
     left_single_gait_cycle_time_vec = (0:max_gc_length-1).*(1/left_sr);
 end
 
-
 if isfield(lfp_spec,'Right')
-    temp = {right_single_gait_cycle_cell{1,:,1}};
+    temp = right_single_gait_cycle_cell_all(1,:,1);
     gc_lengths = cellfun(@(x)size(x,2),temp);
     max_gc_length = max(gc_lengths);
     [gc_sort_lengths,gc_sort_inds] = sort(gc_lengths,'descend');
-    right_single_gait_cycle_mat = nan(sum(valid_gc),max_gc_length,length(freq_bands_names),4);      % gait cycle x time x freq band x channel
+    right_single_gait_cycle_mat = nan(length(gc_lengths),max_gc_length,length(freq_bands_names),4);       % gait cycle x time x freq band x channel
 
     for i = 1:length(lfp_spec.Right.Chan_Names)
         for j = 1:length(freq_bands_names)
             for k = 1:length(gc_sort_inds)
-                right_single_gait_cycle_mat(k,1:gc_sort_lengths(k),j,i) = right_single_gait_cycle_cell_norm{j,gc_sort_inds(k),i};
+                right_single_gait_cycle_mat(k,1:gc_sort_lengths(k),j,i) = right_single_gait_cycle_cell_all{j,gc_sort_inds(k),i};
             end
         end
     end
@@ -149,30 +189,7 @@ if isfield(lfp_spec,'Right')
     right_single_gait_cycle_time_vec = (0:max_gc_length-1).*(1/right_sr);
 end
 
-% calc event time markers from LHS
-RTO_relative_time = gait_events_ordered.('RTO')(valid_gc)-gait_events_ordered.LHS(valid_gc);
-RHS_relative_time = gait_events_ordered.('RHS')(valid_gc)-gait_events_ordered.LHS(valid_gc);
-LTO_relative_time = gait_events_ordered.('LTO')(valid_gc)-gait_events_ordered.LHS(valid_gc);
-
-% colors for gait events
-marker_colors = CBMap('GaitEvents');
-
-% % Check to see if there are any gait cycles to ignore and remove them
-% if ~isempty(sorted_gc_ignore)
-%     if exist('left_single_gait_cycle_mat','var')
-%         for i = 1:length(sorted_gc_ignore)
-%             left_single_gait_cycle_mat(sorted_gc_ignore(i),:,:,:) = [];
-%         end
-%     end
-% 
-%     if exist('right_single_gait_cycle_mat','var')
-%         for i = 1:length(sorted_gc_ignore)
-%             right_single_gait_cycle_mat(sorted_gc_ignore(i),:,:,:) = [];
-%         end
-%     end
-% end
-
-% Plot the data
+%% Plot the data
 fig_vec = [];
 if exist('left_single_gait_cycle_mat','var')
     for i = 1:size(left_single_gait_cycle_mat,4)        % channel
@@ -182,10 +199,10 @@ if exist('left_single_gait_cycle_mat','var')
             title({subjectID;['Left ',chan_names{i},' ',freq_bands_names{j}]});
             shading interp
             hold on;
-            a(1) = scatter(RTO_relative_time(gc_sort_inds),sum(valid_gc):-1:1,10,'MarkerEdgeColor',marker_colors.RTO,'MarkerFaceColor',marker_colors.RTO,'DisplayName','RTO');
-            a(2) = scatter(RHS_relative_time(gc_sort_inds),sum(valid_gc):-1:1,10,'MarkerEdgeColor',marker_colors.RHS,'MarkerFaceColor',marker_colors.RHS,'DisplayName','RHS');
-            a(3) = scatter(LTO_relative_time(gc_sort_inds),sum(valid_gc):-1:1,10,'MarkerEdgeColor',marker_colors.LTO,'MarkerFaceColor',marker_colors.LTO,'DisplayName','LTO');
-            
+            a(1) = scatter(left_RTO_relative_time(gc_sort_inds),sum(length(gc_sort_inds)):-1:1,10,'MarkerEdgeColor',marker_colors.RTO,'MarkerFaceColor',marker_colors.RTO,'DisplayName','RTO');
+            a(2) = scatter(left_RHS_relative_time(gc_sort_inds),sum(length(gc_sort_inds)):-1:1,10,'MarkerEdgeColor',marker_colors.RHS,'MarkerFaceColor',marker_colors.RHS,'DisplayName','RHS');
+            a(3) = scatter(left_LTO_relative_time(gc_sort_inds),sum(length(gc_sort_inds)):-1:1,10,'MarkerEdgeColor',marker_colors.LTO,'MarkerFaceColor',marker_colors.LTO,'DisplayName','LTO');
+
             if mod(size(left_single_gait_cycle_mat,1)-1,5)~=0
                 yticks([1:5:size(left_single_gait_cycle_mat,1),size(left_single_gait_cycle_mat,1)]);
             else
@@ -208,9 +225,9 @@ if exist('right_single_gait_cycle_mat','var')
             title({subjectID;['Right ',chan_names{i},' ',freq_bands_names{j}]});
             shading interp
             hold on;
-            scatter(RTO_relative_time(gc_sort_inds),sum(valid_gc):-1:1,10,'MarkerEdgeColor',marker_colors.RTO,'MarkerFaceColor',marker_colors.RTO);
-            scatter(RHS_relative_time(gc_sort_inds),sum(valid_gc):-1:1,10,'MarkerEdgeColor',marker_colors.RHS,'MarkerFaceColor',marker_colors.RHS);
-            scatter(LTO_relative_time(gc_sort_inds),sum(valid_gc):-1:1,10,'MarkerEdgeColor',marker_colors.LTO,'MarkerFaceColor',marker_colors.LTO);
+            scatter(right_RTO_relative_time(gc_sort_inds),sum(length(gc_sort_inds)):-1:1,10,'MarkerEdgeColor',marker_colors.RTO,'MarkerFaceColor',marker_colors.RTO);
+            scatter(right_RHS_relative_time(gc_sort_inds),sum(length(gc_sort_inds)):-1:1,10,'MarkerEdgeColor',marker_colors.RHS,'MarkerFaceColor',marker_colors.RHS);
+            scatter(right_LTO_relative_time(gc_sort_inds),sum(length(gc_sort_inds)):-1:1,10,'MarkerEdgeColor',marker_colors.LTO,'MarkerFaceColor',marker_colors.LTO);
 
             if mod(size(right_single_gait_cycle_mat,1)-1,5)~=0
                 yticks([1:5:size(right_single_gait_cycle_mat,1),size(right_single_gait_cycle_mat,1)]);
@@ -226,25 +243,25 @@ if exist('right_single_gait_cycle_mat','var')
     end
 end
 
-% Save plots
+%% Save plots
 if savePlot
     save_dir = uigetdir();
-    
+
     figure_format(6,6,10);
-    
+
     % check if saving folders exist
     if ~isfolder(fullfile(save_dir,'singleGaitCycleRastergram'))
         mkdir(fullfile(save_dir,'singleGaitCycleRastergram'));
     end
-    
+
     if ~isfolder(fullfile(save_dir,'singleGaitCycleRastergram',[aligned_data.stim_condition,'_STIM']))
         mkdir(fullfile(save_dir,'singleGaitCycleRastergram',[aligned_data.stim_condition,'_STIM']))
     end
-    
+
     if ~isfolder(fullfile(save_dir,'singleGaitCycleRastergram',[aligned_data.stim_condition,'_STIM'],[aligned_data.med_condition,'_MED']))
         mkdir(fullfile(save_dir,'singleGaitCycleRastergram',[aligned_data.stim_condition,'_STIM'],[aligned_data.med_condition,'_MED']))
     end
-    
+
     if strcmp(analysis_type,'FT')
         if ~isfolder(fullfile(save_dir,'singleGaitCycleRastergram',[aligned_data.stim_condition,'_STIM'],[aligned_data.med_condition,'_MED'],'FT'))
             mkdir(fullfile(save_dir,'singleGaitCycleRastergram',[aligned_data.stim_condition,'_STIM'],[aligned_data.med_condition,'_MED'],'FT'))
@@ -254,7 +271,7 @@ if savePlot
             mkdir(fullfile(save_dir,'singleGaitCycleRastergram',[aligned_data.stim_condition,'_STIM'],[aligned_data.med_condition,'_MED'],'CWT'))
         end
     end
-    
+
     folders_to_check = {'FIG_files','PDF_files','TIFF_files'};
     extension = {'.fig','.pdf','.tiff'};
     for n = 1:length(folders_to_check)
@@ -268,7 +285,7 @@ if savePlot
             end
         end
     end
-    
+
     for i = 1:length(fig_vec)
         curr_axes = gca(fig_vec(i));
         save_name = [];
@@ -279,21 +296,21 @@ if savePlot
                 save_name = [save_name,' ', curr_axes.Title.String{j}];
             end
         end
-        
+
         if isfield(aligned_data,'trial_num') && ~isempty(aligned_data.trial_num)
             save_name = [save_name,' ',sprintf('Trial%i',aligned_data.trial_num)];
         end
-        
+
         if ~strcmp(normalizationType,'none')
             save_name = [save_name,' ',normalizationType];
         end
-        
+
         if strcmp(analysis_type,'FT')
             savefig(fig_vec(i),fullfile(save_dir,'singleGaitCycleRastergram',[aligned_data.stim_condition,'_STIM'],[aligned_data.med_condition,'_MED'],'FT',folders_to_check{1},strrep(save_name,' ','_')));
         elseif strcmp(analysis_type,'CWT')
             savefig(fig_vec(i),fullfile(save_dir,'singleGaitCycleRastergram',[aligned_data.stim_condition,'_STIM'],[aligned_data.med_condition,'_MED'],'CWT',folders_to_check{1},strrep(save_name,' ','_')));
         end
-        
+
         for k = 2:length(folders_to_check)
             if strcmp(analysis_type,'FT')
                 print(fig_vec(i),[fullfile(save_dir,'singleGaitCycleRastergram',[aligned_data.stim_condition,'_STIM'],[aligned_data.med_condition,'_MED'],'FT',folders_to_check{k},strrep(save_name,' ','_')),extension{k}],'-r300',['-d',extension{k}(2:end)]);
@@ -387,5 +404,9 @@ end
 remove_inds = sum(remove_mat,2)>0;
 
 data_artifact_removed(remove_inds,:,:,:) = [];
+
+end
+
+function removeGaitCyclesTurns(gait_events)
 
 end

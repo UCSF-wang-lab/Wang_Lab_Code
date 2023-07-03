@@ -3,19 +3,24 @@ function artifactRemovalRCSLFP(input,filt_type,varargin)
 % lfp_data can either be a file path to the raw time domain LFP data or a
 % table object
 %
-% filt_type can be "stim" or "ekg" or "stim_ekg"
+% filt_type can be "stim","ekg","gait,"stim_ekg","stim_gait", "gait_ekg",
+% or "stim_gait_ekg"
 %
 % stim_freq is a float value
 %
 % sampling_rate is a float value
 %
-% ekg_template is a 4x2 matrix, where each row is the template EKG to
-% remove
+% ekg_template is a 2x1 cell array that contains a 4x2 matrix, where each 
+% row is the template EKG to remove for that channel
 %
 % Example run:
-%   file_path = '/Volumes/dwang3_shared/Patient Data/RC+S Data/gait_RCS_02/v7_2022-10-31_pre-programming_second_side_implant/Data/Processed Data/RC+S/Left INS/Session1667247503283/DeviceNPC700517H/RawDataTD.mat';
-%   ekg_template_indexes(1,:) = [39992,40311]   % Index of the ekg artifact template
-%   artifactRemovalRCSLFP(file_path,'stim_gait_ekg','sampling_rate',500,'stim_freq',150.6,'ekg_template_indexes',ekg_template_indexes,'save_data',false,'show_plots',true)
+%   Aligned Data with left and right side
+%   file_path = '/Volumes/dwang3_shared/Patient Data/RC+S Data/gait_RCS_02/v8_2023-02-28_2nd-side_DbsOpt/Data/Aligned Data/gait_RCS_02_OG_ON_Stim_ON_Med_Trial_1_w_Gait_Events_Julia.mat';
+%   filt_type = {'stim_gait_ekg','stim_gait_ekg','stim_gait','stim_gait'} % Left side implant, each column is a key
+%   filt_type(2,:) = {'stim_gait','stim_gait_ekg','stim_gait','stim_gait'} % Right side implant, each colum is a key
+%   ekg_template_indexes{1,1} = [38866,39177;34147,34461]
+%   ekg_template_indexes{2,1} = [nan,nan;42484,42586]
+%   artifactRemovalRCSLFP(file_path,filt_type,'sampling_rate',500,'ekg_template_indexes',ekg_template_indexes,'stim_freq',150.6,'save_data',false,'show_plots',true)
 
 %% Parse inputs
 for i = 1:2:nargin-2
@@ -26,6 +31,8 @@ for i = 1:2:nargin-2
             sampling_rate = varargin{i+1};  % Sampling rate of the LFP data
         case 'ekg_template_indexes'
             ekg_template_indexes = varargin{i+1};   % 4x2 matrix
+        case 'remove_stim_harmonic'
+            remove_stim_harm = varargin{i+1};  % Boolean, true or false
         case 'show_plots'
             show_plots = varargin{i+1}; % Boolean, true or false
         case 'save_data'
@@ -56,6 +63,10 @@ end
 
 if ~iscell(ekg_template_indexes)
     ekg_template_indexes = {ekg_template_indexes};
+end
+
+if ~exist('remove_stim_harm','var') || isempty(remove_stim_harm)
+    remove_stim_harm = false;
 end
 
 if ~exist('show_plots','var') || isempty(show_plots)
@@ -185,44 +196,55 @@ for j = 1:length(lfp_data)
     end
 
     %% Filter stimulation artifacts
-    [b,a] = butter(6,[stim_freq-7.5,stim_freq+7.5]/(sampling_rate/2),'stop');
+    stim_filt_done = false;
+    count = 0;
 
-    for i = 1:length(recording_channels)
-        if contains(filt_type{j,i},'stim')
-            filt_data{j}.(recording_channels{i}) = filtfilt(b,a,filt_data{j}.(recording_channels{i}));
-            stim_filtered = true;
-        end
-    end
+    while ~stim_filt_done
+        [b,a] = butter(6,[(stim_freq/(2^count))-7.5,(stim_freq/(2^count))+7.5]/(sampling_rate/2),'stop');
 
-    % Show the raw LFP data and power spectral density
-    if show_plots && stim_filtered
-        % Show the filtered LFP data and power spectral density
-        figure;
         for i = 1:length(recording_channels)
-            subplot(2,2,i);
-            plot(filt_data{j}.(recording_channels{i}));
-            ylabel('mV');
-            xlabel('Data Sample')
-            title(recording_channels{i});
-        end
-        if contains(filt_type{j,i},'gait')
-            sgtitle('Gait and Stim Filtered LFP');
-        else
-            sgtitle('Stim Filtered LFP');
+            if contains(filt_type{j,i},'stim')
+                filt_data{j}.(recording_channels{i}) = filtfilt(b,a,filt_data{j}.(recording_channels{i}));
+                stim_filtered = true;
+            end
         end
 
-        figure;
-        for i = 1:length(recording_channels)
-            subplot(2,2,i);
-            pwelch(filt_data{j}.(recording_channels{i}),sampling_rate,round(sampling_rate*0.9),[1:200],sampling_rate);
-            ylabel('dB/Hz');
-            xlabel('Frequency')
-            title(recording_channels{i});
+        % Show the raw LFP data and power spectral density
+        if show_plots && stim_filtered
+            % Show the filtered LFP data and power spectral density
+            figure;
+            for i = 1:length(recording_channels)
+                subplot(2,2,i);
+                plot(filt_data{j}.(recording_channels{i}));
+                ylabel('mV');
+                xlabel('Data Sample')
+                title(recording_channels{i});
+            end
+            if contains(filt_type{j,i},'gait')
+                sgtitle('Gait and Stim Filtered LFP');
+            else
+                sgtitle('Stim Filtered LFP');
+            end
+
+            figure;
+            for i = 1:length(recording_channels)
+                subplot(2,2,i);
+                pwelch(filt_data{j}.(recording_channels{i}),sampling_rate,round(sampling_rate*0.9),[1:200],sampling_rate);
+                ylabel('dB/Hz');
+                xlabel('Frequency')
+                title(recording_channels{i});
+            end
+            if contains(filt_type{j,i},'gait')
+                sgtitle('Gait and Stim Filtered LFP');
+            else
+                sgtitle('Stim Filtered LFP');
+            end
         end
-        if contains(filt_type{j,i},'gait')
-            sgtitle('Gait and Stim Filtered LFP');
+
+        if remove_stim_harm && count == 0
+            count = count + 1;
         else
-            sgtitle('Stim Filtered LFP');
+            stim_filt_done = true;
         end
     end
 
@@ -231,7 +253,7 @@ for j = 1:length(lfp_data)
         if contains(filt_type{j,i},'ekg')
             if ~isnan(ekg_template_indexes{j}(i,1)) && ~isnan(ekg_template_indexes{j}(i,2))
                 ekg_template = filt_data{j}.(recording_channels{i})(ekg_template_indexes{j}(i,1):ekg_template_indexes{j}(i,2));
-                [sigClean, artRem, artLog, template] = RemoveNoiseTempMatch(filt_data{j}.(recording_channels{i}), sampling_rate, ekg_template, [1 5], [0,0], [], 0, 1, 1);
+                [sigClean, artRem, artLog, template] = RemoveNoiseTempMatch(filt_data{j}.(recording_channels{i}), sampling_rate, ekg_template, [1 5], [0,0], [], 1, 1, 1);
                 filt_data{j}.(recording_channels{i}) = sigClean;
                 ekg_filtered = true;
             end
@@ -275,14 +297,25 @@ for j = 1:length(lfp_data)
 end
 
 %% Save data if the file path was originally passed in
-if exist('file_path','var') && save_data
-    file_path2 = strrep(file_path,'TD.mat','TD_original.mat');
-    copyfile(file_path,file_path2);
-    
-    % Copy filt data as timeDomainDataTable to replicate original file
-    timeDomainDataTable = filt_data;
-    [A,B,C] = fileparts(file_path);
-    save_name = fullfile(A,[B,'_filtered',C]);
-    save(save_name,'timeDomainDataTable');
+if save_data
+    if ~istable(input)
+        file_path2 = [file_path(1:end-4),'_original.mat'];
+        copyfile(file_path,file_path2);
+
+        % Copy filt data as aligned_data to replace original file
+        aligned_data = data.aligned_data;
+        aligned_data.left_LFP_table = filt_data{1};
+        aligned_data.right_LFP_table = filt_data{2};
+        save(file_path,"aligned_data");
+    else
+        file_path2 = strrep(file_path,'TD.mat','TD_original.mat');
+        copyfile(file_path,file_path2);
+
+        % Copy filt data as timeDomainDataTable to replicate original file
+        timeDomainDataTable = filt_data;
+        [A,B,C] = fileparts(file_path);
+        save_name = fullfile(A,[B,'_filtered',C]);
+        save(save_name,'timeDomainDataTable');
+    end
 end
 end

@@ -325,7 +325,7 @@ if ~isempty(main.UserData.Rover_data)
         return;
     end
 
-    [~,Rover] = trimData([],main.UserData.Rover_data.Left,[align_time,pre_align_time,post_align_time]);
+    [~,Rover] = trimData([],main.UserData.Rover_data.Left,[align_time-pre_align_time,align_time+post_align_time]);
     addEvent('Complete!',1);
     aligned_data.Rover.Left = Rover;
 
@@ -338,7 +338,7 @@ if ~isempty(main.UserData.Rover_data)
         addEvent('No alignment point for Right Rover data.',1);
         return;
     end
-    [~,Rover] = trimData([],main.UserData.Rover_data.Right,[align_time,pre_align_time,post_align_time]);
+    [~,Rover] = trimData([],main.UserData.Rover_data.Right,[align_time-pre_align_time,align_time+post_align_time]);
     addEvent('Complete!',1);
     aligned_data.Rover.Right = Rover;
 end
