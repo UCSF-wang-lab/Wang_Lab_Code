@@ -68,7 +68,7 @@ for f = 1:length(file_names)
 
 
     % detect and remove turns from inclusion
-    gait_events_turns_removed = removeGaitCyclesTurns(aligned_data.gait_events);
+    gait_events_turns_removed = removeGaitCyclesTurns(aligned_data.Xsens,aligned_data.gait_events);
 
     % sort gait events and extract valid gait cycles
     gait_events_ordered = sortGaitEvents(gait_events_turns_removed,'LHS');
@@ -407,6 +407,60 @@ data_artifact_removed(remove_inds,:,:,:) = [];
 
 end
 
-function removeGaitCyclesTurns(gait_events)
+function gait_events_turns_removed = removeGaitCyclesTurns(xsens_data,gait_events)
+% Check to see if last row of xsens data is nan
+if isnan(xsens_data{end,2})
+    xsens_data(end,:) = [];
+end
+
+% Filter and convert to degrees
+[b,a]=butter(4,(1.5/30));
+pelvis_data = abs(filtfilt(b,a,xsens_data.Pelvis_angVelZ)*57.3);
+
+% Find all threshold crossings in both directions
+filter_threshold = 30;
+pos_ind = find((pelvis_data(2:end) > filter_threshold) & (pelvis_data(1:end-1) < filter_threshold));
+neg_ind = find((pelvis_data(2:end) < filter_threshold) & (pelvis_data(1:end-1) > filter_threshold));
+
+% Filter through the positive and negative threshold crossings to remove
+% erroneous crossings
+remove_ind = [];
+count_consideration = 60;
+for i = 1:length(pos_ind)
+    base_value = pelvis_data(pos_ind(i));
+    for j = 1:count_consideration
+        if pelvis_data(pos_ind(i)+j)<filter_threshold
+            remove_ind(end+1) = i;
+            break;
+        end
+    end
+end
+pos_ind(remove_ind) = [];
+
+remove_ind = [];
+count_consideration = 60;
+for i = 1:length(neg_ind)
+    base_value = pelvis_data(neg_ind(i));
+    for j = 1:count_consideration
+        if pelvis_data(neg_ind(i)+j)>filter_threshold
+            remove_ind(end+1) = i;
+            break;
+        end
+    end
+end
+neg_ind(remove_ind) = [];
+
+turn_times = [xsens_data.Time(pos_ind),xsens_data.Time(neg_ind)];
+remove_ind = [];
+for i = 1:height(gait_events)
+    for j = 1:size(turn_times,1)
+        if any(gait_events{i,:}>=turn_times(j,1) & gait_events{i,:} <= turn_times(j,2))
+            remove_ind(end+1) = i;
+        end
+    end
+end
+
+gait_events_turns_removed = gait_events;
+gait_events_turns_removed(remove_ind,:) = [];
 
 end

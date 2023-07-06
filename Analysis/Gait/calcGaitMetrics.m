@@ -178,15 +178,18 @@ function gait_metrics_table = getStepMetrics(gait_events,foot_data,level_type)
 % stance time
 % double support time
 
-% Order gait events
-gait_events_turns_removed = removeGaitCyclesTurns(gait_events);
-gait_events_ordered = sortGaitEvents(gait_events_turns_removed,'LHS');
-
 if istable(foot_data)
+    % Order gait events
+    gait_events_turns_removed = removeGaitCyclesTurns(foot_data,gait_events);
+    gait_events_ordered = sortGaitEvents(gait_events_turns_removed,'LHS');
+    
+    % Determine which gait cycles to consider
     gc_start_search = find(gait_events_ordered.LHS>=foot_data.Time(1),1,'first');
     gc_end_search = find(gait_events_ordered.LHS<=foot_data.Time(end),1,'last');
     gait_events_ordered_trim = gait_events_ordered(gc_start_search:gc_end_search,:);
 elseif isstruct(foot_data)
+    % Order gait events
+    gait_events_ordered = sortGaitEvents(gait_events,'LHS');
 end
 
 n_gait_events = size(gait_events_ordered_trim,1);
@@ -200,48 +203,6 @@ stance_time = nan(n_gait_events*2,1);
 dst = nan(n_gait_events*2,1);
 
 if strcmp(level_type,'none')
-    for i = 1:n_gait_events
-        % i*2 = left metrics
-        % i*2-1 = right metrics
-        
-        % out of bounds
-        if i+1 > n_gait_events
-            step_time(i*2) = nan;
-            swing_time(i*2) = nan;
-            sls(i*2) = nan;
-            stance_time(i*2-1) = nan;
-        else
-            step_time(i*2) = (gait_events(i+1,1)-gait_events(i,3))/time_correction;
-            swing_time(i*2) = (gait_events(i+1,1)-gait_events(i,4))/time_correction;
-            sls(i*2) = (gait_events(i+1,1)-gait_events(i,4))/time_correction;
-            stance_time(i*2-1) = (gait_events(i+1,2)-gait_events(i,3))/time_correction;
-            
-            if isnan(gait_events(i+1,1))
-                step_length(i*2) = nan;
-                step_width(i*2) = nan;
-            else
-                step_length(i*2) = abs(foot_data(gait_events_spatial(i+1,1),2)-foot_data(gait_events_spatial(i+1,1),5));
-                step_width(i*2) = abs(foot_data(gait_events_spatial(i+1,1),1)-foot_data(gait_events_spatial(i+1,1),4));
-            end
-        end
-        
-        % Can't index with nan
-        if isnan(gait_events(i,3))
-            step_length(i*2-1) = nan;
-            step_width(i*2-1) = nan;
-        else
-            step_length(i*2-1) = abs(foot_data(gait_events_spatial(i,3),5)-foot_data(gait_events_spatial(i,3),2));  % Right
-            step_width(i*2-1) = abs(foot_data(gait_events_spatial(i,3),4)-foot_data(gait_events_spatial(i,3),1));   % Right
-        end
-        
-        % Only looks at current gait cycle and doesn't matter if nan
-        stance_time(i*2) = (gait_events(i,4)-gait_events(i,1))/time_correction;
-        dls(i*2) = (gait_events(i,4)-gait_events(i,3))/time_correction;
-        step_time(i*2-1) = (gait_events(i,3)-gait_events(i,1))/time_correction;
-        swing_time(i*2-1) = (gait_events(i,3)-gait_events(i,2))/time_correction;
-        sls(i*2-1) = (gait_events(i,3)-gait_events(i,2))/time_correction;
-        dls(i*2-1) = (gait_events(i,2)-gait_events(i,1))/time_correction;
-    end
 end
 
 if strcmp(level_type,'single')
@@ -270,12 +231,69 @@ if strcmp(level_type,'single')
     dst(2:2:n_gait_events*2) = gait_events_ordered_trim.LTO-gait_events_ordered_trim.RHS;
 end
 
+% Filter values that are outside what is normal
+
+
+
 side = repmat({'L';'R'},n_gait_events,1);
 
 % Create table
 gait_metrics_table = table(side,step_length,step_time,step_width,stride_length,stride_time,swing_time,stance_time,dst,'VariableNames',{'Side','StepLength','StepTime','StepWidth','StrideLength','StrideTime','SwingTime','StanceTime','DoubleSupportTime'});
 end
 
-function gait_events_turns_removed = removeGaitCyclesTurns(gait_events)
+function gait_events_turns_removed = removeGaitCyclesTurns(xsens_data,gait_events)
+% Check to see if last row of xsens data is nan
+if isnan(xsens_data{end,2})
+    xsens_data(end,:) = [];
+end
+
+% Filter and convert to degrees
+[b,a]=butter(4,(1.5/30));
+pelvis_data = abs(filtfilt(b,a,xsens_data.Pelvis_angVelZ)*57.3);
+
+% Find all threshold crossings in both directions
+filter_threshold = 30;
+pos_ind = find((pelvis_data(2:end) > filter_threshold) & (pelvis_data(1:end-1) < filter_threshold));
+neg_ind = find((pelvis_data(2:end) < filter_threshold) & (pelvis_data(1:end-1) > filter_threshold));
+
+% Filter through the positive and negative threshold crossings to remove
+% erroneous crossings
+remove_ind = [];
+count_consideration = 60;
+for i = 1:length(pos_ind)
+    base_value = pelvis_data(pos_ind(i));
+    for j = 1:count_consideration
+        if pelvis_data(pos_ind(i)+j)<filter_threshold
+            remove_ind(end+1) = i;
+            break;
+        end
+    end
+end
+pos_ind(remove_ind) = [];
+
+remove_ind = [];
+count_consideration = 60;
+for i = 1:length(neg_ind)
+    base_value = pelvis_data(neg_ind(i));
+    for j = 1:count_consideration
+        if pelvis_data(neg_ind(i)+j)>filter_threshold
+            remove_ind(end+1) = i;
+            break;
+        end
+    end
+end
+neg_ind(remove_ind) = [];
+
+turn_times = [xsens_data.Time(pos_ind),xsens_data.Time(neg_ind)];
+remove_ind = [];
+for i = 1:height(gait_events)
+    for j = 1:size(turn_times,1)
+        if any(gait_events{i,:}>=turn_times(j,1) & gait_events{i,:} <= turn_times(j,2))
+            remove_ind(end+1) = i;
+        end
+    end
+end
+
 gait_events_turns_removed = gait_events;
+gait_events_turns_removed(remove_ind,:) = [];
 end
