@@ -133,14 +133,27 @@ def calcThresholdAccuracyDST(RCS_time,RCS_data,event_timings,threshold_val,flip_
         RCS_data = -RCS_data
         threshold_val = -threshold_val
 
-    # Get number of data points and gait events
+   # Get number of data points and gait events
     n_data_points = RCS_data.shape[0]
-    n_events = event_timings.shape[0]
+    
+    temp = event_timings.iloc[:,1]>=RCS_time[0]
+    start_block = 0
+    for i in range(len(temp)):
+        if temp[i]:
+            start_block = i
+            break
+
+    temp = event_timings.iloc[:,1]<=RCS_time[RCS_time.shape[0]-1]
+    end_block = event_timings.shape[0]
+    for i in range(len(temp))[::-1]:
+        if temp[i]:
+            end_block = i
+            break
 
     # initialize arrays
     detector_state = np.zeros((n_data_points,1))
     correct_state = np.zeros((n_data_points,1))
-    correct_dst = np.zeros((n_events,1))
+    correct_dst = np.zeros(((end_block-start_block)+1,1))
 
     for i in range(len(RCS_data)):
         # Determine the detector state
@@ -160,11 +173,13 @@ def calcThresholdAccuracyDST(RCS_time,RCS_data,event_timings,threshold_val,flip_
         if sum(C) >= 1 and detector_state[i] == 1:
             correct_state[i] = 1;   # detector should be in stim state since it is within the double support period
             dst_ind = np.where(C==True)[0][0]
-            correct_dst[dst_ind] = 1
+            if dst_ind <= end_block:
+                correct_dst[dst_ind-start_block] = 1
         elif sum(C) >= 1 and detector_state[i] == 0:
             correct_state[i] = 0;   # detector should be in stim state, but it is not
             dst_ind = np.where(C==True)[0][0]
-            correct_dst[dst_ind] = 0
+            if dst_ind <= end_block:
+                correct_dst[dst_ind-start_block] = 0
         elif sum(C) == 0 and detector_state[i] == 1:
             correct_state[i] = 0;   # detector in stim state, but it shouldn't be because it is not during double support period
         elif sum(C) == 0 and detector_state[i] == 0:
@@ -172,18 +187,21 @@ def calcThresholdAccuracyDST(RCS_time,RCS_data,event_timings,threshold_val,flip_
 
 
     # Determine how many nan's there are. These should not be counted in the accuracy calculations
-    D = np.where(event_timings.iloc[:,0].isnull().values==True)[0]
-    E = np.where(event_timings.iloc[:,1].isnull().values==True)[0]
+    D = np.where(event_timings.iloc[start_block:end_block,0].isnull().values==True)[0]
+    E = np.where(event_timings.iloc[start_block:end_block,1].isnull().values==True)[0]
     n_nans = len(list(set().union(D,E)))
 
     # Determine how many double support times would not have been detected anyway
-    event_not_detected = np.zeros((event_timings.shape[0],1))
-    for j in range(event_timings.shape[0]):
+    # event_not_detected = np.zeros((event_timings.shape[0],1))
+    event_not_detected = np.zeros((correct_dst.shape[0],1))
+    count = 0
+    for j in range((end_block-start_block)+1):
         if not (np.isnan(event_timings.iloc[j,0])) | (np.isnan(event_timings.iloc[j,1])):
             F = RCS_time >= event_timings.iloc[j,0]
             G = RCS_time <= event_timings.iloc[j,1]
             if sum(F&G) == 0:
-                event_not_detected[j] = 1
+                event_not_detected[count] = 1
+        count += 1
 
     full_thresh_accuracy = sum(correct_state)/len(correct_state)
     dst_thresh_accuracy = sum(correct_dst)/(len(correct_dst)-n_nans-sum(event_not_detected))
