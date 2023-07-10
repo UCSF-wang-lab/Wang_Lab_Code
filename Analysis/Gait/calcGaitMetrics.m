@@ -154,9 +154,9 @@ end
 % out_table.Side = repmat(['R';'L'],n_gait_events,1);
 
 if exist('xsens_data','var') && ~isempty(xsens_data)
-    gait_metrics_table = getStepMetrics(gait_events,xsens_data,level_type);
+    [gait_metrics_table,cadence,gait_speed] = getMetrics(gait_events,xsens_data,level_type);
 elseif ~exist('xsens_data','var') && exist('delsys_data','var') && ~isempty(delsys_data)
-    gait_metrics_table = getStepMetrics(gait_events,delsys_data,level_type);
+    [gait_metrics_table,cadence,gait_speed] = getMetrics(gait_events,delsys_data,level_type);
 end
 
 SubjectID = repmat({subjectID},height(gait_metrics_table),1);
@@ -165,12 +165,9 @@ StimState = repmat({stim_state},height(gait_metrics_table),1);
 
 gait_metrics_table = addvars(gait_metrics_table,SubjectID,MedState,StimState,'Before','Side');
 
-cadence = [];
-gait_speed = [];
-
 end
 
-function gait_metrics_table = getStepMetrics(gait_events,foot_data,level_type)
+function [gait_metrics_table,cadence,gait_speed] = getMetrics(gait_events,foot_data,level_type)
 % [LHS,RTO,RHS,LTO]
 % step length, width, time
 % stride length, time
@@ -209,19 +206,46 @@ if strcmp(level_type,'single')
     % [LHS,RTO,RHS,LTO]
 
     % Left events
-    step_length(1:2:(n_gait_events-1)*2) = nan;   %TODO
+    for i = 1:height(gait_events_ordered_trim)-1
+        if (~isnan(gait_events_ordered_trim.RHS(i)) && ~isnan(gait_events_ordered_trim.LHS(i+1))) && ((gait_events_ordered_trim.LHS(i+1)-gait_events_ordered_trim.RHS(i))<1)
+            [~,LHS_ind] = min(abs(foot_data.Time-gait_events_ordered_trim.LHS(i+1)));
+            [~,RHS_ind] = min(abs(foot_data.Time-gait_events_ordered_trim.RHS(i)));
+            step_length((i*2)-1) = abs(foot_data.LeftFoot_PosX(LHS_ind)-foot_data.RightFoot_PosX(RHS_ind));            % Left step length = distance from right foot heel-strike to left foot heel-strike
+            step_width((i*2)-1) = abs(foot_data.LeftFoot_PosY(LHS_ind)-foot_data.RightFoot_PosY(RHS_ind));             % Left step width = distance from right foot heel-strike to left foot heel-strike 
+        end
+    end
+
+    for i = 1:height(gait_events_ordered_trim)-1
+        if (~isnan(gait_events_ordered_trim.LHS(i)) && ~isnan(gait_events_ordered_trim.LHS(i+1))) && ((gait_events_ordered_trim.LHS(i+1)-gait_events_ordered_trim.LHS(i))<1.5)
+            [~,LHS_pre_ind] = min(abs(foot_data.Time-gait_events_ordered_trim.LHS(i)));
+            [~,LHS_post_ind] = min(abs(foot_data.Time-gait_events_ordered_trim.LHS(i+1)));
+            stride_length((i*2)-1) = abs(foot_data.LeftFoot_PosX(LHS_post_ind)-foot_data.LeftFoot_PosX(LHS_pre_ind));   % Left stride length = distance from left foot heel-strike to the next left foot heel-strike
+        end
+    end
+
     step_time(1:2:(n_gait_events-1)*2) = gait_events_ordered_trim.LHS(2:end)-gait_events_ordered_trim.RHS(1:end-1);     % Left step time = time from right heel strike to left heel-strike
-    step_width(1:2:(n_gait_events-1)*2) = nan;    %TODO
-    stride_length(1:2:(n_gait_events-1)*2) = nan; %TODO
     stride_time(1:2:(n_gait_events-1)*2) = gait_events_ordered_trim.LHS(2:end)-gait_events_ordered_trim.LHS(1:end-1);   % Left stride time = time from left heel strike to next left heel-strike
     swing_time(1:2:(n_gait_events-1)*2) = gait_events_ordered_trim.LHS(2:end)-gait_events_ordered_trim.LTO(1:end-1);    % Left swing time = Left toe-off to left heel-strike
-    stance_time(1:2:n_gait_events*2) = gait_events_ordered_trim.LTO-gait_events_ordered_trim.LHS;                   % Left stance time = left heel-strike to left toe-off
+    stance_time(1:2:n_gait_events*2) = gait_events_ordered_trim.LTO-gait_events_ordered_trim.LHS;                       % Left stance time = left heel-strike to left toe-off
 
     % Right events
-    step_length(2:2:(n_gait_events-1)*2) = nan;     %TODO
-    step_time(2:2:n_gait_events*2) = gait_events_ordered_trim.RHS-gait_events_ordered_trim.LHS;
-    step_width(2:2:(n_gait_events-1)*2)= nan;       %TODO
-    stride_length(2:2:(n_gait_events-1)*2) = nan;   %TODO
+    for i = 1:height(gait_events_ordered_trim)-1
+        if (~isnan(gait_events_ordered_trim.LHS(i)) && ~isnan(gait_events_ordered_trim.RHS(i))) && ((gait_events_ordered_trim.RHS(i)-gait_events_ordered_trim.LHS(i))<1)
+            [~,LHS_ind] = min(abs(foot_data.Time-gait_events_ordered_trim.LHS(i)));
+            [~,RHS_ind] = min(abs(foot_data.Time-gait_events_ordered_trim.RHS(i)));
+            step_length(i*2) = abs(foot_data.RightFoot_PosX(RHS_ind)-foot_data.LeftFoot_PosX(LHS_ind));
+            step_width(i*2) = abs(foot_data.RightFoot_PosY(RHS_ind)-foot_data.LeftFoot_PosY(LHS_ind));
+        end
+    end
+
+    for i = 1:height(gait_events_ordered_trim)-1
+        if (~isnan(gait_events_ordered_trim.RHS(i)) && ~isnan(gait_events_ordered_trim.RHS(i+1))) && ((gait_events_ordered_trim.RHS(i+1)-gait_events_ordered_trim.RHS(i))<1.5)
+            [~,RHS_pre_ind] = min(abs(foot_data.Time-gait_events_ordered_trim.RHS(i)));
+            [~,RHS_post_ind] = min(abs(foot_data.Time-gait_events_ordered_trim.RHS(i+1)));
+            stride_length((i*2)-1) = abs(foot_data.RightFoot_PosX(RHS_post_ind)-foot_data.RightFoot_PosX(RHS_pre_ind));   % Right stride length = distance from left foot heel-strike to the next left foot heel-strike
+        end
+    end
+
     stride_time(2:2:(n_gait_events-1)*2) = gait_events_ordered_trim.RHS(2:end)-gait_events_ordered_trim.RHS(1:end-1);
     swing_time(2:2:n_gait_events*2) = gait_events_ordered_trim.RHS-gait_events_ordered_trim.RTO;
     stance_time(2:2:(n_gait_events-1)*2) = gait_events_ordered_trim.RTO(2:end)-gait_events_ordered_trim.RHS(1:end-1);
@@ -232,13 +256,108 @@ if strcmp(level_type,'single')
 end
 
 % Filter values that are outside what is normal
+step_length(step_length>1.5) = nan;
+step_width(step_width>0.75) = nan;
+step_time(step_time>1) = nan;
 
+stride_length(stride_length>2.5) = nan;
+stride_time(stride_time>2) = nan;
 
+stance_time(stance_time>1) = nan;
+swing_time(swing_time>1) = nan;
+dst(dst>0.5) = nan;
 
 side = repmat({'L';'R'},n_gait_events,1);
 
 % Create table
 gait_metrics_table = table(side,step_length,step_time,step_width,stride_length,stride_time,swing_time,stance_time,dst,'VariableNames',{'Side','StepLength','StepTime','StepWidth','StrideLength','StrideTime','SwingTime','StanceTime','DoubleSupportTime'});
+
+% Find when the patient switches direction
+A = gait_events_ordered_trim{:,:}'; 
+B = rmmissing(A(:));
+ind = find(diff(B)>10);
+direction_change_time = B(ind);
+
+% Calculate cadence (can only calculate with xsens right now)
+if istable(foot_data)
+    if ~isempty(direction_change_time)
+        n_steps = sum(gait_events_ordered_trim.LHS<=direction_change_time)+sum(gait_events_ordered_trim.RHS<=direction_change_time);
+        walk_duration = max([max(gait_events_ordered_trim.LHS(gait_events_ordered_trim.LHS<=direction_change_time)),...
+            max(gait_events_ordered_trim.RHS(gait_events_ordered_trim.RHS<=direction_change_time))]) - ...
+            min([min(gait_events_ordered_trim.LHS(gait_events_ordered_trim.LHS<=direction_change_time)),...
+            min(gait_events_ordered_trim.RHS(gait_events_ordered_trim.RHS<=direction_change_time))]);
+        cadence(1) = (n_steps/walk_duration)*60;
+
+        n_steps = sum(gait_events_ordered_trim.LHS>=direction_change_time)+sum(gait_events_ordered_trim.RHS>=direction_change_time);
+        walk_duration = max([max(gait_events_ordered_trim.LHS(gait_events_ordered_trim.LHS>=direction_change_time)),...
+            max(gait_events_ordered_trim.RHS(gait_events_ordered_trim.RHS>=direction_change_time))]) - ...
+            min([min(gait_events_ordered_trim.LHS(gait_events_ordered_trim.LHS>=direction_change_time)),...
+            min(gait_events_ordered_trim.RHS(gait_events_ordered_trim.RHS>=direction_change_time))]);
+        cadence(2) = (n_steps/walk_duration)*60;
+    else
+        n_steps = sum(~isnan(gait_events_ordered_trim.LHS))+sum(~isnan(gait_events_ordered_trim.RHS));
+        walk_duration = max([max(gait_events_ordered_trim.LHS),max(gait_events_ordered_trim.RHS)]) - min([min(gait_events_ordered_trim.LHS),min(gait_events_ordered_trim.RHS)]);
+        cadence = (n_steps/walk_duration)*60;
+    end
+    cadence = mean(cadence);
+end
+
+
+% Calculate gait speed (can only calculate with xsens right now)
+if istable(foot_data)
+    if ~isempty(direction_change_time)
+        walking_distance = 0;
+
+        walk_start_ind = find(foot_data.Time>=min(gait_events_ordered_trim{1,:}),1,'first');
+        walk_end_ind = find(foot_data.Time<=direction_change_time,1,'last');
+        current_posX = foot_data.Pelvis_PosX(walk_start_ind);
+        current_posY = foot_data.Pelvis_PosY(walk_start_ind);
+        for i = walk_start_ind+1:walk_end_ind
+            deltaX = foot_data.Pelvis_PosX(i)-current_posX;
+            deltaY = foot_data.Pelvis_PosY(i)-current_posY;
+            deltaD = sqrt(deltaX^2 + deltaY^2);
+            walking_distance = walking_distance + deltaD;
+
+            current_posX = foot_data.Pelvis_PosX(i);
+            current_posY = foot_data.Pelvis_PosY(i);
+        end
+        gait_speed(1) = walking_distance/(foot_data.Time(walk_end_ind)-foot_data.Time(walk_start_ind));
+
+        walk_start_ind = find(foot_data.Time>=direction_change_time,1,'first');
+        walk_end_ind = find(foot_data.Time<=max(gait_events_ordered_trim{end,:}),1,'last');
+        walking_distance = 0;
+        current_posX = foot_data.Pelvis_PosX(walk_start_ind);
+        current_posY = foot_data.Pelvis_PosY(walk_start_ind);
+        for i = walk_start_ind+1:walk_end_ind
+            deltaX = foot_data.Pelvis_PosX(i)-current_posX;
+            deltaY = foot_data.Pelvis_PosY(i)-current_posY;
+            deltaD = sqrt(deltaX^2 + deltaY^2);
+            walking_distance = walking_distance + deltaD;
+
+            current_posX = foot_data.Pelvis_PosX(i);
+            current_posY = foot_data.Pelvis_PosY(i);
+        end
+        gait_speed(2) = walking_distance/(foot_data.Time(walk_end_ind)-foot_data.Time(walk_start_ind));
+    else
+        walk_start_ind = find(foot_data.Time>=min(gait_events_ordered_trim{1,:}),1,'first');
+        walk_end_ind = find(foot_data.Time<=max(gait_events_ordered_trim{end,:}),1,'last');
+        walking_distance = 0;
+        current_posX = foot_data.Pelvis_PosX(walk_start_ind);
+        current_posY = foot_data.Pelvis_PosY(walk_start_ind);
+        for i = walk_start_ind+1:walk_end_ind
+            deltaX = foot_data.Pelvis_PosX(i)-current_posX;
+            deltaY = foot_data.Pelvis_PosY(i)-current_posY;
+            deltaD = sqrt(deltaX^2 + deltaY^2);
+            walking_distance = walking_distance + deltaD;
+
+            current_posX = foot_data.Pelvis_PosX(i);
+            current_posY = foot_data.Pelvis_PosY(i);
+        end
+        gait_speed = walking_distance/(foot_data.Time(walk_end_ind)-foot_data.Time(walk_start_ind));
+    end
+    gait_speed = mean(gait_speed);
+end
+
 end
 
 function gait_events_turns_removed = removeGaitCyclesTurns(xsens_data,gait_events)
