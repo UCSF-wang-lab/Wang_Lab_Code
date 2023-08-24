@@ -18,7 +18,7 @@ if ~exist('percentOverlap','var') || isempty(percentOverlap)
 end
 
 if ~exist('nfft','var') || isempty(nfft)
-    NFFT = [];
+    nfft = [];
 end
 
 %% Left RCS
@@ -31,12 +31,15 @@ if isfield(aligned_data,'left_LFP_table')
     elseif windowLength > 0 && windowLength <= 1
         WINDOW = left_sr*windowLength;
         WINDOW = WINDOW + mod(WINDOW,2);
+    else
+        WINDOW = left_sr*windowLength;
+        WINDOW = WINDOW + mod(WINDOW,2);
     end
     
     NOVERLAP = round(WINDOW*percentOverlap);
     
-    if isempty(NFFT)
-        NFFT = 2^nextpow2(left_sr);
+    if isempty(nfft)
+        nfft = 2^nextpow2(left_sr);
     end
     
     chan_tag_inds = cellfun(@(x) contains(x,'chan'),aligned_data.DeviceSettings.Left.timeDomainSettings.Properties.VariableNames);
@@ -52,7 +55,7 @@ if isfield(aligned_data,'left_LFP_table')
         same_chan = cellfun(@(x) strcmp(left_chan_names{i},x),left_chan_names(1:i-1));
         if sum(same_chan) == 0  % Not a duplicate channel recording
             [data,time] = addEmptyData(aligned_data.left_taxis,aligned_data.left_LFP_table.(['key',num2str(i-1)]),left_sr,gapFillType);
-            [left_spect{end+1},left_spect_freq{end+1},left_spect_time{end+1},left_PSD{end+1}]=spectrogram(data,WINDOW,NOVERLAP,NFFT,left_sr);
+            [left_spect{end+1},left_spect_freq{end+1},left_spect_time{end+1},left_PSD{end+1}]=spectrogram(data,WINDOW,NOVERLAP,nfft,left_sr);
         else
             remove_ind = [remove_ind,i];
         end
@@ -76,12 +79,15 @@ if isfield(aligned_data,'right_LFP_table')
     elseif windowLength > 0 && windowLength <= 1
         WINDOW = right_sr*windowLength;
         WINDOW = WINDOW + mod(WINDOW,2);
+    else
+        WINDOW = right_sr*windowLength;
+        WINDOW = WINDOW + mod(WINDOW,2);
     end
     
     NOVERLAP = round(WINDOW*percentOverlap);
     
-    if isempty(NFFT)
-        NFFT = 2^nextpow2(right_sr);
+    if isempty(nfft)
+        nfft = 2^nextpow2(right_sr);
     end
     
     chan_tag_inds = cellfun(@(x) contains(x,'chan'),aligned_data.DeviceSettings.Right.timeDomainSettings.Properties.VariableNames);
@@ -97,7 +103,7 @@ if isfield(aligned_data,'right_LFP_table')
         same_chan = cellfun(@(x) strcmp(right_chan_names{i},x),right_chan_names(1:i-1));
         if sum(same_chan) == 0  % Not a duplicate channel recording
             [data,time] = addEmptyData(aligned_data.right_taxis,aligned_data.right_LFP_table.(['key',num2str(i-1)]),right_sr,gapFillType);
-            [right_spect{end+1},right_spect_freq{end+1},right_spect_time{end+1},right_PSD{end+1}]=spectrogram(data,WINDOW,NOVERLAP,NFFT,right_sr);
+            [right_spect{end+1},right_spect_freq{end+1},right_spect_time{end+1},right_PSD{end+1}]=spectrogram(data,WINDOW,NOVERLAP,nfft,right_sr);
         else
             remove_ind = [remove_ind,i];
         end
