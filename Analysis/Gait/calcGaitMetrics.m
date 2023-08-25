@@ -64,6 +64,8 @@ for i = 1:nargin/2
             single_direction = varargin{i*2};
         case 'direction_turn_time_range'
             direction_turn_time_range = varargin{i*2};
+        case 'adaptive_setting_num'
+            adaptive_setting_num = varargin{i*2};
         case 'save_data'
             save_data = varargin{i*2};
     end
@@ -443,43 +445,47 @@ neg_ind = find((pelvis_data(2:end) < filter_threshold) & (pelvis_data(1:end-1) >
 
 % Filter through the positive and negative threshold crossings to remove
 % erroneous crossings
-remove_ind = [];
-count_consideration = min([length(pelvis_data)-pos_ind(end),100]);
-for i = 1:length(pos_ind)
-    base_value = pelvis_data(pos_ind(i));
-    for j = 1:count_consideration
-        if pelvis_data(pos_ind(i)+j)<filter_threshold
-            remove_ind(end+1) = i;
-            break;
+if ~isempty(pos_ind) && ~isempty(neg_ind)
+    remove_ind = [];
+    count_consideration = min([length(pelvis_data)-pos_ind(end),100]);
+    for i = 1:length(pos_ind)
+        base_value = pelvis_data(pos_ind(i));
+        for j = 1:count_consideration
+            if pelvis_data(pos_ind(i)+j)<filter_threshold
+                remove_ind(end+1) = i;
+                break;
+            end
         end
     end
-end
-pos_ind(remove_ind) = [];
-
-remove_ind = [];
-count_consideration = min([length(pelvis_data)-neg_ind(end),60]);
-for i = 1:length(neg_ind)
-    base_value = pelvis_data(neg_ind(i));
-    for j = 1:count_consideration
-        if pelvis_data(neg_ind(i)+j)>filter_threshold
-            remove_ind(end+1) = i;
-            break;
+    pos_ind(remove_ind) = [];
+    
+    remove_ind = [];
+    count_consideration = min([length(pelvis_data)-neg_ind(end),60]);
+    for i = 1:length(neg_ind)
+        base_value = pelvis_data(neg_ind(i));
+        for j = 1:count_consideration
+            if pelvis_data(neg_ind(i)+j)>filter_threshold
+                remove_ind(end+1) = i;
+                break;
+            end
         end
     end
-end
-neg_ind(remove_ind) = [];
-
-min_length = min([length(pos_ind),length(neg_ind)]);
-turn_times = [xsens_data.Time(pos_ind(1:min_length)),xsens_data.Time(neg_ind(1:min_length))];
-remove_ind = [];
-for i = 1:height(gait_events)
-    for j = 1:size(turn_times,1)
-        if any(gait_events{i,:}>=turn_times(j,1) & gait_events{i,:} <= turn_times(j,2))
-            remove_ind(end+1) = i;
+    neg_ind(remove_ind) = [];
+    
+    min_length = min([length(pos_ind),length(neg_ind)]);
+    turn_times = [xsens_data.Time(pos_ind(1:min_length)),xsens_data.Time(neg_ind(1:min_length))];
+    remove_ind = [];
+    for i = 1:height(gait_events)
+        for j = 1:size(turn_times,1)
+            if any(gait_events{i,:}>=turn_times(j,1) & gait_events{i,:} <= turn_times(j,2))
+                remove_ind(end+1) = i;
+            end
         end
     end
+    gait_events_turns_removed = gait_events;
+    gait_events_turns_removed(remove_ind,:) = [];
+else
+    gait_events_turns_removed = gait_events;
 end
 
-gait_events_turns_removed = gait_events;
-gait_events_turns_removed(remove_ind,:) = [];
 end

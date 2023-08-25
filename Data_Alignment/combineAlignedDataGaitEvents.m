@@ -47,8 +47,8 @@ end
 
 aligned_data.gait_events = gait_events_aligned;
 
-% savename = strrep(filename_aligned_data,'.mat','_w_Gait_Events.mat');
 % savename = strrep(filename_aligned_data,'.mat','_w_Gait_Events_Julia.mat');
-savename = strrep(filename_aligned_data,'.mat','_w_Gait_Events_Hamid.mat');
+% savename = strrep(filename_aligned_data,'.mat','_w_Gait_Events_Hamid.mat');
+savename = strrep(filename_aligned_data,'.mat','_w_Gait_Events_Ken.mat');
 save(fullfile(path,savename),'aligned_data');
 end

@@ -5,10 +5,8 @@ for i = 1:2:nargin-1
     switch varargin{i}
         case 'threshold'
             detectionThreshold = varargin{i+1};
-        case 'markingStartTime'
-            markingStartTime = varargin{i+1};
-        case 'saveData'
-            saveData = varargin{i+1};
+        case 'markingTimeRange'
+            markingTimeRange = varargin{i+1};
     end
 end
 
@@ -17,12 +15,8 @@ if ~exist('detectionThreshold','var') || isempty(detectionThreshold)
     detectionThreshold = 5;
 end
 
-if ~exist('markingStartTime','var') || isempty(markingStartTime)
-    markingStartTime = 0;
-end
-
-if ~exist('saveData','var') || isempty(saveData)
-    saveData = false;
+if ~exist('markingTimeRange','var') || isempty(markingTimeRange)
+    markingTimeRange = [0,inf];
 end
 
 % Determine gait events
@@ -32,10 +26,10 @@ RHS_times = data.Time.FSR_adapter_16_Right_FSRA_16((data.Data.FSR_adapter_16_Rig
 LTO_times = data.Time.FSR_adapter_15_Left_FSRD_15((data.Data.FSR_adapter_15_Left_FSRD_15(1:end-1) > detectionThreshold) & (data.Data.FSR_adapter_15_Left_FSRD_15(2:end) < detectionThreshold))';
 
 % Remove gait events that are before marking start time
-LHS_times = LHS_times(LHS_times>=markingStartTime);
-RTO_times = RTO_times(RTO_times>=markingStartTime);
-RHS_times = RHS_times(RHS_times>=markingStartTime);
-LTO_times = LTO_times(LTO_times>=markingStartTime);
+LHS_times = LHS_times(LHS_times>=markingTimeRange(1) & LHS_times<=markingTimeRange(2));
+RTO_times = RTO_times(RTO_times>=markingTimeRange(1) & RTO_times<=markingTimeRange(2));
+RHS_times = RHS_times(RHS_times>=markingTimeRange(1) & RHS_times<=markingTimeRange(2));
+LTO_times = LTO_times(LTO_times>=markingTimeRange(1) & LTO_times<=markingTimeRange(2));
 
 % Remove gait events that are too close in time to each other
 LHS_times(find(diff(LHS_times)<0.75)+1) = [];
@@ -96,7 +90,7 @@ while (LHS_count + RTO_count + RHS_count + LTO_count) ~= sum([length(LHS_times),
             storingInd = storingIndexFun(i);
             if storingInd > 4
                 storingInd = storingInd-4;
-            elseif storingInd == 0
+            elseif storingInd <= 0
                 storingInd = storingInd+4;
             end
             if abs(currGaitEvents(referenceIndexFun(i))-min(gaitEventMat(gaitEventMat_count,:))) < 1.5 && isnan(gaitEventMat(gaitEventMat_count,storingInd))
@@ -116,7 +110,7 @@ while (LHS_count + RTO_count + RHS_count + LTO_count) ~= sum([length(LHS_times),
             storingInd = storingIndexFun(minInd);
             if storingInd > 4
                 storingInd = storingInd-4;
-            elseif storingInd == 0
+            elseif storingInd <= 0
                 storingInd = storingInd+4;
             end
             gaitEventMat(gaitEventMat_count,storingInd) = minVal;
@@ -158,6 +152,7 @@ for i = 1:3
 end
 
 gaitEventTable = array2table(gaitEventMat,'VariableNames',gaitEventOrder);
+
 end
 
 function nextGaitEventName = getNextGaitEventName(currEvent)
