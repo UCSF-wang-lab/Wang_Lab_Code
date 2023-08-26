@@ -151,6 +151,10 @@ if ~exist('subjectID','var') || isempty(subjectID)
     subjectID = 'na';
 end
 
+if ~exist('adaptive_setting_num','var')
+    adaptive_setting_num = [];
+end
+
 if ~exist('save_data','var') || isempty(save_data)
     save_data = false;
 end
@@ -177,7 +181,14 @@ MedState = repmat({med_state},height(gait_metrics_table),1);
 StimState = repmat({stim_state},height(gait_metrics_table),1);
 TrialNum = repmat(trial_num,height(gait_metrics_table),1);
 
-gait_metrics_table = addvars(gait_metrics_table,SubjectID,VisitName,MedState,StimState,TrialNum,'Before','GaitCycle');
+if ~isempty(adaptive_setting_num)
+    SettingNum = repmat(adaptive_setting_num,height(gait_metrics_table),1);
+    gait_metrics_table = addvars(gait_metrics_table,SubjectID,VisitName,SettingNum,MedState,StimState,TrialNum,'Before','GaitCycle');
+else
+    gait_metrics_table = addvars(gait_metrics_table,SubjectID,VisitName,MedState,StimState,TrialNum,'Before','GaitCycle');
+end
+
+
 
 if save_data
     % gait metrics table
@@ -287,7 +298,7 @@ if ~isempty(gait_events_ordered_trim)
         stance_time(1:2:n_gait_events*2) = gait_events_ordered_trim.LTO-gait_events_ordered_trim.LHS;                       % Left stance time = left heel-strike to left toe-off
         
         % Right
-        step_time(2:2:(n_gait_events-1)*2) = gait_events_ordered_trim.RHS(2:end)-gait_events_ordered_trim.LHS(1:end-1);     % Left step time = time from right heel strike to left heel-strike
+        step_time(2:2:(n_gait_events-1)*2) = gait_events_ordered_trim.RHS(1:end-1)-gait_events_ordered_trim.LHS(1:end-1);     % Left step time = time from right heel strike to left heel-strike
         stride_time(2:2:(n_gait_events-1)*2) = gait_events_ordered_trim.RHS(2:end)-gait_events_ordered_trim.RHS(1:end-1);
         swing_time(2:2:n_gait_events*2) = gait_events_ordered_trim.RHS-gait_events_ordered_trim.RTO;
         stance_time(2:2:(n_gait_events-1)*2) = gait_events_ordered_trim.RTO(2:end)-gait_events_ordered_trim.RHS(1:end-1);
