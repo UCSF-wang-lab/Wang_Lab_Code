@@ -1,5 +1,13 @@
 function saveData(src,event)
-aligned_data = src.Parent.Parent.UserData.aligned_data;
+try
+    aligned_data = src.Parent.Parent.UserData.aligned_data;
+catch
+    % Data has no neural data and so there is no alignment point. Assumes
+    % Delsys and Xsens have been loaded in and were started at the same
+    % time.
+    aligned_data.Delsys = src.Parent.Parent.UserData.Delsys_data;
+    aligned_data.Xsens = src.Parent.Parent.UserData.Xsens_data;
+end
 aligned_data.alignment_times = src.Parent.Parent.UserData.alignment_times;
 aligned_data.alignment_subvariable_source = src.Parent.Parent.UserData.alignment_source;
 aligned_data.alignment_source = {'Left IPG LFP','Right IPG LFP','Left IPG Accel','Right IPG Accel','Delsys','Xsens','Force Plate','Teensey'};

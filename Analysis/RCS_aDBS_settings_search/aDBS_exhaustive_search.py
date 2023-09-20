@@ -349,7 +349,7 @@ def main(n_power_bands: int = 1,parallized_flag: bool = False,save_path: str = o
     for combo in power_sim_param_combos:
         fft_int_val = fft_int_calc(combo[0],combo[1])
         # Check to make sure fft_inverval value is greater than or equal to the minimum value.
-        if fft_int_val >= 50 and fft_int_val <= 500:
+        if fft_int_val >= 150 and fft_int_val <= 400:
             rcs_settings = rcs_base_settings.copy()
             rcs_settings.FFT_size = combo[1]
             rcs_settings.FFT_interval = fft_int_val
@@ -411,8 +411,8 @@ def main(n_power_bands: int = 1,parallized_flag: bool = False,save_path: str = o
                         runSearch(grid_search_options)            
             
             if parallized_flag == "True":
-                # processing_pool = mp.Pool(9)    # For iMac (6 cores) this uses 75% of avaiable threads
-                processing_pool = mp.Pool(20)   # This line for compute server only (uses 25% of available threads)
+                processing_pool = mp.Pool(9)    # For iMac (6 cores) this uses 75% of avaiable threads
+                # processing_pool = mp.Pool(20)   # This line for compute server only (uses 25% of available threads)
                 with processing_pool as pool:
                     pool.map(runSearch,grid_search_option_list)
 

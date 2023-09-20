@@ -246,7 +246,7 @@ if ~isempty(main.UserData.Delsys_data)
         align_time = main.UserData.alignment_times(5);
     elseif ~isnan(main.UserData.alignment_times(6))
         align_time = main.UserData.alignment_times(6);
-    elseif ~isnan(main.UserData.ailgnment_times(7))
+    elseif ~isnan(main.UserData.alignment_times(7))
         align_time = main.UserData.alignment_times(7);
     else
         addEvent('Cannot align. Must have Delsys, Xsens, or Force plate alignment point marked.',1);
