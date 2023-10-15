@@ -61,25 +61,55 @@ if isfield(aligned_data,'left_Accel_table') || isfield(aligned_data,'right_Accel
         figure('Name','Alignment Results - RCS vs Delsys acceleration movement');
     end
     if isfield(aligned_data,'left_Accel_table')
+        % Find where the dropped packets occured in the left IPG
+        % acceleration time series
+        time_accel_left = aligned_data.left_accel_taxis;
+        dt_left = diff(time_accel_left);
+        dropped_packet_locs_left = find(dt_left>0.020);
+        
         ax(1) = subplot(4,1,1);
         if ~isempty(data_sources{3})
-            plot(ax(1),aligned_data.left_accel_taxis,aligned_data.left_Accel_table.(data_sources{3}),'-k');
+            plot(ax(1),time_accel_left,aligned_data.left_Accel_table.(data_sources{3}),'-k');
             title(['Left RCS Accel ',data_sources{3}]);
         else
-            plot(ax(1),aligned_data.left_accel_taxis,aligned_data.left_Accel_table.XSamples,'-k');
+            plot(ax(1),time_accel_left,aligned_data.left_Accel_table.XSamples,'-k');
             title('Left RCS Accel XSamples');
         end
+        
+        % Overlay the dropped packets on the left IPG acceleration data
+        if ~isempty(dropped_packet_locs_left)
+            for ind_dp = 1:length(dropped_packet_locs_left)
+                ylims = get(ax(1), 'YLim');
+                patch(ax(1),'XData',[time_accel_left(dropped_packet_locs_left(ind_dp)) time_accel_left(dropped_packet_locs_left(ind_dp)+1) time_accel_left(dropped_packet_locs_left(ind_dp)+1) time_accel_left(dropped_packet_locs_left(ind_dp))],'YData',[ylims(1) ylims(1) ylims(2) ylims(2)],'FaceColor','r','FaceAlpha',0.3,'EdgeColor','none');
+            end
+        end
+        clear ylims
     end
     
     if isfield(aligned_data,'right_Accel_table')
+        % Find where the dropped packets occured in the right IPG
+        % acceleration time series
+        time_accel_right = aligned_data.right_accel_taxis;
+        dt_right = diff(time_accel_right);
+        dropped_packet_locs_right = find(dt_right>0.020);
+        
         ax(2) = subplot(4,1,2);
         if ~isempty(data_sources{4})
-            plot(ax(2),aligned_data.right_accel_taxis,aligned_data.right_Accel_table.(data_sources{4}),'-k');
+            plot(ax(2),time_accel_right,aligned_data.right_Accel_table.(data_sources{4}),'-k');
             title(['Right RCS Accel ',data_sources{4}]);
         else
-            plot(ax(2),aligned_data.right_accel_taxis,aligned_data.right_Accel_table.XSamples,'-k');
+            plot(ax(2),time_accel_right,aligned_data.right_Accel_table.XSamples,'-k');
             title('Right RCS Accel XSamples');
         end
+        
+        % Overlay the dropped packets on the right IPG acceleration data
+        if ~isempty(dropped_packet_locs_right)
+            for ind_dp = 1:length(dropped_packet_locs_right) 
+                ylims = get(ax(2), 'YLim');
+                patch(ax(2),'XData',[time_accel_right(dropped_packet_locs_right(ind_dp)) time_accel_right(dropped_packet_locs_right(ind_dp)+1) time_accel_right(dropped_packet_locs_right(ind_dp)+1) time_accel_right(dropped_packet_locs_right(ind_dp))],'YData',[ylims(1) ylims(1) ylims(2) ylims(2)],'FaceColor','r','FaceAlpha',0.3,'EdgeColor','none');
+            end
+        end
+        clear ylims
     end
     
     if isfield(aligned_data,'Delsys')

@@ -1,7 +1,12 @@
 function AlignDataGUI()
 %% Check to make sure it is in the correct path to run GUI
 curr_path = mfilename('fullpath');
-slashes = strfind(curr_path,'/');
+
+if ispc
+    slashes = strfind(curr_path,'\');
+else
+    slashes = strfind(curr_path,'/');
+end
 if ~strcmp(curr_path(1:slashes(end)-1),pwd)
     cd(curr_path(1:slashes(end)));
 end

@@ -25,6 +25,7 @@ if contains(window_data_source,'LFP')
         else
             time = B;
         end
+        
     elseif contains(window_data_source,'Right')
         rcs_time_menu = findobj('Tag','RCSTimeUnit');
         A = src.Parent.Parent.Parent.UserData.LFP_data.Right.timeDomainDataTable.DerivedTime;
@@ -35,7 +36,12 @@ if contains(window_data_source,'LFP')
         else
             time = B;
         end
-    end
+    end     
+    
+    % Find where the dropped packets occured
+    dt = diff(time);
+    dropped_packet_locs = find(dt>0.020);
+    
 elseif contains(window_data_source,'Accel')
     if contains(window_data_source,'Left')
         rcs_time_menu = findobj('Tag','RCSTimeUnit');
@@ -47,6 +53,7 @@ elseif contains(window_data_source,'Accel')
         else
             time = B;
         end
+        
     elseif contains(window_data_source,'Right')
         rcs_time_menu = findobj('Tag','RCSTimeUnit');
         A = src.Parent.Parent.Parent.UserData.Accel_data.Right.accelDataTable.DerivedTime;
@@ -58,6 +65,11 @@ elseif contains(window_data_source,'Accel')
             time = B;
         end
     end
+    
+    % Find where the dropped packets occured
+    dt = diff(time);
+    dropped_packet_locs = find(dt>0.020);
+    
 elseif contains(window_data_source,'Delsys')
     time = src.Parent.Parent.Parent.UserData.Delsys_data.out_struct.Time.(src.String{src.Value});
     data = src.Parent.Parent.Parent.UserData.Delsys_data.out_struct.Data.(src.String{src.Value});
@@ -90,6 +102,16 @@ title(src.Parent.Parent.Parent.UserData.plot_axes(window),[window_data_source,':
 
 % Plot annotations 
 plotAlignmentTimes;
+
+% Overlay the dropped packets on the LFP and acceleration plots
+if contains(window_data_source,'Accel')||contains(window_data_source,'LFP')
+    if ~isempty(dropped_packet_locs)
+        for ind_dp = 1:length(dropped_packet_locs)
+            ylims = get(src.Parent.Parent.Parent.UserData.plot_axes(window), 'YLim');
+            patch(src.Parent.Parent.Parent.UserData.plot_axes(window),'XData',[time(dropped_packet_locs(ind_dp)) time(dropped_packet_locs(ind_dp)+1) time(dropped_packet_locs(ind_dp)+1) time(dropped_packet_locs(ind_dp))],'YData',[ylims(1) ylims(1) ylims(2) ylims(2)],'FaceColor','r','FaceAlpha',0.3,'EdgeColor','none');
+        end
+    end
+end
 
 % TODO: Add y label based on the data 
 end
