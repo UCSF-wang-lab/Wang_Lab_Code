@@ -6,6 +6,8 @@ if strcmp(normalization_type,'percent_change')
     normalized_data = (raw_data-normalization_input(:,1))./normalization_input(:,1);   
 elseif strcmp(normalization_type,'zscore')
     normalized_data = (raw_data-normalization_input(:,1))./normalization_input(:,2);
+elseif strcmp(normalization_type,'rm_baseline')
+    normalized_data = raw_data-normalization_input(:,1);
 end
 
 end
