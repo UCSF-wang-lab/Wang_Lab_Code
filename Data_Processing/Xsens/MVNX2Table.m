@@ -148,8 +148,8 @@ else
 end
 
 % Create header cell array
-% header = cell(1,1+nSegments*3*5+nJoints*3+9);
-header = cell(1,1+nSegments*3*5+nJoints*3);
+header = cell(1,1+nSegments*3*5+nJoints*3+9);
+% header = cell(1,1+nSegments*3*5+nJoints*3);
 header{1} = 'Time';
 currInd = 2;
 

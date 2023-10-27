@@ -48,6 +48,10 @@ function [gait_metrics_table,cadence,gait_speed] = calcGaitMetrics(filename,vara
 
 for i = 1:nargin/2
     switch varargin{i*2-1}
+        case 'xsens_filename'
+            xsens_filename = varargin{i*2};
+        case 'delsys_filename'
+            delsys_filename = varargin{i*2};
         case 'level_type'
             level_type = varargin{i*2};
         case 'visit_name'
@@ -152,7 +156,7 @@ if ~exist('subjectID','var') || isempty(subjectID)
 end
 
 if ~exist('adaptive_setting_num','var')
-    adaptive_setting_num = [];
+    adaptive_setting_num = nan;
 end
 
 if ~exist('save_data','var') || isempty(save_data)
