@@ -7,6 +7,8 @@ for i = 1:2:nargin-1
             detectionThreshold = varargin{i+1};
         case 'markingTimeRange'
             markingTimeRange = varargin{i+1};
+        case 'nextGaitCycleThreshold'
+            nextGaitCycleThreshold = varargin{i+1};
     end
 end
 
@@ -17,6 +19,10 @@ end
 
 if ~exist('markingTimeRange','var') || isempty(markingTimeRange)
     markingTimeRange = [0,inf];
+end
+
+if ~exist('nextGaitCycleThreshold','var') || isempty(nextGaitCycleThreshold)
+    nextGaitCycleThreshold = 1.5;
 end
 
 % Determine gait events
@@ -93,7 +99,7 @@ while (LHS_count + RTO_count + RHS_count + LTO_count) ~= sum([length(LHS_times),
             elseif storingInd <= 0
                 storingInd = storingInd+4;
             end
-            if abs(currGaitEvents(referenceIndexFun(i))-min(gaitEventMat(gaitEventMat_count,:))) < 1.5 && isnan(gaitEventMat(gaitEventMat_count,storingInd))
+            if abs(currGaitEvents(referenceIndexFun(i))-min(gaitEventMat(gaitEventMat_count,:))) < nextGaitCycleThreshold && isnan(gaitEventMat(gaitEventMat_count,storingInd))
                 gaitEventMat(gaitEventMat_count,storingInd) = currGaitEvents(referenceIndexFun(i));
                 switch referenceIndexFun(i)
                     case 1

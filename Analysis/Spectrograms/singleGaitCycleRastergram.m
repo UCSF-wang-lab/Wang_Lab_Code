@@ -6,7 +6,9 @@ for i = 1:2:nargin-1
         case 'analysisType'
             analysis_type = varargin{i+1};
         case 'normalizationType'
-            normalizationType = varargin{i+1};
+            normalizationType = varargin{i+1};    
+        case 'turn_threshold'
+            turn_threshold = varargin{i+1};
         case 'subjectID'
             subjectID = varargin{i+1};
         case 'savePlot'
@@ -20,6 +22,10 @@ end
 
 if ~exist('normalizationType','var')
     normalizationType = 'zscore';
+end
+
+if ~exist('turn_threshold','var')
+    turn_threshold = 30;
 end
 
 if ~exist('subjectID','var')
@@ -68,7 +74,7 @@ for f = 1:length(file_names)
 
 
     % detect and remove turns from inclusion
-    gait_events_turns_removed = removeGaitCyclesTurns(aligned_data.Xsens,aligned_data.gait_events);
+    gait_events_turns_removed = removeGaitCyclesTurns(aligned_data.Xsens,aligned_data.gait_events,turn_threshold);
 
     % sort gait events and extract valid gait cycles
     gait_events_ordered = sortGaitEvents(gait_events_turns_removed,'LHS');
@@ -164,7 +170,11 @@ if isfield(lfp_spec,'Left')
         end
     end
 
-    left_single_gait_cycle_mat = removeArtifactGC(left_single_gait_cycle_mat);
+    left_RTO_relative_time = left_RTO_relative_time(gc_sort_inds);
+    left_RHS_relative_time = left_RHS_relative_time(gc_sort_inds);
+    left_LTO_relative_time = left_LTO_relative_time(gc_sort_inds);
+
+    left_single_gait_cycle_struct = removeArtifactGC(left_single_gait_cycle_mat,left_RTO_relative_time,left_RHS_relative_time,left_LTO_relative_time);
     left_sr = unique(aligned_data.DeviceSettings.Left.timeDomainSettings.samplingRate);
     left_single_gait_cycle_time_vec = (0:max_gc_length-1).*(1/left_sr);
 end
@@ -184,61 +194,65 @@ if isfield(lfp_spec,'Right')
         end
     end
 
-    right_single_gait_cycle_mat = removeArtifactGC(right_single_gait_cycle_mat);
+    right_RTO_relative_time = right_RTO_relative_time(gc_sort_inds);
+    right_RHS_relative_time = right_RHS_relative_time(gc_sort_inds);
+    right_LTO_relative_time = right_LTO_relative_time(gc_sort_inds);
+
+    right_single_gait_cycle_struct = removeArtifactGC(right_single_gait_cycle_mat,right_RTO_relative_time,right_RHS_relative_time,right_LTO_relative_time);
     right_sr = unique(aligned_data.DeviceSettings.Right.timeDomainSettings.samplingRate);
     right_single_gait_cycle_time_vec = (0:max_gc_length-1).*(1/right_sr);
 end
 
 %% Plot the data
 fig_vec = [];
-if exist('left_single_gait_cycle_mat','var')
-    for i = 1:size(left_single_gait_cycle_mat,4)        % channel
-        for j = 1:size(left_single_gait_cycle_mat,3)    % freq band
+if exist('left_single_gait_cycle_struct','var')
+    for i = 1:size(left_single_gait_cycle_struct.data,2)        % channel
+        for j = 1:size(left_single_gait_cycle_struct.data,1)    % freq band
             fig_vec(end+1) = figure();
-            pcolor(left_single_gait_cycle_time_vec,size(left_single_gait_cycle_mat,1):-1:1,left_single_gait_cycle_mat(:,:,j,i));
+            pcolor(left_single_gait_cycle_time_vec,size(left_single_gait_cycle_struct.data{j,i},1):-1:1,left_single_gait_cycle_struct.data{j,i});
             title({subjectID;['Left ',chan_names{i},' ',freq_bands_names{j}]});
-            shading interp
+            shading flat
             hold on;
-            a(1) = scatter(left_RTO_relative_time(gc_sort_inds),sum(length(gc_sort_inds)):-1:1,10,'MarkerEdgeColor',marker_colors.RTO,'MarkerFaceColor',marker_colors.RTO,'DisplayName','RTO');
-            a(2) = scatter(left_RHS_relative_time(gc_sort_inds),sum(length(gc_sort_inds)):-1:1,10,'MarkerEdgeColor',marker_colors.RHS,'MarkerFaceColor',marker_colors.RHS,'DisplayName','RHS');
-            a(3) = scatter(left_LTO_relative_time(gc_sort_inds),sum(length(gc_sort_inds)):-1:1,10,'MarkerEdgeColor',marker_colors.LTO,'MarkerFaceColor',marker_colors.LTO,'DisplayName','LTO');
+            a(1) = scatter(left_single_gait_cycle_struct.RTO_timings{j,i},length(left_single_gait_cycle_struct.RTO_timings{j,i}):-1:1,20,'MarkerEdgeColor',marker_colors.RTO,'MarkerFaceColor',marker_colors.RTO,'DisplayName','RTO');
+            a(2) = scatter(left_single_gait_cycle_struct.RHS_timings{j,i},length(left_single_gait_cycle_struct.RHS_timings{j,i}):-1:1,20,'MarkerEdgeColor',marker_colors.RHS,'MarkerFaceColor',marker_colors.RHS,'DisplayName','RHS');
+            a(3) = scatter(left_single_gait_cycle_struct.LTO_timings{j,i},length(left_single_gait_cycle_struct.LTO_timings{j,i}):-1:1,20,'MarkerEdgeColor',marker_colors.LTO,'MarkerFaceColor',marker_colors.LTO,'DisplayName','LTO');
 
-            if mod(size(left_single_gait_cycle_mat,1)-1,5)~=0
-                yticks([1:5:size(left_single_gait_cycle_mat,1),size(left_single_gait_cycle_mat,1)]);
+            if mod(size(left_single_gait_cycle_struct.data{j,i},1)-1,5)~=0
+                yticks([1:5:size(left_single_gait_cycle_struct.data{j,i},1),size(left_single_gait_cycle_struct.data{j,i},1)]);
             else
-                yticks([1:5:size(left_single_gait_cycle_mat,1)])
+                yticks([1:5:size(left_single_gait_cycle_struct.data{j,i},1)])
             end
 
             ylabel('Gait Cycle');
             xlabel('Time (sec)');
             colorbar;
-            caxis([-3,5])
+            caxis([-3,3])
         end
     end
 end
 
-if exist('right_single_gait_cycle_mat','var')
-    for i = 1:size(right_single_gait_cycle_mat,4)       % channel
-        for j = 1:size(right_single_gait_cycle_mat,3)   % freq band
+if exist('right_single_gait_cycle_struct','var')
+    for i = 1:size(right_single_gait_cycle_struct.data,2)       % channel
+        for j = 1:size(right_single_gait_cycle_struct.data,1)   % freq band
             fig_vec(end+1) = figure();
-            pcolor(right_single_gait_cycle_time_vec,size(right_single_gait_cycle_mat,1):-1:1,right_single_gait_cycle_mat(:,:,j,i));
+            pcolor(right_single_gait_cycle_time_vec,size(right_single_gait_cycle_struct.data{j,i},1):-1:1,right_single_gait_cycle_struct.data{j,i});
             title({subjectID;['Right ',chan_names{i},' ',freq_bands_names{j}]});
-            shading interp
+            shading flat
             hold on;
-            scatter(right_RTO_relative_time(gc_sort_inds),sum(length(gc_sort_inds)):-1:1,10,'MarkerEdgeColor',marker_colors.RTO,'MarkerFaceColor',marker_colors.RTO);
-            scatter(right_RHS_relative_time(gc_sort_inds),sum(length(gc_sort_inds)):-1:1,10,'MarkerEdgeColor',marker_colors.RHS,'MarkerFaceColor',marker_colors.RHS);
-            scatter(right_LTO_relative_time(gc_sort_inds),sum(length(gc_sort_inds)):-1:1,10,'MarkerEdgeColor',marker_colors.LTO,'MarkerFaceColor',marker_colors.LTO);
+            a(1) = scatter(right_single_gait_cycle_struct.RTO_timings{j,i},length(right_single_gait_cycle_struct.RTO_timings{j,i}):-1:1,20,'MarkerEdgeColor',marker_colors.RTO,'MarkerFaceColor',marker_colors.RTO,'DisplayName','RTO');
+            a(2) = scatter(right_single_gait_cycle_struct.RHS_timings{j,i},length(right_single_gait_cycle_struct.RHS_timings{j,i}):-1:1,20,'MarkerEdgeColor',marker_colors.RHS,'MarkerFaceColor',marker_colors.RHS,'DisplayName','RHS');
+            a(3) = scatter(right_single_gait_cycle_struct.LTO_timings{j,i},length(right_single_gait_cycle_struct.LTO_timings{j,i}):-1:1,20,'MarkerEdgeColor',marker_colors.LTO,'MarkerFaceColor',marker_colors.LTO,'DisplayName','LTO');
 
-            if mod(size(right_single_gait_cycle_mat,1)-1,5)~=0
-                yticks([1:5:size(right_single_gait_cycle_mat,1),size(right_single_gait_cycle_mat,1)]);
+            if mod(size(right_single_gait_cycle_struct.data{j,i},1)-1,5)~=0
+                yticks([1:5:size(right_single_gait_cycle_struct.data{j,i},1),size(right_single_gait_cycle_struct.data{j,i},1)]);
             else
-                yticks([1:5:size(right_single_gait_cycle_mat,1)])
+                yticks([1:5:size(right_single_gait_cycle_struct.data{j,i},1)])
             end
 
             ylabel('Gait Cycle');
             xlabel('Time (sec)');
             colorbar;
-            caxis([-3,5])
+            caxis([-3,3])
         end
     end
 end
@@ -297,8 +311,10 @@ if savePlot
             end
         end
 
-        if isfield(aligned_data,'trial_num') && ~isempty(aligned_data.trial_num)
-            save_name = [save_name,' ',sprintf('Trial%i',aligned_data.trial_num)];
+        if length(file_names) == 1
+            if isfield(aligned_data,'trial_num') && ~isempty(aligned_data.trial_num)
+                save_name = [save_name,' ',sprintf('Trial%i',aligned_data.trial_num)];
+            end
         end
 
         if ~strcmp(normalizationType,'none')
@@ -389,78 +405,31 @@ for i = 1:size(gait_cycle_cell,1)
 end
 end
 
-function data_artifact_removed = removeArtifactGC(data)
-data_artifact_removed = data;
+function data_artifact_removed_struct = removeArtifactGC(data,RTO_timings,RHS_timings,LTO_timings)
+data_artifact_removed = cell(size(data,3),size(data,4));
+RTO_timings_artifact_removed = cell(size(data,3),size(data,4));
+RHS_timings_artifact_removed = cell(size(data,3),size(data,4));
+LTO_timings_artifact_removed = cell(size(data,3),size(data,4));
 
-remove_mat = zeros(size(data,1),size(data,4));
-for i = 1:size(data,4)      % channel
-    for j = 1:size(data,1)  % gait cycle
-        if any(data(j,:,3,i)>5)
-            remove_mat(j,i) = 1;
+remove_mat = zeros(size(data,1),size(data,3),size(data,4));
+for i = 1:size(data,4)          % channel
+    for j = 1:size(data,3)      % frequency band
+        remove_ind = zeros(size(data,1),1);
+        for k = 1:size(data,1)  % gait cycle
+            if any(data(k,:,j,i)>8)
+                remove_ind(k,1) = 1;
+            end
         end
+        data_artifact_removed{j,i} = data(~remove_ind,:,j,i);
+        RTO_timings_artifact_removed{j,i} = RTO_timings(~remove_ind);
+        RHS_timings_artifact_removed{j,i} = RHS_timings(~remove_ind);
+        LTO_timings_artifact_removed{j,i} = LTO_timings(~remove_ind);
     end
 end
 
-remove_inds = sum(remove_mat,2)>0;
-
-data_artifact_removed(remove_inds,:,:,:) = [];
-
-end
-
-function gait_events_turns_removed = removeGaitCyclesTurns(xsens_data,gait_events)
-% Check to see if last row of xsens data is nan
-if isnan(xsens_data{end,2})
-    xsens_data(end,:) = [];
-end
-
-% Filter and convert to degrees
-[b,a]=butter(4,(1.5/30));
-pelvis_data = abs(filtfilt(b,a,xsens_data.Pelvis_angVelZ)*57.3);
-
-% Find all threshold crossings in both directions
-filter_threshold = 30;
-pos_ind = find((pelvis_data(2:end) > filter_threshold) & (pelvis_data(1:end-1) < filter_threshold));
-neg_ind = find((pelvis_data(2:end) < filter_threshold) & (pelvis_data(1:end-1) > filter_threshold));
-
-% Filter through the positive and negative threshold crossings to remove
-% erroneous crossings
-remove_ind = [];
-count_consideration = 60;
-for i = 1:length(pos_ind)
-    base_value = pelvis_data(pos_ind(i));
-    for j = 1:count_consideration
-        if pelvis_data(pos_ind(i)+j)<filter_threshold
-            remove_ind(end+1) = i;
-            break;
-        end
-    end
-end
-pos_ind(remove_ind) = [];
-
-remove_ind = [];
-count_consideration = 60;
-for i = 1:length(neg_ind)
-    base_value = pelvis_data(neg_ind(i));
-    for j = 1:count_consideration
-        if pelvis_data(neg_ind(i)+j)>filter_threshold
-            remove_ind(end+1) = i;
-            break;
-        end
-    end
-end
-neg_ind(remove_ind) = [];
-
-turn_times = [xsens_data.Time(pos_ind),xsens_data.Time(neg_ind)];
-remove_ind = [];
-for i = 1:height(gait_events)
-    for j = 1:size(turn_times,1)
-        if any(gait_events{i,:}>=turn_times(j,1) & gait_events{i,:} <= turn_times(j,2))
-            remove_ind(end+1) = i;
-        end
-    end
-end
-
-gait_events_turns_removed = gait_events;
-gait_events_turns_removed(remove_ind,:) = [];
+data_artifact_removed_struct.data = data_artifact_removed;
+data_artifact_removed_struct.RTO_timings = RTO_timings_artifact_removed;
+data_artifact_removed_struct.RHS_timings = RHS_timings_artifact_removed;
+data_artifact_removed_struct.LTO_timings = LTO_timings_artifact_removed;
 
 end
