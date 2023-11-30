@@ -75,10 +75,10 @@ def runGS(func_2_optimize, RCS_data: pd.DataFrame, event_timings:pd.DataFrame,gs
         match arg:
             case "param_combos":
                 param_combos = value
-            case "space_type":
+            case "space_type":  # Depreciated, will remove in the future
                 space_type = value
-            case "event_strings":
-                event_strings = value   # FUTURE CAPABILITY, RIGHT NOW ONLY DOUBLE SUPPORT TIME
+            case "event_strings":   # Depreciated, will remove in the future.
+                event_strings = value   
 
     # Set default values for variables needed to run Bayesian optimization
     # Grab number of parameters of the search space

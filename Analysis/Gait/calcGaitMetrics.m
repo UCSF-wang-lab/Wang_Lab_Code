@@ -52,6 +52,8 @@ for i = 1:nargin/2
             xsens_filename = varargin{i*2};
         case 'delsys_filename'
             delsys_filename = varargin{i*2};
+        case 'gait_event_filename'
+            gait_event_filename = varargin{i*2};
         case 'level_type'
             level_type = varargin{i*2};
         case 'visit_name'
@@ -117,6 +119,14 @@ if (~exist('delsys_data','var') || isempty(delsys_data)) && exist('delsys_filena
     end
 end
 
+if (~exist('gait_events','var') || isempty(gait_events)) && exist('gait_event_filename','var')
+    try
+        gait_events = readtable(gait_event_filename);
+    catch
+        error('gait event file does not exist, data is empty, or wrong filename.');
+    end
+end
+
 %% Set warnings if xsens dataset is missing
 if ~exist('xsens_data','var') && exist('delsys_data','var')
     warning(sprintf('Gait Metric Calculation. \n No Xsens data detected. \n Delsys data detected \n Only temporal gait metrics will be calculated.'));
@@ -132,7 +142,7 @@ if ~exist('single_direction','var') || isempty(single_direction)
 end
 
 if ~exist('direction_turn_time_range','var') || isempty(direction_turn_time_range)
-    direction_turn_time_range = [0,aligned_data.Xsens.Time(end)];
+    direction_turn_time_range = [0,xsens_data.Time(end)];
 end
 
 if ~exist('visit_name','var') || isempty(visit_name)
@@ -226,7 +236,7 @@ function [gait_metrics_table,cadence,gait_speed] = getMetrics(gait_events,foot_d
 
 if istable(foot_data)
     % Order gait events
-    gait_events_turns_removed = removeGaitCyclesTurns(foot_data,gait_events);
+    gait_events_turns_removed = removeGaitCyclesTurns(foot_data,gait_events,30);
     gait_events_ordered = sortGaitEvents(gait_events_turns_removed,'LHS');
     
     % Determine which gait cycles to consider
@@ -439,68 +449,6 @@ if mean(stride_length,'omitnan') < 0.75
     hold on;
     plot(foot_data.Time,foot_data.RightFoot_PosY);
     title('Y axis');
-end
-
-end
-
-function gait_events_turns_removed = removeGaitCyclesTurns(xsens_data,gait_events)
-% Check to see if last row of xsens data is nan
-if isnan(xsens_data{end,2})
-    xsens_data(end,:) = [];
-end
-
-% Filter and convert to degrees
-[b,a]=butter(4,(1.5/30));
-pelvis_data = abs(filtfilt(b,a,xsens_data.Pelvis_angVelZ)*57.3);
-
-% Find all threshold crossings in both directions
-filter_threshold = 30;
-pos_ind = find((pelvis_data(2:end) > filter_threshold) & (pelvis_data(1:end-1) < filter_threshold));
-neg_ind = find((pelvis_data(2:end) < filter_threshold) & (pelvis_data(1:end-1) > filter_threshold));
-
-% Filter through the positive and negative threshold crossings to remove
-% erroneous crossings
-if ~isempty(pos_ind) && ~isempty(neg_ind)
-    remove_ind = [];
-    count_consideration = min([length(pelvis_data)-pos_ind(end),100]);
-    for i = 1:length(pos_ind)
-        base_value = pelvis_data(pos_ind(i));
-        for j = 1:count_consideration
-            if pelvis_data(pos_ind(i)+j)<filter_threshold
-                remove_ind(end+1) = i;
-                break;
-            end
-        end
-    end
-    pos_ind(remove_ind) = [];
-    
-    remove_ind = [];
-    count_consideration = min([length(pelvis_data)-neg_ind(end),60]);
-    for i = 1:length(neg_ind)
-        base_value = pelvis_data(neg_ind(i));
-        for j = 1:count_consideration
-            if pelvis_data(neg_ind(i)+j)>filter_threshold
-                remove_ind(end+1) = i;
-                break;
-            end
-        end
-    end
-    neg_ind(remove_ind) = [];
-    
-    min_length = min([length(pos_ind),length(neg_ind)]);
-    turn_times = [xsens_data.Time(pos_ind(1:min_length)),xsens_data.Time(neg_ind(1:min_length))];
-    remove_ind = [];
-    for i = 1:height(gait_events)
-        for j = 1:size(turn_times,1)
-            if any(gait_events{i,:}>=turn_times(j,1) & gait_events{i,:} <= turn_times(j,2))
-                remove_ind(end+1) = i;
-            end
-        end
-    end
-    gait_events_turns_removed = gait_events;
-    gait_events_turns_removed(remove_ind,:) = [];
-else
-    gait_events_turns_removed = gait_events;
 end
 
 end

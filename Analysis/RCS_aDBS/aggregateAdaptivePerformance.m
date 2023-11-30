@@ -1,6 +1,6 @@
 function performanceTable = aggregateAdaptivePerformance(base_folder,settings_num,gait_phase,flip_state)
 
-base_search_string = [base_folder,'/*Setting_%i*'];
+base_search_string = [base_folder,'/*OG_*_Setting_%i*'];
 
 accuracy = [];
 side = [];

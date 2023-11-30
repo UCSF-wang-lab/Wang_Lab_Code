@@ -22,7 +22,7 @@ if ~exist('markingTimeRange','var') || isempty(markingTimeRange)
 end
 
 if ~exist('nextGaitCycleThreshold','var') || isempty(nextGaitCycleThreshold)
-    nextGaitCycleThreshold = 1.5;
+    nextGaitCycleThreshold = 1.3;
 end
 
 % Determine gait events
