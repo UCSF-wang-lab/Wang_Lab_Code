@@ -1,7 +1,7 @@
 # System files
 *.DS_Store
 *.asv
-*.asd	# Custom save file type for gait initiation
+Data_Collection/Gait_Initiation_Task_GUI/*.asd	# Custom save file type for gait initiation
 *.m~	# Matlab autosave file
 
 # OS generated files #
@@ -11,7 +11,7 @@
 ._*
 .Spotlight-V100
 .Trashes
-ehthumbs.db
+thumbs.db
 Thumbs.db
 
 # Python #
