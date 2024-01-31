@@ -46,7 +46,7 @@ freq_bands = [4,8;...       % theta
     13,20;...     % low beta
     20,30;...     % high beta
     30,50];       % low gamma
-freq_bands_names = {'Theta','Alpha','Beta','Low Beta','High Beta','Low Gamma','Custom'};
+freq_bands_names = {'Theta','Alpha','Beta','Low Beta','High Beta','Low Gamma'};
 chan_names = {'+2-0','+3-1','+9-8','+11-10'};
 
 % varibles to hold all the data from all files passed in

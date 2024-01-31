@@ -1,5 +1,5 @@
 function aggregateTables = aggregateRCSSimSpecData(patientFolder)
-patientFolder = '/Volumes/dwang3_shared/Patient Data/RC+S Data/gait_RCS_02';
+patientFolder = '/Volumes/dwang3_shared/Patient Data/RC+S Data/gait_RCS_01';
 folderList = dir([patientFolder,'/*v*']);
 subjectID = patientFolder(find(patientFolder=='/',1,'last')+1:end);
 aggregateTables = [];
@@ -96,13 +96,18 @@ for i = 1:length(folderList)
                     % Create table with states and values. Always
                     % recalculate as verification on the RCS recording
                     % contacts are the same. 
-                    includeColumns = cellfun(@isempty,cellfun(@(x)regexp(x,'time|_[0-3]_'),specData.Properties.VariableNames,'UniformOutput',false));
+                    % includeColumns = cellfun(@isempty,cellfun(@(x)regexp(x,'time|_[0-3]_|_[1-2][0-9][0-9]_'),specData.Properties.VariableNames,'UniformOutput',false));
+                    includeColumns = ~cellfun(@isempty,cellfun(@(x)regexp(x,'_[4-9]_|_[0-5][0-9]_'),specData.Properties.VariableNames,'UniformOutput',false));
                     currTable = specData(:,includeColumns);
                     
                     % Other columns
                     subjectIDVec = repmat({subjectID},height(currTable),1);
                     
                     switch subjectID
+                        case 'gait_RCS_01'
+                            if contains(folderList(i).name,'v4')
+                                visitNameVec = repmat({'dbsOptBilateral'},height(currTable),1);
+                            end
                         case 'gait_RCS_02'
                             if contains(folderList(i).name,'v4')
                                 visitNameVec = repmat({'preprogrammingUnilateral'},height(currTable),1);
@@ -113,7 +118,18 @@ for i = 1:length(folderList)
                             elseif contains(folderList(i).name,'v8')
                                 visitNameVec = repmat({'dbsOptBilateral'},height(currTable),1);
                             end
+                        case 'gait_RCS_04'
+                            if contains(folderList(i).name,'v3')
+                                visitNameVec = repmat({'preprogrammingBilateral'},height(currTable),1);
+                            elseif contains(folderList(i).name,'v5')
+                                visitNameVec = repmat({'dbsOptBilateral'},height(currTable),1);
+                            end
                         case 'gait_RCS_05'
+                            if contains(folderList(i).name,'v3')
+                                visitNameVec = repmat({'preprogrammingUnilateral'},height(currTable),1);
+                            elseif contains(folderList(i).name,'v4')
+                                visitNameVec = repmat({'dbsOptUnilateral'},height(currTable),1);
+                            end
                         otherwise
                     end
                     

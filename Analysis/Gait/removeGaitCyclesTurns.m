@@ -55,11 +55,10 @@ neg_ind(remove_ind+1) = [];
 % Combine start and end times
 turn_times = [];
 for i = 1:min([length(pos_ind),length(neg_ind)])
-    turn_times(i,1) = xsens_data.Time(pos_ind(i));
-
     ind_diff = neg_ind-pos_ind(i);
     matching_neg_ind = find(ind_diff>0,1,'first');
     if ~isempty(matching_neg_ind)
+        turn_times(i,1) = xsens_data.Time(pos_ind(i));
         turn_times(i,2) = xsens_data.Time(neg_ind(matching_neg_ind));
     end
 end
