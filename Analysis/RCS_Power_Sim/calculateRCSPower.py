@@ -85,32 +85,33 @@ def calcRCSFFT(rcs_data: pd.DataFrame,rcs_settings: pd.DataFrame,pb: bool=False,
         time_domain_channel_names = [col for col in rcs_data.columns if 'key' in col]
         count = 0
         for channel in time_domain_channel_names:
-            data_rcs_unit = rcs.transform_mv_to_rcs(rcs_data_sim[channel].values,rcs_settings.amp_gains[0][count])
-            data_rcs_fft, time_pb = rcs.td_to_fft(data_rcs_unit,
-                                                rcs_data_sim['time'].values,
-                                                fs,    # sample rate of the neural data
-                                                nfft, # fft size set on the RCS
-                                                fft_int, # update interval set on the RCS
-                                                hann_win,
-                                                output_in_mv = False)
-            
-            data_rcs_pb = rcs.fft_to_pb(data_rcs_fft,
-                                        fs,
-                                        nfft,
-                                        fft_bitshift,
-                                        band_edges_hz = rcs_settings.power_bands[0][count*2,],
-                                        input_is_mv = False)
-            pb_sample_mask = np.isin(rcs_data_sim.time,time_pb)
-            rcs_data_sim.loc[pb_sample_mask,'pb1_'+channel] = data_rcs_pb
+            if np.sum(np.isnan(rcs_data[channel])) != rcs_data.shape[0]:
+                data_rcs_unit = rcs.transform_mv_to_rcs(rcs_data_sim[channel].values,rcs_settings.amp_gains[0][count])
+                data_rcs_fft, time_pb = rcs.td_to_fft(data_rcs_unit,
+                                                    rcs_data_sim['time'].values,
+                                                    fs,    # sample rate of the neural data
+                                                    nfft, # fft size set on the RCS
+                                                    fft_int, # update interval set on the RCS
+                                                    hann_win,
+                                                    output_in_mv = False)
+                
+                data_rcs_pb = rcs.fft_to_pb(data_rcs_fft,
+                                            fs,
+                                            nfft,
+                                            fft_bitshift,
+                                            band_edges_hz = rcs_settings.power_bands[0][count*2,],
+                                            input_is_mv = False)
+                pb_sample_mask = np.isin(rcs_data_sim.time,time_pb)
+                rcs_data_sim.loc[pb_sample_mask,'pb1_'+channel] = data_rcs_pb
 
-            data_rcs_pb = rcs.fft_to_pb(data_rcs_fft,
-                                        fs,
-                                        nfft,
-                                        fft_bitshift,
-                                        band_edges_hz = rcs_settings.power_bands[0][count*2+1,],
-                                        input_is_mv = False)
-            pb_sample_mask = np.isin(rcs_data_sim.time,time_pb)
-            rcs_data_sim.loc[pb_sample_mask,'pb2_'+channel] = data_rcs_pb
+                data_rcs_pb = rcs.fft_to_pb(data_rcs_fft,
+                                            fs,
+                                            nfft,
+                                            fft_bitshift,
+                                            band_edges_hz = rcs_settings.power_bands[0][count*2+1,],
+                                            input_is_mv = False)
+                pb_sample_mask = np.isin(rcs_data_sim.time,time_pb)
+                rcs_data_sim.loc[pb_sample_mask,'pb2_'+channel] = data_rcs_pb
             count = count+1
     else:
         # compute power bands for all time domain channels
@@ -118,27 +119,27 @@ def calcRCSFFT(rcs_data: pd.DataFrame,rcs_settings: pd.DataFrame,pb: bool=False,
         time_domain_channel_names = [col for col in rcs_data.columns if 'key' in col]
         count = 0
         for channel in time_domain_channel_names:
-            data_rcs_unit = rcs.transform_mv_to_rcs(rcs_data[channel].values,rcs_settings.amp_gains[0][count])
-            data_rcs_fft, time_pb = rcs.td_to_fft(data_rcs_unit,
-                                                rcs_data['time'].values,
-                                                fs,    # sample rate of the neural data
-                                                nfft, # fft size set on the RCS
-                                                fft_int, # update interval set on the RCS
-                                                hann_win,
-                                                output_in_mv = False)
-            
-            data_rcs_power = rcs.fft_to_pb(data_rcs_fft,
-                                        fs,
-                                        nfft,
-                                        fft_bitshift,
-                                        input_is_mv = False)
-            
-            key_freq_names = generateKeyFreqNames(fs,nfft,channel)
-            curr_df = pd.DataFrame(data_rcs_power,columns = key_freq_names)
-            rcs_data_sim = pd.concat([rcs_data_sim,curr_df],axis=1)
-
+            if np.sum(np.isnan(rcs_data[channel])) != rcs_data.shape[0]:
+                data_rcs_unit = rcs.transform_mv_to_rcs(rcs_data[channel].values,rcs_settings.amp_gains[0][count])
+                data_rcs_fft, time_pb = rcs.td_to_fft(data_rcs_unit,
+                                                    rcs_data['time'].values,
+                                                    fs,    # sample rate of the neural data
+                                                    nfft, # fft size set on the RCS
+                                                    fft_int, # update interval set on the RCS
+                                                    hann_win,
+                                                    output_in_mv = False)
+                
+                data_rcs_power = rcs.fft_to_pb(data_rcs_fft,
+                                            fs,
+                                            nfft,
+                                            fft_bitshift,
+                                            input_is_mv = False)
+                
+                key_freq_names = generateKeyFreqNames(fs,nfft,channel)
+                curr_df = pd.DataFrame(data_rcs_power,columns = key_freq_names)
+                rcs_data_sim = pd.concat([rcs_data_sim,curr_df],axis=1)
             count = count+1
-
+            
         rcs_data_sim.insert(loc=0,column = "time",value = time_pb)  # add in time to dataframe
 
     return rcs_data_sim

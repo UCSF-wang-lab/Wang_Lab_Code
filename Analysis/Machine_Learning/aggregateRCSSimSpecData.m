@@ -1,5 +1,5 @@
 function aggregateTables = aggregateRCSSimSpecData(patientFolder)
-patientFolder = '/Volumes/dwang3_shared/Patient Data/RC+S Data/gait_RCS_01';
+patientFolder = '/Volumes/dwang3_shared/Patient Data/RC+S Data/RCS09';
 folderList = dir([patientFolder,'/*v*']);
 subjectID = patientFolder(find(patientFolder=='/',1,'last')+1:end);
 aggregateTables = [];
@@ -129,6 +129,14 @@ for i = 1:length(folderList)
                                 visitNameVec = repmat({'preprogrammingUnilateral'},height(currTable),1);
                             elseif contains(folderList(i).name,'v4')
                                 visitNameVec = repmat({'dbsOptUnilateral'},height(currTable),1);
+                            end
+                        case 'RCS09'
+                            if contains(folderList(i).name,'v2')
+                                visitNameVec = repmat({'ptClinic001'},height(currTable),1);
+                            elseif contains(folderList(i).name,'v4')
+                                visitNameVec = repmat({'ptClinic002'},height(currTable),1);
+                            elseif contains(folderList(i).name,'v5')
+                                visitNameVec = repmat({'ptClinic003'},height(currTable),1);
                             end
                         otherwise
                     end

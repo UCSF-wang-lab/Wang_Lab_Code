@@ -54,7 +54,37 @@ RHS_count = 1;
 LTO_count = 1;
 
 % Determine start event
-[~,startEventInd] = min([LHS_times(1),RTO_times(1),RHS_times(1),LTO_times(1)]);
+try
+    [~,startEventInd] = min([LHS_times(1),RTO_times(1),RHS_times(1),LTO_times(1)]);
+catch
+    A = zeros(4,1);
+    if isempty(LHS_times)
+        A(1) = nan;
+    else
+        A(1) = LHS_times(1);
+    end
+
+    if isempty(RTO_times)
+        A(2) = nan;
+    else
+        A(2) = RTO_times(1);
+    end
+
+    if isempty(RHS_times)
+        A(3) = nan;
+    else
+        A(3) = RHS_times(1);
+    end
+
+    if isempty(LTO_times)
+        A(4) = nan;
+    else
+        A(4) = LTO_times(1);
+    end
+
+    [~,startEventInd] = min(A,[],'omitnan');
+
+end
 if startEventInd == 1
     startEvent = 'LHS';
 elseif startEventInd == 2
