@@ -1,16 +1,35 @@
-function extractTargetStepInfo(filename,savepath)
+function extractTargetStepInfo(filename,savepath,align_timediff)
 % Extracts only the target information from the massive csv file output of
 % the Cirris app
 %
 % Input:    filename    [=] The csv output of Cirris
 %           savepath    [=] Save name and path of the extract target
 %                           information
-% Output:   NONE
+%       align_timediff  [=] Time difference to account for, between the
+%                           Cirris and the Xsens stream (Cirris minus Xsens diff)
+% Output:       NONE
+% Example call: extractTargetStepInfo([],[],407.377)
 %
-% Author:   Kenneth Louie
+% Author:      Kenneth Louie
+% Contributor: Eleni Patelaki
 % Date:     10/12/20
 
-fid = fopen(filename);
+if isempty(filename)
+    [filename,filepath] = uigetfile('*.csv');
+else
+    if ispc
+        fileparts = strsplit(filename,'\');
+    elseif ismac
+        fileparts = strsplit(filename,'/');
+    else
+        error('Platform not currently supported.');
+    end
+    filepath  = fullfile(fileparts{1:end-1});
+    filename =  fullfile(fileparts{end});
+end
+
+fid = fopen(fullfile(filepath,filename));
+
 targetSection = 0;
 TargetNum = [];
 Side = {};
@@ -33,7 +52,7 @@ while(~feof(fid))
             Side{end+1} = splits{2};
             StepModifier(end+1) = str2double(splits{3});
             Success(end+1) = str2double(splits{4}(1:end-1));
-            TaskTimer(end+1) = str2double(splits{5});
+            TaskTimer(end+1) = str2double(splits{5})-align_timediff;
         end
     end
 end
@@ -41,9 +60,10 @@ end
 outTable = table(TargetNum(:),Side(:),StepModifier(:),Success(:),TaskTimer(:),...
     'VariableNames',{'Target Number','Side','Step Modifier','Success','Task Timer'});
 
-if ~exist('savepath','var')
-    [A,B,~] = fileparts(filename);
-    savepath = fullfile(A,B)+"_all_targets.csv";
+if ~exist('savepath','var')||isempty(savepath)
+    % [~,fname,~] = fileparts(filename);
+    fname = extractBefore(filename,'.');
+    savepath = fullfile(filepath,strcat(fname,'_all_targets_aligned.csv'));
 end
 
 

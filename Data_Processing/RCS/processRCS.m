@@ -78,7 +78,15 @@ LogTable.adaptive = adaptiveLogDataTable;
 
 % Save data
 save_path = strrep(folder_path,'Raw Data','Processed Data');
-slashes = strfind(save_path,'/');
+
+if ismac
+    slashes = strfind(save_path,'/');
+elseif ispc
+    slashes = strfind(save_path,'\');
+else
+    error('Platform not supported.');
+end
+
 if exist(save_path(1:slashes(end-1)),'dir') ~= 7
     mkdir(save_path(1:slashes(end-1)));
 end

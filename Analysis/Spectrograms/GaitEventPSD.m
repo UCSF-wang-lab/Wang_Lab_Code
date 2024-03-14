@@ -109,29 +109,31 @@ if isfield(PSD_gait_events,'Left')
     for i = 1:length(signalAnalysisData.Left.Chan_Names)
         fig_vec(end+1) = figure;
         for j = 1:length(aligned_data.gait_events.Properties.VariableNames)
-            curr_event = aligned_data.gait_events.Properties.VariableNames{j};
-            freq_mat = repmat(signalAnalysisData.Left.Freq_Values{i},1,size(PSD_gait_events.Left.(curr_event){i},2));
-            avg_power = mean(10*log10(abs(PSD_gait_events.Left.(curr_event){i})),2);
-            
-            switch curr_event
-                case 'LTO'
-                    subplot(2,2,1);
-                case 'LHS'
-                    subplot(2,2,2);
-                case 'RTO'
-                    subplot(2,2,3);
-                case 'RHS'
-                    subplot(2,2,4);
+            if ~contains(aligned_data.gait_events.Properties.VariableNames{j},'Adaptive')
+                curr_event = aligned_data.gait_events.Properties.VariableNames{j};
+                freq_mat = repmat(signalAnalysisData.Left.Freq_Values{i},1,size(PSD_gait_events.Left.(curr_event){i},2));
+                avg_power = mean(10*log10(abs(PSD_gait_events.Left.(curr_event){i})),2);
+                
+                switch curr_event
+                    case 'LTO'
+                        subplot(2,2,1);
+                    case 'LHS'
+                        subplot(2,2,2);
+                    case 'RTO'
+                        subplot(2,2,3);
+                    case 'RHS'
+                        subplot(2,2,4);
+                end
+                
+                plot(freq_mat,10*log10(abs(PSD_gait_events.Left.(curr_event){i})),'Color',[0,0,0,0.2]);
+                hold on;
+                plot(freq_mat(:,1),avg_power,'-k','linewidth',1.5);
+                hold off;
+                title(aligned_data.gait_events.Properties.VariableNames{j});
+                xlim([2.5,50])
+                xlabel('Frequency (Hz)');
+                ylabel('db/Hz');
             end
-            
-            plot(freq_mat,10*log10(abs(PSD_gait_events.Left.(curr_event){i})),'Color',[0,0,0,0.2]);
-            hold on;
-            plot(freq_mat(:,1),avg_power,'-k','linewidth',1.5);
-            hold off;
-            title(aligned_data.gait_events.Properties.VariableNames{j});
-            xlim([2.5,40])
-            xlabel('Frequency (Hz)');
-            ylabel('db/Hz');
         end
         sgtitle({[subjectID,' Left'];signalAnalysisData.Left.Chan_Names{i}});
     end
@@ -142,29 +144,31 @@ if isfield(PSD_gait_events,'Right')
     for i = 1:length(signalAnalysisData.Right.Chan_Names)
         fig_vec(end+1) = figure;
         for j = 1:length(aligned_data.gait_events.Properties.VariableNames)
-            curr_event = aligned_data.gait_events.Properties.VariableNames{j};
-            freq_mat = repmat(signalAnalysisData.Right.Freq_Values{i},1,size(PSD_gait_events.Right.(curr_event){i},2));
-            avg_power = mean(10*log10(abs(PSD_gait_events.Right.(curr_event){i})),2);
-            
-            switch curr_event
-                case 'LTO'
-                    subplot(2,2,1);
-                case 'LHS'
-                    subplot(2,2,2);
-                case 'RTO'
-                    subplot(2,2,3);
-                case 'RHS'
-                    subplot(2,2,4);
+            if ~contains(aligned_data.gait_events.Properties.VariableNames{j},'Adaptive')
+                curr_event = aligned_data.gait_events.Properties.VariableNames{j};
+                freq_mat = repmat(signalAnalysisData.Right.Freq_Values{i},1,size(PSD_gait_events.Right.(curr_event){i},2));
+                avg_power = mean(10*log10(abs(PSD_gait_events.Right.(curr_event){i})),2);
+                
+                switch curr_event
+                    case 'LTO'
+                        subplot(2,2,1);
+                    case 'LHS'
+                        subplot(2,2,2);
+                    case 'RTO'
+                        subplot(2,2,3);
+                    case 'RHS'
+                        subplot(2,2,4);
+                end
+                
+                plot(freq_mat,10*log10(abs(PSD_gait_events.Right.(curr_event){i})),'Color',[0,0,0,0.2]);
+                hold on;
+                plot(freq_mat(:,1),avg_power,'-k','linewidth',1.5);
+                hold off;
+                title(aligned_data.gait_events.Properties.VariableNames{j});
+                xlim([2.5,50])
+                xlabel('Frequency (Hz)');
+                ylabel('db/Hz');
             end
-            
-            plot(freq_mat,10*log10(abs(PSD_gait_events.Right.(curr_event){i})),'Color',[0,0,0,0.2]);
-            hold on;
-            plot(freq_mat(:,1),avg_power,'-k','linewidth',1.5);
-            hold off;
-            title(aligned_data.gait_events.Properties.VariableNames{j});
-            xlim([2.5,40])
-            xlabel('Frequency (Hz)');
-            ylabel('db/Hz');
         end
         sgtitle({[subjectID,' Right'];signalAnalysisData.Right.Chan_Names{i}});
     end
