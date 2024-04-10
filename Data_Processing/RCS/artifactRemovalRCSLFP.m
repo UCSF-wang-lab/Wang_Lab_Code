@@ -1,4 +1,4 @@
-function artifactRemovalRCSLFP(input,filt_type,varargin)
+function filt_data = artifactRemovalRCSLFP(input,filt_type,varargin)
 % stim_freq,sampling_rate,ekg_template_indexes,save_data
 % lfp_data can either be a file path to the raw time domain LFP data or a
 % table object
@@ -126,6 +126,7 @@ end
 %% Filter data
 for j = 1:length(lfp_data)
     % Filter flags
+    stim_sync_filtered = false;
     gait_hf_filtered = false;
     stim_filtered = false;
     ekg_filtered = false;
@@ -195,6 +196,48 @@ for j = 1:length(lfp_data)
         sgtitle('Gait Filtered LFP PSD');
     end
 
+    %% Filter stim sync pulses (5Hz)
+    [b,a] = butter(4,5/(sampling_rate/2),'high');
+
+    for i = 1:length(recording_channels)
+        if contains(filt_type{j,i},'stimSync')
+            filt_data{j}.(recording_channels{i}) = filtfilt(b,a,filt_data{j}.(recording_channels{i}));
+            stim_sync_filtered = true;
+        end
+    end
+
+    % Show the filtered LFP data and power spectral density
+    if show_plots && stim_sync_filtered
+        figure;
+        for i = 1:length(recording_channels)
+            subplot(2,2,i);
+            plot(filt_data{j}.(recording_channels{i}));
+            ylabel('mV');
+            xlabel('Data Sample')
+            title(recording_channels{i});
+        end
+        if gait_hf_filtered
+            sgtitle('Gait and Stim Sync Filtered LFP');
+        else
+            sgtitle('Stim Sync Filtered LFP');
+        end
+        
+
+        figure;
+        for i = 1:length(recording_channels)
+            subplot(2,2,i);
+            pwelch(filt_data{j}.(recording_channels{i}),sampling_rate,round(sampling_rate*0.9),[1:200],sampling_rate);
+            ylabel('dB/Hz');
+            xlabel('Frequency')
+            title(recording_channels{i});
+        end
+        if gait_hf_filtered
+            sgtitle('Gait and Stim Sync Filtered LFP');
+        else
+            sgtitle('Stim Sync Filtered LFP');
+        end
+    end
+
     %% Filter stimulation artifacts
     stim_filt_done = false;
     count = 0;
@@ -203,7 +246,7 @@ for j = 1:length(lfp_data)
         [b,a] = butter(6,[(stim_freq/(2^count))-7.5,(stim_freq/(2^count))+7.5]/(sampling_rate/2),'stop');
 
         for i = 1:length(recording_channels)
-            if contains(filt_type{j,i},'stim')
+            if contains(filt_type{j,i},'stimTherapy')
                 filt_data{j}.(recording_channels{i}) = filtfilt(b,a,filt_data{j}.(recording_channels{i}));
                 stim_filtered = true;
             end
@@ -220,10 +263,14 @@ for j = 1:length(lfp_data)
                 xlabel('Data Sample')
                 title(recording_channels{i});
             end
-            if contains(filt_type{j,i},'gait')
-                sgtitle('Gait and Stim Filtered LFP');
+            if gait_hf_filtered && stim_sync_filtered
+                sgtitle('Gait, Stim Sync, and Therapeutic Stim Filtered LFP');
+            elseif ~gait_hf_filtered && stim_sync_filtered
+                sgtitle('Stim Sync and Therapeutic Stim Filtered LFP');
+            elseif gait_hf_filtered && ~stim_sync_filtered
+                sgtitle('Gait and Therapeutic Stim Filtered LFP');
             else
-                sgtitle('Stim Filtered LFP');
+                sgtitle('Therapeutic Stim Filtered LFP');
             end
 
             figure;
@@ -234,10 +281,14 @@ for j = 1:length(lfp_data)
                 xlabel('Frequency')
                 title(recording_channels{i});
             end
-            if contains(filt_type{j,i},'gait')
-                sgtitle('Gait and Stim Filtered LFP');
+            if gait_hf_filtered && stim_sync_filtered
+                sgtitle('Gait, Stim Sync, and Therapeutic Stim Filtered LFP');
+            elseif ~gait_hf_filtered && stim_sync_filtered
+                sgtitle('Stim Sync and Therapeutic Stim Filtered LFP');
+            elseif gait_hf_filtered && ~stim_sync_filtered
+                sgtitle('Gait and Therapeutic Stim Filtered LFP');
             else
-                sgtitle('Stim Filtered LFP');
+                sgtitle('Therapeutic Stim Filtered LFP');
             end
         end
 
@@ -270,13 +321,24 @@ for j = 1:length(lfp_data)
             xlabel('Data Sample')
             title(recording_channels{i});
         end
-        if contains(filt_type{j,i},'stim') && contains(filt_type{j,i},'gait')
-            sgtitle('Gait, Stim, and EKG Filtered LFP');
-        elseif contains(filt_type{j,i},'stim') && ~contains(filt_type{j,i},'gait')
-            sgtitle('Stim and EKG Filtered LFP');
+        if gait_hf_filtered && stim_sync_filtered && stim_filtered
+            sgtitle('Gait, Stim Sync, Therapeutic Stim, and EKG Filtered LFP');
+        elseif ~gait_hf_filtered && stim_sync_filtered && stim_filtered
+            sgtitle('Stim Sync, Therapeutic Stim, and EKG Filtered LFP');
+        elseif gait_hf_filtered && ~stim_sync_filtered && stim_filtered
+            sgtitle('Gait, Therapeutic Stim, and EKG Filtered LFP');
+        elseif gait_hf_filtered && stim_sync_filtered && ~stim_filtered
+            sgtitle('Gait, Stim Sync, and EKG Filtered LFP');
+        elseif ~gait_hf_filtered && ~stim_sync_filtered && stim_filtered
+            sgtitle('Therapeutic Stim and EKG Filtered LFP');
+        elseif ~gait_hf_filtered && stim_sync_filtered && ~stim_filtered
+            sgtitle('Stim Sync and EKG Filtered LFP');
+        elseif gait_hf_filtered && ~stim_sync_filtered && ~stim_filtered
+            sgtitle('Gait and EKG Filtered LFP');
         else
-            sgtitle('EKG Filtered LFP')
+            sgtitle('EKG Filtered LFP');
         end
+  
 
         figure;
         for i = 1:length(recording_channels)
@@ -286,19 +348,29 @@ for j = 1:length(lfp_data)
             xlabel('Frequency')
             title(recording_channels{i});
         end
-        if contains(filt_type{j,i},'stim') && contains(filt_type{j,i},'gait')
-            sgtitle('Gait, Stim, and EKG Filtered LFP');
-        elseif contains(filt_type{j,i},'stim') && ~contains(filt_type{j,i},'gait')
-            sgtitle('Stim and EKG Filtered LFP');
+        if gait_hf_filtered && stim_sync_filtered && stim_filtered
+            sgtitle('Gait, Stim Sync, Therapeutic Stim, and EKG Filtered LFP');
+        elseif ~gait_hf_filtered && stim_sync_filtered && stim_filtered
+            sgtitle('Stim Sync, Therapeutic Stim, and EKG Filtered LFP');
+        elseif gait_hf_filtered && ~stim_sync_filtered && stim_filtered
+            sgtitle('Gait, Therapeutic Stim, and EKG Filtered LFP');
+        elseif gait_hf_filtered && stim_sync_filtered && ~stim_filtered
+            sgtitle('Gait, Stim Sync, and EKG Filtered LFP');
+        elseif ~gait_hf_filtered && ~stim_sync_filtered && stim_filtered
+            sgtitle('Therapeutic Stim and EKG Filtered LFP');
+        elseif ~gait_hf_filtered && stim_sync_filtered && ~stim_filtered
+            sgtitle('Stim Sync and EKG Filtered LFP');
+        elseif gait_hf_filtered && ~stim_sync_filtered && ~stim_filtered
+            sgtitle('Gait and EKG Filtered LFP');
         else
-            sgtitle('EKG Filtered LFP')
+            sgtitle('EKG Filtered LFP');
         end
     end
 end
 
 %% Save data if the file path was originally passed in
 if save_data
-    if ~istable(input)
+    if istable(input)
         file_path2 = [file_path(1:end-4),'_original.mat'];
         copyfile(file_path,file_path2);
 

@@ -40,6 +40,15 @@ if exist('filename','var') && exist('path','var')
     
 elseif ~exist('filename','var') && exist('path','var')
     file_list = dir(fullfile(path,'*.mat'));
+
+    % Check if there is a filtered time domain file
+    if sum(cellfun(@(x)contains(x,'filtered'),{file_list.name}))>0
+        filt_data_array = cellfun(@(x)contains(x,'filtered'),{file_list.name});
+        td_data_array = cellfun(@(x)contains(x,'RawDataTD'),{file_list.name});
+        remove_inds = xor(filt_data_array,td_data_array);
+        file_list(remove_inds) = [];
+    end
+
     for i = 1:length(file_list)
         if file_list(i).isdir == 0
             filename = fullfile(file_list(i).folder,file_list(i).name);
@@ -56,7 +65,7 @@ elseif ~exist('filename','var') && exist('path','var')
                     accel_data = load(filename);
                     str = sprintf('Loaded RC+S Acceleration file: %s',filename);
                     addEvent(str);
-                case "RawDataTD.mat"
+                case {"RawDataTD.mat","RawDataTD_filtered.mat"}
                     td_data = load(filename);
                     str = sprintf('Loaded RC+S LFP time domain file: %s',filename);
                     addEvent(str);
