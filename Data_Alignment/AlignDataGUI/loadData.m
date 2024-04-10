@@ -49,9 +49,11 @@ elseif ~exist('filename','var') && exist('path','var')
         file_list(remove_inds) = [];
     end
 
+    filenames = [];
     for i = 1:length(file_list)
         if file_list(i).isdir == 0
             filename = fullfile(file_list(i).folder,file_list(i).name);
+            filenames(end+1) = filename;
             switch file_list(i).name
                 case "DeviceSettings.mat"
                     settings_data = load(filename);
@@ -72,6 +74,7 @@ elseif ~exist('filename','var') && exist('path','var')
             end
         end
     end
+    filename = filenames;
 end
     
 
@@ -141,7 +144,9 @@ switch src.Tag
         str = sprintf('Loaded right Rover file: %s',fullfile(path,filename));
 end
 
-src.Parent.Parent.UserData.file_names{end+1} = fullfile(path,filename);
+for i = 1:length(filename)
+    src.Parent.Parent.UserData.file_names{end+1} = fullfile(path,filename(i));
+end
 
 % if isempty(src.Parent.Parent.UserData.basePath)
 %     curr_path = path(1:end-1);
