@@ -9,6 +9,8 @@ for i = 1:2:nargin-1
             normalizationType = varargin{i+1};    
         case 'turn_threshold'
             turn_threshold = varargin{i+1};
+        case 'avg_gc_length'
+            avg_gc_length = varargin{i+1};
         case 'subjectID'
             subjectID = varargin{i+1};
         case 'savePlot'
@@ -26,6 +28,10 @@ end
 
 if ~exist('turn_threshold','var')
     turn_threshold = 30;
+end
+
+if ~exist('avg_gc_length','var')
+    avg_gc_length = 1.5;
 end
 
 if ~exist('subjectID','var')
@@ -71,14 +77,12 @@ for f = 1:length(file_names)
     elseif strcmp(analysis_type,'CWT')
         lfp_spec = calcRCS_CWT(aligned_data);
     end
-
+    
+    % sort gait events and extract valid gait cycles
+    gait_events_sorted = sortGaitEvents(aligned_data.gait_events,'LHS');
 
     % detect and remove turns from inclusion
-    gait_events_turns_removed = removeGaitCyclesTurns(aligned_data.Xsens,aligned_data.gait_events,turn_threshold);
-
-    % sort gait events and extract valid gait cycles
-    gait_events_ordered = sortGaitEvents(gait_events_turns_removed,'LHS');
-
+    gait_events_ordered = removeGaitCyclesTurns(aligned_data.Xsens,gait_events_sorted,turn_threshold);
 
     % extract power data
     if isfield(lfp_spec,'Left')
@@ -88,7 +92,7 @@ for f = 1:length(file_names)
         gait_events_ordered_trim = gait_events_ordered(gc_start_search:gc_end_search,:);
 
         gc_test = ~isnan(gait_events_ordered_trim.LHS(2:end)-gait_events_ordered_trim.LHS(1:end-1));
-        gc_test2 = (gait_events_ordered_trim.LHS(2:end)-gait_events_ordered_trim.LHS(1:end-1)) < 1.2;
+        gc_test2 = (gait_events_ordered_trim.LHS(2:end)-gait_events_ordered_trim.LHS(1:end-1)) < avg_gc_length;
         valid_gc = gc_test&gc_test2;
         left_single_gait_cycle_cell = cell(size(freq_bands,1),sum(valid_gc),4);   % freq_band x gait cycle x recording area
 
@@ -124,7 +128,7 @@ for f = 1:length(file_names)
         gait_events_ordered_trim = gait_events_ordered(gc_start_search:gc_end_search,:);
 
         gc_test = ~isnan(gait_events_ordered_trim.LHS(2:end)-gait_events_ordered_trim.LHS(1:end-1));
-        gc_test2 = (gait_events_ordered_trim.LHS(2:end)-gait_events_ordered_trim.LHS(1:end-1)) < 1.2;
+        gc_test2 = (gait_events_ordered_trim.LHS(2:end)-gait_events_ordered_trim.LHS(1:end-1)) < avg_gc_length;
         valid_gc = gc_test&gc_test2;
 
         right_single_gait_cycle_cell = cell(size(freq_bands,1),sum(valid_gc),4);   % freq_band x gait cycle x recording area
