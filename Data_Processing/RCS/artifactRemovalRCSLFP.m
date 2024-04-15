@@ -29,6 +29,8 @@ for i = 1:2:nargin-2
             stim_freq = varargin{i+1};      % Stimulation frequency
         case 'sampling_rate'
             sampling_rate = varargin{i+1};  % Sampling rate of the LFP data
+        case 'stim_contact_key'
+            stim_contact_key = varargin{i+1};   % Which recording key contains the stimulation contact. Input is a value between 0-3
         case 'ekg_template_indexes'
             ekg_template_indexes = varargin{i+1};   % 4x2 matrix
         case 'remove_stim_harmonic'
@@ -55,6 +57,10 @@ end
 
 if ~exist('sampling_rate','var') || isempty(sampling_rate)
     sampling_rate = 500;
+end
+
+if ~exist("stim_contact_key",'var')
+    stim_contact_key = [];
 end
 
 if ~exist('ekg_template_indexes','var') || isempty(ekg_template_indexes)
@@ -244,10 +250,15 @@ for j = 1:length(lfp_data)
 
     while ~stim_filt_done
         [b,a] = butter(6,[(stim_freq/(2^count))-7.5,(stim_freq/(2^count))+7.5]/(sampling_rate/2),'stop');
+        [b2,a2] = butter(6,[(stim_freq/(2^count))-40,(stim_freq/(2^count))+40]/(sampling_rate/2),'stop');
 
         for i = 1:length(recording_channels)
             if contains(filt_type{j,i},'stimTherapy')
-                filt_data{j}.(recording_channels{i}) = filtfilt(b,a,filt_data{j}.(recording_channels{i}));
+                if ~isempty(stim_contact_key) && (stim_contact_key+1) == i
+                    filt_data{j}.(recording_channels{i}) = filtfilt(b2,a2,filt_data{j}.(recording_channels{i}));
+                else
+                    filt_data{j}.(recording_channels{i}) = filtfilt(b,a,filt_data{j}.(recording_channels{i}));
+                end
                 stim_filtered = true;
             end
         end
@@ -384,7 +395,7 @@ if save_data
         copyfile(file_path,file_path2);
 
         % Copy filt data as timeDomainDataTable to replicate original file
-        timeDomainDataTable = filt_data;
+        timeDomainDataTable = filt_data{1};
         [A,B,C] = fileparts(file_path);
         save_name = fullfile(A,[B,'_filtered',C]);
         save(save_name,'timeDomainDataTable');

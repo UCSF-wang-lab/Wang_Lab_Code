@@ -9,6 +9,10 @@ for i = 1:2:nargin-1
             markingTimeRange = varargin{i+1};
         case 'nextGaitCycleThreshold'
             nextGaitCycleThreshold = varargin{i+1};
+        case 'firstMeta'
+            firstMeta = varargin{i+1};
+        case 'fifthMeta'
+            fifthMeta = varargin{i+1};
     end
 end
 
@@ -25,23 +29,92 @@ if ~exist('nextGaitCycleThreshold','var') || isempty(nextGaitCycleThreshold)
     nextGaitCycleThreshold = 1.3;
 end
 
-% Determine gait events
+if ~exist('firstMeta','var') || isempty(firstMeta)
+    firstMeta = false;
+end
+
+if ~exist('fifthMeta','var') || isempty(fifthMeta)
+    fifthMeta = false;
+end
+
+%% Determine gait events
+% Heel strike
 LHS_times = data.Time.FSR_adapter_15_Left_FSRA_15((data.Data.FSR_adapter_15_Left_FSRA_15(1:end-1) < detectionThreshold) & (data.Data.FSR_adapter_15_Left_FSRA_15(2:end) > detectionThreshold))';
-RTO_times = data.Time.FSR_adapter_16_Right_FSRD_16((data.Data.FSR_adapter_16_Right_FSRD_16(1:end-1) > detectionThreshold) & (data.Data.FSR_adapter_16_Right_FSRD_16(2:end) < detectionThreshold))';
-RHS_times = data.Time.FSR_adapter_16_Right_FSRA_16((data.Data.FSR_adapter_16_Right_FSRA_16(1:end-1) < detectionThreshold) & (data.Data.FSR_adapter_16_Right_FSRA_16(2:end) > detectionThreshold))';
-LTO_times = data.Time.FSR_adapter_15_Left_FSRD_15((data.Data.FSR_adapter_15_Left_FSRD_15(1:end-1) > detectionThreshold) & (data.Data.FSR_adapter_15_Left_FSRD_15(2:end) < detectionThreshold))';
-
-% Remove gait events that are before marking start time
 LHS_times = LHS_times(LHS_times>=markingTimeRange(1) & LHS_times<=markingTimeRange(2));
-RTO_times = RTO_times(RTO_times>=markingTimeRange(1) & RTO_times<=markingTimeRange(2));
-RHS_times = RHS_times(RHS_times>=markingTimeRange(1) & RHS_times<=markingTimeRange(2));
-LTO_times = LTO_times(LTO_times>=markingTimeRange(1) & LTO_times<=markingTimeRange(2));
+LHS_source = zeros([length(LHS_times),1]);
+remove_inds = find(diff(LHS_times)<0.75)+1;
+LHS_times(remove_inds) = [];
+LHS_source(remove_inds) = [];
 
-% Remove gait events that are too close in time to each other
-LHS_times(find(diff(LHS_times)<0.75)+1) = [];
-RTO_times(find(diff(RTO_times)<0.75)+1) = [];
-RHS_times(find(diff(RHS_times)<0.75)+1) = [];
-LTO_times(find(diff(LTO_times)<0.75)+1) = [];
+RHS_times = data.Time.FSR_adapter_16_Right_FSRA_16((data.Data.FSR_adapter_16_Right_FSRA_16(1:end-1) < detectionThreshold) & (data.Data.FSR_adapter_16_Right_FSRA_16(2:end) > detectionThreshold))';
+RHS_times = RHS_times(RHS_times>=markingTimeRange(1) & RHS_times<=markingTimeRange(2));
+RHS_source = zeros([length(RHS_times),1]);
+remove_inds = find(diff(RHS_times)<0.75)+1;
+RHS_times(remove_inds) = [];
+RHS_source(remove_inds) = [];
+
+if fifthMeta
+    LHS_times2 = data.Time.FSR_adapter_15_Left_FSRC_15((data.Data.FSR_adapter_15_Left_FSRC_15(1:end-1) < detectionThreshold) & (data.Data.FSR_adapter_15_Left_FSRC_15(2:end) > detectionThreshold))';
+    LHS_times2 = LHS_times2(LHS_times2>=markingTimeRange(1) & LHS_times2<=markingTimeRange(2));
+    LHS_source2 = ones([length(LHS_times2),1]);
+    remove_inds = find(diff(LHS_times2)<0.75)+1;
+    LHS_times2(remove_inds) = [];
+    LHS_source2(remove_inds) = [];
+    LHS_times = combineAndSort([LHS_times;LHS_times2],[LHS_source;LHS_source2]);
+
+    RHS_times2 = data.Time.FSR_adapter_16_Right_FSRC_16((data.Data.FSR_adapter_16_Right_FSRC_16(1:end-1) < detectionThreshold) & (data.Data.FSR_adapter_16_Right_FSRC_16(2:end) > detectionThreshold))';
+    RHS_times2 = RHS_times2(RHS_times2>=markingTimeRange(1) & RHS_times2<=markingTimeRange(2));
+    RHS_source2 = ones([length(RHS_times2),1]);
+    remove_inds = find(diff(RHS_times2)<0.75)+1;
+    RHS_times2(remove_inds) = [];
+    RHS_source2(remove_inds) = [];
+    RHS_times = combineAndSort([RHS_times;RHS_times2],[RHS_source;RHS_source2]);
+end
+
+% Toe off
+LTO_times = data.Time.FSR_adapter_15_Left_FSRD_15((data.Data.FSR_adapter_15_Left_FSRD_15(1:end-1) > detectionThreshold) & (data.Data.FSR_adapter_15_Left_FSRD_15(2:end) < detectionThreshold))';
+LTO_times = LTO_times(LTO_times>=markingTimeRange(1) & LTO_times<=markingTimeRange(2));
+LTO_source = zeros([length(LTO_times),1]);
+remove_inds = find(diff(LTO_times)<0.75)+1;
+LTO_times(remove_inds) = [];
+LTO_source(remove_inds) = [];
+
+RTO_times = data.Time.FSR_adapter_16_Right_FSRD_16((data.Data.FSR_adapter_16_Right_FSRD_16(1:end-1) > detectionThreshold) & (data.Data.FSR_adapter_16_Right_FSRD_16(2:end) < detectionThreshold))';
+RTO_times = RTO_times(RTO_times>=markingTimeRange(1) & RTO_times<=markingTimeRange(2));
+RTO_source = zeros([length(RTO_times),1]);
+remove_inds = find(diff(RTO_times)<0.75)+1;
+RTO_times(remove_inds) = [];
+RTO_source(remove_inds) = [];
+
+if firstMeta
+    LTO_times2 = data.Time.FSR_adapter_15_Left_FSRB_15((data.Data.FSR_adapter_15_Left_FSRB_15(1:end-1) > detectionThreshold) & (data.Data.FSR_adapter_15_Left_FSRB_15(2:end) < detectionThreshold))';
+    LTO_times2 = LTO_times2(LTO_times2>=markingTimeRange(1) & LTO_times2<=markingTimeRange(2));
+    LTO_source2 = ones([length(LTO_times2),1]);
+    remove_inds = find(diff(LTO_times2)<0.75)+1;
+    LTO_times2(remove_inds) = [];
+    LTO_source2(remove_inds) = [];
+    LTO_times = combineAndSort([LTO_times;LTO_times2],[LTO_source;LTO_source2]);
+
+    RTO_times2 = data.Time.FSR_adapter_16_Right_FSRB_16((data.Data.FSR_adapter_16_Right_FSRB_16(1:end-1) > detectionThreshold) & (data.Data.FSR_adapter_16_Right_FSRB_16(2:end) < detectionThreshold))';
+    RTO_times2 = RTO_times2(RTO_times2>=markingTimeRange(1) & RTO_times2<=markingTimeRange(2));
+    RTO_source2 = ones([length(RTO_times2),1]);
+    remove_inds = find(diff(RTO_times2)<0.75)+1;
+    RTO_times2(remove_inds) = [];
+    RTO_source2(remove_inds) = [];
+    RTO_times = combineAndSort([RTO_times;RTO_times2],[RTO_source;RTO_source2]);
+end
+
+% % Remove gait events that are before marking start time
+% LHS_times = LHS_times(LHS_times>=markingTimeRange(1) & LHS_times<=markingTimeRange(2));
+% RTO_times = RTO_times(RTO_times>=markingTimeRange(1) & RTO_times<=markingTimeRange(2));
+% RHS_times = RHS_times(RHS_times>=markingTimeRange(1) & RHS_times<=markingTimeRange(2));
+% LTO_times = LTO_times(LTO_times>=markingTimeRange(1) & LTO_times<=markingTimeRange(2));
+% 
+% % Remove gait events that are too close in time to each other
+% LHS_times(find(diff(LHS_times)<0.75)+1) = [];
+% RTO_times(find(diff(RTO_times)<0.75)+1) = [];
+% RHS_times(find(diff(RHS_times)<0.75)+1) = [];
+% LTO_times(find(diff(LTO_times)<0.75)+1) = [];
 
 % Setup output variable
 gaitEventMat = [];
@@ -202,4 +275,23 @@ elseif strcmp(currEvent,'RHS')
 else
     nextGaitEventName = 'LHS';
 end
+end
+
+function outGaitEvents = combineAndSort(gait_events,gait_event_source)
+    [gait_events_sorted,sorted_inds] = sort(gait_events);
+    gait_event_source_sorted = gait_event_source(sorted_inds);
+
+    remove_inds = [];
+    for i = 1:length(gait_events_sorted)-1
+        if (gait_events_sorted(i+1)-gait_events_sorted(i)) < 0.2
+            if gait_event_source_sorted(i+1) == 0 && gait_event_source_sorted(i) == 1
+                remove_inds(end+1) = i;
+            elseif gait_event_source_sorted(i+1) == 1 && gait_event_source_sorted(i) == 0
+                remove_inds(end+1) = i+1;
+            end
+        end
+    end
+
+    gait_events_sorted(remove_inds) = [];
+    outGaitEvents = gait_events_sorted;
 end

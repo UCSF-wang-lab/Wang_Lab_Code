@@ -43,32 +43,43 @@ elseif ~exist('filename','var') && exist('path','var')
 
     % Check if there is a filtered time domain file
     if sum(cellfun(@(x)contains(x,'filtered'),{file_list.name}))>0
-        filt_data_array = cellfun(@(x)contains(x,'filtered'),{file_list.name});
-        td_data_array = cellfun(@(x)contains(x,'RawDataTD'),{file_list.name});
-        remove_inds = xor(filt_data_array,td_data_array);
-        file_list(remove_inds) = [];
+        answer = questdlg("Filtered and unfiltered neural data detected. Which file do you want to include?","Neural data conflict","Unfiltered","Filtered","Unfiltered");
+        if strcmp(answer,"Filtered")
+            filt_data_array = cellfun(@(x)contains(x,'filtered'),{file_list.name});
+            td_data_array = cellfun(@(x)contains(x,'RawDataTD'),{file_list.name});
+            remove_inds = xor(filt_data_array,td_data_array);
+            file_list(remove_inds) = [];
+        else
+            filt_data_ind = find(cellfun(@(x)contains(x,'filtered'),{file_list.name}));
+            orignal_data_ind = find(cellfun(@(x)contains(x,'original'),{file_list.name}));
+            remove_inds = [filt_data_ind,orignal_data_ind];
+            file_list(remove_inds) = [];
+        end
     end
 
-    filenames = [];
+    filenames = {};
     for i = 1:length(file_list)
         if file_list(i).isdir == 0
             filename = fullfile(file_list(i).folder,file_list(i).name);
-            filenames(end+1) = filename;
             switch file_list(i).name
                 case "DeviceSettings.mat"
                     settings_data = load(filename);
+                    filenames{end+1} = file_list(i).name;
                     str = sprintf('Loaded RC+S DeviceSettings file: %s',filename);
                     addEvent(str);
                 case "LogTable.mat"
                     log_data = load(filename);
+                    filenames{end+1} = file_list(i).name;
                     str = sprintf('Loaded RC+S LogTable file: %s',filename);
                     addEvent(str);
                 case "RawDataAccel.mat"
                     accel_data = load(filename);
+                    filenames{end+1} = file_list(i).name;
                     str = sprintf('Loaded RC+S Acceleration file: %s',filename);
                     addEvent(str);
                 case {"RawDataTD.mat","RawDataTD_filtered.mat"}
                     td_data = load(filename);
+                    filenames{end+1} = file_list(i).name;
                     str = sprintf('Loaded RC+S LFP time domain file: %s',filename);
                     addEvent(str);
             end
@@ -144,8 +155,12 @@ switch src.Tag
         str = sprintf('Loaded right Rover file: %s',fullfile(path,filename));
 end
 
-for i = 1:length(filename)
-    src.Parent.Parent.UserData.file_names{end+1} = fullfile(path,filename(i));
+if iscell(filename)
+    for i = 1:length(filename)
+        src.Parent.Parent.UserData.file_names{end+1} = fullfile(path,filename{i});
+    end
+else
+    src.Parent.Parent.UserData.file_names{end+1} = fullfile(path,filename);
 end
 
 % if isempty(src.Parent.Parent.UserData.basePath)

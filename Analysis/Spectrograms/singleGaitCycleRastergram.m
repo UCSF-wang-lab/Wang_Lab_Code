@@ -88,7 +88,7 @@ for f = 1:length(file_names)
         gait_events_ordered_trim = gait_events_ordered(gc_start_search:gc_end_search,:);
 
         gc_test = ~isnan(gait_events_ordered_trim.LHS(2:end)-gait_events_ordered_trim.LHS(1:end-1));
-        gc_test2 = (gait_events_ordered_trim.LHS(2:end)-gait_events_ordered_trim.LHS(1:end-1)) < 1.8;
+        gc_test2 = (gait_events_ordered_trim.LHS(2:end)-gait_events_ordered_trim.LHS(1:end-1)) < 1.2;
         valid_gc = gc_test&gc_test2;
         left_single_gait_cycle_cell = cell(size(freq_bands,1),sum(valid_gc),4);   % freq_band x gait cycle x recording area
 
@@ -124,7 +124,7 @@ for f = 1:length(file_names)
         gait_events_ordered_trim = gait_events_ordered(gc_start_search:gc_end_search,:);
 
         gc_test = ~isnan(gait_events_ordered_trim.LHS(2:end)-gait_events_ordered_trim.LHS(1:end-1));
-        gc_test2 = (gait_events_ordered_trim.LHS(2:end)-gait_events_ordered_trim.LHS(1:end-1)) < 1.8;
+        gc_test2 = (gait_events_ordered_trim.LHS(2:end)-gait_events_ordered_trim.LHS(1:end-1)) < 1.2;
         valid_gc = gc_test&gc_test2;
 
         right_single_gait_cycle_cell = cell(size(freq_bands,1),sum(valid_gc),4);   % freq_band x gait cycle x recording area
@@ -225,8 +225,13 @@ if exist('left_single_gait_cycle_struct','var')
 
             ylabel('Gait Cycle');
             xlabel('Time (sec)');
-            colorbar;
+            cb = colorbar;
             caxis([-3,3])
+            if strcmp(normalizationType,'zscore')
+                cb.Label.String = 'Z-Score';
+                cb.Label.VerticalAlignment = 'middle';
+                cb.Label.Rotation = 270;
+            end
         end
     end
 end
@@ -251,8 +256,13 @@ if exist('right_single_gait_cycle_struct','var')
 
             ylabel('Gait Cycle');
             xlabel('Time (sec)');
-            colorbar;
+            cb = colorbar;
             caxis([-3,3])
+            if strcmp(normalizationType,'zscore')
+                cb.Label.String = 'Z-Score';
+                cb.Label.VerticalAlignment = 'middle';
+                cb.Label.Rotation = 270;
+            end
         end
     end
 end
