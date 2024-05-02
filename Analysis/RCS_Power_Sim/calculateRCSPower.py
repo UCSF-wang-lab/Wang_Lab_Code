@@ -22,6 +22,7 @@ Inputs:         -data       [=] Flag to notify the program the next input will b
 # import libraries and modules
 import sys
 import os
+import glob
 import numpy as np
 import pandas as pd
 import itertools
@@ -156,6 +157,38 @@ def generateKeyFreqNames(fs: int, nfft: int, key: str):
     return center_freqs
 
 
+
+def runSim(data: pd.DataFrame = None, settings: pd.DataFrame = None,options: dict = None,save_path: str = None, file_name: str = None):
+    # Calculate fft interval if not defined
+    fft_int_calc = lambda x,y: ((1-x)*y*1000)/500 
+
+    # Loop through parameter combos
+    for combo in options["param_combos"]:
+        # Get fft interval for a specific overlap percentage
+        fft_int = int(np.round(fft_int_calc(combo[0],combo[1])))
+        
+        if fft_int > 150 and fft_int < 500:
+            # generate save name
+            sim_info = "_fs_%d_nfft_%d_fftbitshift_%d_overlap_%d_fftint_%d" % (options["fs"],combo[1],combo[2],combo[0]*100,fft_int)
+            if options["sim_type"] == "fft":
+                save_name = save_path + "/" + file_name[0:len(file_name)-4] + sim_info + "_full_spec.csv"
+            else:
+                save_name = save_path + "/" + file_name[0:len(file_name)-4] + sim_info + "_pb.csv"
+
+
+            # Check what type of simulation to run and save output
+            if options["sim_type"] == "fft":
+                out_DF = calcRCSFFT(data,settings,False,options["fs"],combo[1],fft_int,combo[2])
+                out_DF.to_csv(save_name,index = False)
+                print("Wrote out file: %s" % save_name)
+            elif options["sim_type"] == "pb":
+                out_DF = calcRCSFFT(data,settings,True,options["fs"],combo[1],fft_int,combo[2])
+                out_DF.to_csv(save_name,index = False)
+                print("Wrote out file: %s" % save_name)
+
+
+
+
 # main function to load in data and do things
 def main(sim_type: str = "fft",save_path: str = os.getcwd()):
     # grab command line arguments
@@ -168,6 +201,8 @@ def main(sim_type: str = "fft",save_path: str = os.getcwd()):
             data_file_name = os.path.basename(args[i+1])
         elif args[i] == "-settings":
             rcs_settings = loadData(args[i+1],type="settings")
+        elif args[i] == "-data_folder":
+            data_folder = args[i+1]
         elif args[i] == "-fs":
             fs = int(args[i+1])
         elif args[i] == "-nfft":
@@ -183,10 +218,10 @@ def main(sim_type: str = "fft",save_path: str = os.getcwd()):
         elif args[i] == "-save_path":
             save_path = args[i+1]
 
-    # debugging prints
-    print(args[0])          # should be RCS data path
-    print(args[1])          # should be RCS settings path
-    print('sucessfullly loaded data')   
+    # # debugging prints
+    # print(args[0])          # should be RCS data path
+    # print(args[1])          # should be RCS settings path
+    # print('sucessfullly loaded data')   
 
     # default values
     if 'fs' not in locals():
@@ -201,38 +236,34 @@ def main(sim_type: str = "fft",save_path: str = os.getcwd()):
     if 'overlap_percent' not in locals():
         overlap_percent = (0.5,0.6,0.7,0.8,0.9)
 
+    if 'save_path' not in locals():
+        save_path = os.getcwd()
+
     # Create a list of all possible combos of nfft, bitshift, and overlap percentage
     power_sim_param_combos = list(itertools.product(overlap_percent,nfft,fft_bitshift))
 
-    # Calculate fft interval if not defined
-    fft_int_calc = lambda x,y: ((1-x)*y*1000)/500
+    # Create dictionary to pass into the sim function
+    option_dict = {
+        "sim_type": sim_type,
+        "param_combos": power_sim_param_combos,
+        "fs" : fs
+    }
 
+    # if a folder was given instead of a single file loop through all files in the folder
+    if ('rcs_data' in locals()) and ('rcs_settings' in locals()) and ('data_folder' not in locals()):
+        runSim(data = rcs_data, settings = rcs_settings,options = option_dict,save_path = save_path, file_name = data_file_name)
+    elif ('rcs_data' not in locals()) and ('rcs_settings' not in locals()) and ('data_folder' in locals()):
+        left_file_list = glob.glob(data_folder + "/*LEFT.csv")
+        right_file_list = glob.glob(data_folder + "/*RIGHT.csv")
+        file_list = left_file_list+right_file_list
+        for file in file_list:
+            rcs_data = loadData(file,type="data")
+            rcs_settings = loadData(file[0:len(file)-4]+"_SETTINGS.csv",type = "settings")
+            runSim(data = rcs_data, settings=rcs_settings, options = option_dict,save_path = save_path,file_name=os.path.basename(file))
+    else:
+        raise ValueError("Function input error. Either have the rcs data and setting file as input with the data folder not defined, or have the data folder defined but not rcs data and setting file.")
 
-    # Loop through parameter combos
-    for combo in power_sim_param_combos:
-        # Get fft interval for a specific overlap percentage
-        fft_int = int(np.round(fft_int_calc(combo[0],combo[1])))
-        
-        if fft_int > 150 and fft_int < 500:
-            # generate save name
-            sim_info = "_fs_%d_nfft_%d_fftbitshift_%d_overlap_%d_fftint_%d" % (fs,combo[1],combo[2],combo[0]*100,fft_int)
-            if sim_type == "fft":
-                save_name = save_path + "/" + data_file_name[0:len(data_file_name)-4] + sim_info + "_full_spec.csv"
-            else:
-                save_name = save_path + "/" + data_file_name[0:len(data_file_name)-4] + sim_info + "_pb.csv"
-
-
-            # Check what type of simulation to run and save output
-            if sim_type == "fft":
-                out_DF = calcRCSFFT(rcs_data,rcs_settings,False,fs,combo[1],fft_int,combo[2])
-                out_DF.to_csv(save_name,index = False)
-                print("Wrote out file: %s" % save_name)
-            elif sim_type == "pb":
-                out_DF = calcRCSFFT(rcs_data,rcs_settings,True,fs,combo[1],fft_int,combo[2])
-                out_DF.to_csv(save_name,index = False)
-                print("Wrote out file: %s" % save_name)
-
-
+   
 
 """ 
 Entry point into the script

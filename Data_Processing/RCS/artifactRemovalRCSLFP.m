@@ -3,8 +3,8 @@ function filt_data = artifactRemovalRCSLFP(input,filt_type,varargin)
 % lfp_data can either be a file path to the raw time domain LFP data or a
 % table object
 %
-% filt_type can be "stim","ekg","gait,"stim_ekg","stim_gait", "gait_ekg",
-% or "stim_gait_ekg"
+% filt_type can be "stimTherapy", "stimSync", "ekg", "gait" and any
+% combinations
 %
 % stim_freq is a float value
 %
@@ -29,8 +29,8 @@ for i = 1:2:nargin-2
             stim_freq = varargin{i+1};      % Stimulation frequency
         case 'sampling_rate'
             sampling_rate = varargin{i+1};  % Sampling rate of the LFP data
-        case 'stim_contact_key'
-            stim_contact_key = varargin{i+1};   % Which recording key contains the stimulation contact. Input is a value between 0-3
+        case 'wide_band_stim_freq_keys'
+            wide_band_stim_freq_keys = varargin{i+1};   % Which recording key contains the stimulation contact. Input is a value between 0-3
         case 'ekg_template_indexes'
             ekg_template_indexes = varargin{i+1};   % 4x2 matrix
         case 'remove_stim_harmonic'
@@ -59,8 +59,8 @@ if ~exist('sampling_rate','var') || isempty(sampling_rate)
     sampling_rate = 500;
 end
 
-if ~exist("stim_contact_key",'var')
-    stim_contact_key = [];
+if ~exist("wide_band_stim_freq_keys",'var')
+    wide_band_stim_freq_keys = [];
 end
 
 if ~exist('ekg_template_indexes','var') || isempty(ekg_template_indexes)
@@ -254,7 +254,7 @@ for j = 1:length(lfp_data)
 
         for i = 1:length(recording_channels)
             if contains(filt_type{j,i},'stimTherapy')
-                if ~isempty(stim_contact_key) && (stim_contact_key+1) == i
+                if ~isempty(wide_band_stim_freq_keys) && sum(wide_band_stim_freq_keys+1 == i) == 1
                     filt_data{j}.(recording_channels{i}) = filtfilt(b2,a2,filt_data{j}.(recording_channels{i}));
                 else
                     filt_data{j}.(recording_channels{i}) = filtfilt(b,a,filt_data{j}.(recording_channels{i}));

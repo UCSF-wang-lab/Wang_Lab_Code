@@ -19,12 +19,12 @@ end
 
 [left_data,right_data] = simplifyRCSDataTable(aligned_data);
 [left_settings,right_settings] = extractRCSDeviceSettings(aligned_data);
-gait_events = aligned_data.gait_events;
+% gait_events = aligned_data.gait_events;
 
 % Save CSV files to save path
 if ~exist('save_name','var') || isempty(save_name)
     % Default saving file name
-    save_filename = generateFileName(aligned_data);
+    save_filename = generateFileName(file_name,aligned_data);
 end
 
 if ~exist('save_path','var') || isempty(save_path)
@@ -49,9 +49,9 @@ if ~isempty(right_settings)
     writetable(right_settings,[save_name,'RIGHT_SETTINGS.csv']);
 end
 
-if ~isempty(gait_events)
-    writetable(gait_events,[save_name,'Gait_Events.csv']);
-end
+% if ~isempty(gait_events)
+%     writetable(gait_events,[save_name,'Gait_Events.csv']);
+% end
 
 end
 
@@ -183,7 +183,7 @@ out_table = table(amp_gains,fs_td,fft_size,fft_interval,fft_bitshift,power_bands
     'termination','blank_duration','blank_both','target_amp','rise_time','fall_time'});
 end
 
-function file_name = generateFileName(data)
+function file_name = generateFileName(loaded_file_name,data)
 file_name = [];
 
 % Add subject
@@ -204,7 +204,20 @@ file_name = [file_name,data.stim_condition,'_Stim_',data.med_condition,'_Med_'];
 
 % Add trial num if it exist
 if ~isempty(data.trial_num)
-    file_name = [file_name,sprintf('Trial%d_',data.trial_num)];
+    file_name = [file_name,sprintf('Trial_%d_',data.trial_num)];
+end
+
+% Add "Turn" direction if it exist
+file_name_elements = strsplit(loaded_file_name,'_');
+turn_ind = find(cellfun(@(x)strcmp(x,'Turns'),file_name_elements));
+if ~isempty(turn_ind)
+    file_name = [file_name,file_name_elements{turn_ind-1},'_',file_name_elements{turn_ind},'_'];
+end
+
+% Add "Part" number if it exist
+part_ind = find(cellfun(@(x)strcmp(x,'Part'),file_name_elements));
+if ~isempty(part_ind)
+    file_name = [file_name,file_name_elements{part_ind},'_',file_name_elements{part_ind+1},'_'];
 end
 
 end

@@ -1,5 +1,5 @@
 function aggregateTables = aggregateRCSSimSpecData(patientFolder)
-patientFolder = '/Volumes/dwang3_shared/Patient Data/RC+S Data/RCS09';
+patientFolder = '/Volumes/dwang3_shared/Patient Data/RC+S Data/gait_RCS_02';
 folderList = dir([patientFolder,'/*v*']);
 subjectID = patientFolder(find(patientFolder=='/',1,'last')+1:end);
 aggregateTables = [];
@@ -13,21 +13,54 @@ for i = 1:length(folderList)
         
         % Grab all the spectrogram and mat files
         spec_files = dir(fullfile(folderList(i).folder,folderList(i).name,'Data','Analysis Data','aDBS','*bitshift*'));
-        mat_files = dir(fullfile(folderList(i).folder,folderList(i).name,'Data','Aligned Data','*w_Gait_Events*'));
+        mat_files = dir(fullfile(folderList(i).folder,folderList(i).name,'Data','Aligned Data','*_OG_*w_Gait_Events*'));
+
+        % Remove filtered files
+        excludeFiles = cellfun(@(x)contains(x,'filtered'),{mat_files.name});
+        mat_files(excludeFiles) = [];
+        mat_files = {mat_files.name}';
         
         if ~isempty(spec_files)
-            % Trim number of mat files to the most recent ones
-            mat_files = trimMatFiles(mat_files);
+%             % Trim number of mat files to the most recent ones
+%             mat_files = trimMatFiles(mat_files);
             
             % Loop through mat files and associated spec files and fill in a
             % table
             for j = 1:length(mat_files)
                 % Load in mat file
+                fprintf('\nReading in mat file\n %s\n\n',fullfile(folderList(1).folder,folderList(i).name,'Data/Aligned Data',mat_files{j}));
                 load(fullfile(folderList(1).folder,folderList(i).name,'Data/Aligned Data',mat_files{j}));
                 
                 % Check which spec files are associated with this file
+                file_name_elements = strsplit(mat_files{j},'_');
                 specPatientState = sprintf('%s_stim_%s_med',aligned_data.stim_condition,aligned_data.med_condition);
                 specFileMatch = cellfun(@(x)contains(x,specPatientState,'IgnoreCase',true),{spec_files.name});
+
+                if ~isempty(find(cellfun(@(x)contains(x,'Trial'),file_name_elements)))    % Trial checkfind(cellfun(@(x)contains(x,'Trial'),file_name_elements))
+                    trial_ind = find(cellfun(@(x)contains(x,'Trial'),file_name_elements))+1;
+                    trial_match = cellfun(@(x)contains(x,sprintf('Trial_%d',str2num(file_name_elements{trial_ind})),'IgnoreCase',true),{spec_files.name});
+                    specFileMatch = and(specFileMatch,trial_match);
+                end
+                
+                if ~isempty(find(cellfun(@(x)contains(x,'Turn'),file_name_elements)))     % Turn check
+                    turn_ind = find(cellfun(@(x)contains(x,'Turn'),file_name_elements))-1;
+                    turn_match = cellfun(@(x)contains(x,sprintf('%s_Turn',file_name_elements{turn_ind}),'IgnoreCase',true),{spec_files.name});
+                    specFileMatch = and(specFileMatch,turn_match);
+                end
+                
+                if ~isempty(find(cellfun(@(x)contains(x,'Set'),file_name_elements)))  % Set check
+                    set_ind = find(cellfun(@(x)contains(x,'Set'),file_name_elements))+1;
+                    set_match = cellfun(@(x)contains(x,sprintf('Set_%d',str2num(file_name_elements{set_ind})),'IgnoreCase',true),{spec_files.name});
+                    specFileMatch = and(specFileMatch,set_match);
+                end
+
+                if ~isempty(find(cellfun(@(x)contains(x,'Part'),file_name_elements)))  % Part check
+                    part_ind = find(cellfun(@(x)contains(x,'Part'),file_name_elements))+1;
+                    part_match = cellfun(@(x)contains(x,sprintf('Part_%d',str2num(file_name_elements{part_ind})),'IgnoreCase',true),{spec_files.name});
+                    specFileMatch = and(specFileMatch,part_match);
+                end
+
+                
                 specFileNames = {spec_files(specFileMatch).name};
                 
                 % Used to keep track of spec params. Reduces additional
@@ -40,7 +73,7 @@ for i = 1:length(folderList)
                 % Create table of all spec files that are related to each
                 % other
                 for k = 1:length(specFileNames)
-                    fprintf('Reading file: %s\n',specFileNames{k});
+                    fprintf('Associated rcs sim file: %s\n',specFileNames{k});
                     
                     % Load in spectral data
                     specData = readtable(fullfile(folderList(1).folder,folderList(i).name,'Data/Analysis Data/aDBS',specFileNames{k}));
@@ -53,7 +86,7 @@ for i = 1:length(folderList)
                     overlap = round(str2double(specParam(find(cellfun(@(x) strcmp(x,'overlap'),specParam))+1)));
                     bitshift = round(str2double(specParam(find(cellfun(@(x) strcmp(x,'fftbitshift'),specParam))+1)));
                     
-                    if contains(specFileNames{k},'left','IgnoreCase',true)
+                    if contains(specFileNames{k},'LEFT')
                         hemisphere = "left";
                     else
                         hemisphere = "right";
@@ -75,19 +108,22 @@ for i = 1:length(folderList)
                         
                         % New parameters, calculate the correct states base
                         % on gait events.
-                        sortedGaitEvents = sortGaitEvents(aligned_data.gait_events,'RTO');
-                        for m = 1:height(specData)
-                            % Specific for swing phase. Future will change
-                            % to make this generic.
-                            if strcmp(hemisphere,'left')
-                                toeOff = (specData.time(m)>=sortedGaitEvents.RTO) & (specData.time(m)<=sortedGaitEvents.RHS);
-                                if sum(toeOff) == 1
-                                    state(m) = 1;
-                                end
-                            else
-                                toeOff = (specData.time(m)>=sortedGaitEvents.LTO) & (specData.time(m)<=sortedGaitEvents.LHS);
-                                if sum(toeOff) == 1
-                                    state(m) = 1;
+                        filteredGaitEvents = removeGaitCyclesTurns(aligned_data.Xsens,aligned_data.gait_events,30);
+                        sortedGaitEvents = sortGaitEvents(filteredGaitEvents,'RTO');
+                        if ~isempty(sortedGaitEvents)    
+                            for m = 1:height(specData)
+                                % Specific for swing phase. Future will change
+                                % to make this generic.
+                                if strcmp(hemisphere,'left')
+                                    toeOff = (specData.time(m)>=sortedGaitEvents.RTO) & (specData.time(m)<=sortedGaitEvents.RHS);
+                                    if sum(toeOff) == 1
+                                        state(m) = 1;
+                                    end
+                                else
+                                    toeOff = (specData.time(m)>=sortedGaitEvents.LTO) & (specData.time(m)<=sortedGaitEvents.LHS);
+                                    if sum(toeOff) == 1
+                                        state(m) = 1;
+                                    end
                                 end
                             end
                         end
