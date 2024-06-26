@@ -11,6 +11,14 @@ for i = 1:2:nargin-1
             turn_threshold = varargin{i+1};
         case 'avg_gc_length'
             avg_gc_length = varargin{i+1};
+        case 'ytickSpacing'
+            ytickSpacing = varargin{i+1};
+        case 'scatterPointSize'
+            scatterPointSize = varargin{i+1};
+        case 'showLegend'
+            showLegend = varargin{i+1};
+        case 'figureFormatSize'
+            figureFormatOpts = varargin{i+1}; % [width, height, font size]
         case 'subjectID'
             subjectID = varargin{i+1};
         case 'savePlot'
@@ -32,6 +40,22 @@ end
 
 if ~exist('avg_gc_length','var')
     avg_gc_length = 1.5;
+end
+
+if ~exist('ytickSpacing','var')
+    ytickSpacing = 5;
+end
+
+if ~exist('scatterPointSize','var')
+    scatterPointSize = 20;
+end
+
+if ~exist('showLegend','var')
+    showLegend = false;
+end
+
+if ~exist('figureFormatOpts','var')
+    figureFormatOpts = [6,6,10];
 end
 
 if ~exist('subjectID','var')
@@ -217,14 +241,14 @@ if exist('left_single_gait_cycle_struct','var')
             title({subjectID;['Left ',chan_names{i},' ',freq_bands_names{j}]});
             shading flat
             hold on;
-            a(1) = scatter(left_single_gait_cycle_struct.RTO_timings{j,i},length(left_single_gait_cycle_struct.RTO_timings{j,i}):-1:1,20,'MarkerEdgeColor',marker_colors.RTO,'MarkerFaceColor',marker_colors.RTO,'DisplayName','RTO');
-            a(2) = scatter(left_single_gait_cycle_struct.RHS_timings{j,i},length(left_single_gait_cycle_struct.RHS_timings{j,i}):-1:1,20,'MarkerEdgeColor',marker_colors.RHS,'MarkerFaceColor',marker_colors.RHS,'DisplayName','RHS');
-            a(3) = scatter(left_single_gait_cycle_struct.LTO_timings{j,i},length(left_single_gait_cycle_struct.LTO_timings{j,i}):-1:1,20,'MarkerEdgeColor',marker_colors.LTO,'MarkerFaceColor',marker_colors.LTO,'DisplayName','LTO');
+            a(1) = scatter(left_single_gait_cycle_struct.RTO_timings{j,i},length(left_single_gait_cycle_struct.RTO_timings{j,i}):-1:1,scatterPointSize,'MarkerEdgeColor',marker_colors.RTO,'MarkerFaceColor',marker_colors.RTO,'DisplayName','RTO');
+            a(2) = scatter(left_single_gait_cycle_struct.RHS_timings{j,i},length(left_single_gait_cycle_struct.RHS_timings{j,i}):-1:1,scatterPointSize,'MarkerEdgeColor',marker_colors.RHS,'MarkerFaceColor',marker_colors.RHS,'DisplayName','RHS');
+            a(3) = scatter(left_single_gait_cycle_struct.LTO_timings{j,i},length(left_single_gait_cycle_struct.LTO_timings{j,i}):-1:1,scatterPointSize,'MarkerEdgeColor',marker_colors.LTO,'MarkerFaceColor',marker_colors.LTO,'DisplayName','LTO');
 
             if mod(size(left_single_gait_cycle_struct.data{j,i},1)-1,5)~=0
-                yticks([1:5:size(left_single_gait_cycle_struct.data{j,i},1),size(left_single_gait_cycle_struct.data{j,i},1)]);
+                yticks([1:ytickSpacing:size(left_single_gait_cycle_struct.data{j,i},1),size(left_single_gait_cycle_struct.data{j,i},1)]);
             else
-                yticks([1:5:size(left_single_gait_cycle_struct.data{j,i},1)])
+                yticks([1:ytickSpacing:size(left_single_gait_cycle_struct.data{j,i},1)])
             end
 
             ylabel('Gait Cycle');
@@ -235,6 +259,10 @@ if exist('left_single_gait_cycle_struct','var')
                 cb.Label.String = 'Z-Score';
                 cb.Label.VerticalAlignment = 'middle';
                 cb.Label.Rotation = 270;
+            end
+
+            if showLegend
+                legend(a);
             end
         end
     end
@@ -248,14 +276,14 @@ if exist('right_single_gait_cycle_struct','var')
             title({subjectID;['Right ',chan_names{i},' ',freq_bands_names{j}]});
             shading flat
             hold on;
-            a(1) = scatter(right_single_gait_cycle_struct.RTO_timings{j,i},length(right_single_gait_cycle_struct.RTO_timings{j,i}):-1:1,20,'MarkerEdgeColor',marker_colors.RTO,'MarkerFaceColor',marker_colors.RTO,'DisplayName','RTO');
-            a(2) = scatter(right_single_gait_cycle_struct.RHS_timings{j,i},length(right_single_gait_cycle_struct.RHS_timings{j,i}):-1:1,20,'MarkerEdgeColor',marker_colors.RHS,'MarkerFaceColor',marker_colors.RHS,'DisplayName','RHS');
-            a(3) = scatter(right_single_gait_cycle_struct.LTO_timings{j,i},length(right_single_gait_cycle_struct.LTO_timings{j,i}):-1:1,20,'MarkerEdgeColor',marker_colors.LTO,'MarkerFaceColor',marker_colors.LTO,'DisplayName','LTO');
+            a(1) = scatter(right_single_gait_cycle_struct.RTO_timings{j,i},length(right_single_gait_cycle_struct.RTO_timings{j,i}):-1:1,scatterPointSize,'MarkerEdgeColor',marker_colors.RTO,'MarkerFaceColor',marker_colors.RTO,'DisplayName','RTO');
+            a(2) = scatter(right_single_gait_cycle_struct.RHS_timings{j,i},length(right_single_gait_cycle_struct.RHS_timings{j,i}):-1:1,scatterPointSize,'MarkerEdgeColor',marker_colors.RHS,'MarkerFaceColor',marker_colors.RHS,'DisplayName','RHS');
+            a(3) = scatter(right_single_gait_cycle_struct.LTO_timings{j,i},length(right_single_gait_cycle_struct.LTO_timings{j,i}):-1:1,scatterPointSize,'MarkerEdgeColor',marker_colors.LTO,'MarkerFaceColor',marker_colors.LTO,'DisplayName','LTO');
 
             if mod(size(right_single_gait_cycle_struct.data{j,i},1)-1,5)~=0
-                yticks([1:5:size(right_single_gait_cycle_struct.data{j,i},1),size(right_single_gait_cycle_struct.data{j,i},1)]);
+                yticks([1:ytickSpacing:size(right_single_gait_cycle_struct.data{j,i},1),size(right_single_gait_cycle_struct.data{j,i},1)]);
             else
-                yticks([1:5:size(right_single_gait_cycle_struct.data{j,i},1)])
+                yticks([1:ytickSpacing:size(right_single_gait_cycle_struct.data{j,i},1)])
             end
 
             ylabel('Gait Cycle');
@@ -267,6 +295,10 @@ if exist('right_single_gait_cycle_struct','var')
                 cb.Label.VerticalAlignment = 'middle';
                 cb.Label.Rotation = 270;
             end
+
+            if showLegend
+                legend(a);
+            end
         end
     end
 end
@@ -275,7 +307,7 @@ end
 if savePlot
     save_dir = uigetdir();
 
-    figure_format(6,6,10);
+    figure_format(figureFormatOpts(1),figureFormatOpts(2),figureFormatOpts(3));
 
     % check if saving folders exist
     if ~isfolder(fullfile(save_dir,'singleGaitCycleRastergram'))
@@ -325,11 +357,11 @@ if savePlot
             end
         end
 
-        if length(file_names) == 1
-            if isfield(aligned_data,'trial_num') && ~isempty(aligned_data.trial_num)
-                save_name = [save_name,' ',sprintf('Trial%i',aligned_data.trial_num)];
-            end
-        end
+%         if length(file_names) == 1
+%             if isfield(aligned_data,'trial_num') && ~isempty(aligned_data.trial_num)
+%                 save_name = [save_name,' ',sprintf('Trial%i',aligned_data.trial_num)];
+%             end
+%         end
 
         if ~strcmp(normalizationType,'none')
             save_name = [save_name,' ',normalizationType];

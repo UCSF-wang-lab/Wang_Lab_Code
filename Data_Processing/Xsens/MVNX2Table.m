@@ -67,9 +67,34 @@ if exist('savepath','var') && ~isempty(savepath)
 else
     save_name = fullfile(default_path,[default_filename,'.mat']);
 end
-save(save_name,'fileComments','frameRate','mvnxVersion','nSamples',...
+
+% Check variable sizes. In some cases a variable will need more than 2GB of
+% data
+newSaveVersion = false;
+variables2check = {'fileComments','frameRate','mvnxVersion','nSamples',...
     'originalFilename','p_Segment1','recDate','segmentCount',...
-    'segmentData','sensorData','suitLabel','tree');
+    'segmentData','sensorData','suitLabel','tree'};
+for i = 1:length(variables2check)
+    s = whos(variables2check{i});
+    memoryScale = floor(log(s.bytes)/log(1024));
+    switch memoryScale
+        case [0,1,2]
+            newSaveVersion = false;
+        otherwise
+            newSaveVersion = true;
+            break;
+    end
+end
+
+if newSaveVersion
+    save(save_name,'fileComments','frameRate','mvnxVersion','nSamples',...
+        'originalFilename','p_Segment1','recDate','segmentCount',...
+        'segmentData','sensorData','suitLabel','tree','-v7.3');
+else
+    save(save_name,'fileComments','frameRate','mvnxVersion','nSamples',...
+        'originalFilename','p_Segment1','recDate','segmentCount',...
+        'segmentData','sensorData','suitLabel','tree');
+end
 
 
 %% to CSV

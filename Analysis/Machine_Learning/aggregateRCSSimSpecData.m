@@ -1,5 +1,5 @@
 function aggregateTables = aggregateRCSSimSpecData(patientFolder)
-patientFolder = '/Volumes/dwang3_shared/Patient Data/RC+S Data/gait_RCS_02';
+patientFolder = '/Volumes/dwang3_shared/Patient Data/RC+S Data/gait_RCS_05';
 folderList = dir([patientFolder,'/*v*']);
 subjectID = patientFolder(find(patientFolder=='/',1,'last')+1:end);
 aggregateTables = [];

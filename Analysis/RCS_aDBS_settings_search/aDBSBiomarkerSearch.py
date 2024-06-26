@@ -52,6 +52,8 @@ def writeResults(write_queue,save_name,pipe_child):
                     break
             elif type(obj) is pd.DataFrame:
                 obj.to_csv(save_name,mode = "a", header = not os.path.exists(save_name),index = False)
+            else:
+                pass
         except Exception:
             pass
     return "Writer closed."
@@ -209,7 +211,7 @@ if __name__=="__main__":
     if "chunk_size" not in locals():
         chunk_size = 500
 
-    if "starting_chunk" not in locals():
+    if "chunk_start" not in locals():
         chunk_start = 1
 
     if "save_path" not in locals():
@@ -346,6 +348,7 @@ if __name__=="__main__":
                         if workers[0]['error_count']>100:
                             # Assume writer completed job and closed by garbage collector before kill signal sent
                             workers[0]['completed'] = True
+                            break
                         else:
                             workers[0]['error_count'] += 1
 
