@@ -24,9 +24,11 @@ else
         % Rearrage the adaptive info
         if strcmp(gait_event_order{i},'RHS')
             sorted_adaptive_right = [0; gait_events.AdaptiveRight];
+            sorted_blocknum_right = [gait_events.BlockNumRight(1); gait_events.BlockNumRight];
         end
         if strcmp(gait_event_order{i},'LHS')
             sorted_adaptive_left = [0; gait_events.AdaptiveLeft];
+            sorted_blocknum_left = [gait_events.BlockNumLeft(1); gait_events.BlockNumLeft];
         end
     end
     
@@ -36,9 +38,11 @@ else
         % Rearrage the adaptive info
         if strcmp(gait_event_order{j},'RHS')
             sorted_adaptive_right = [gait_events.AdaptiveRight;0];
+            sorted_blocknum_right = [gait_events.BlockNumRight; gait_events.BlockNumRight(end)];
         end
         if strcmp(gait_event_order{j},'LHS')
             sorted_adaptive_left = [gait_events.AdaptiveLeft;0];
+            sorted_blocknum_left = [gait_events.BlockNumLeft; gait_events.BlockNumLeft(end)];
         end
     end 
 
@@ -61,25 +65,37 @@ else
                 if find(cellfun(@(X) strcmp(X,'RHS'),gait_event_order))<k
                     X_adapt_right = sorted_adaptive_right(1:count);
                     Y_adapt_right = sorted_adaptive_right((count+1):end,:);
+                    X_bn_right = sorted_blocknum_right(1:count);
+                    Y_bn_right = sorted_blocknum_right((count+1):end,:);
 
                     sorted_adaptive_right = [X_adapt_right;0;Y_adapt_right];
+                    sorted_blocknum_right = [X_bn_right;X_bn_right(end);Y_bn_right];
                 else
                     X_adapt_right = sorted_adaptive_right(1:(count-1));
                     Y_adapt_right = sorted_adaptive_right(count:end,:);
+                    X_bn_right = sorted_blocknum_right(1:(count-1));
+                    Y_bn_right = sorted_blocknum_right(count:end,:);
 
                     sorted_adaptive_right = [X_adapt_right;0;Y_adapt_right];
+                    sorted_blocknum_right = [X_bn_right;X_bn_right(end);Y_bn_right];
                 end
                 
                 if find(cellfun(@(X) strcmp(X,'LHS'),gait_event_order))<k
                     X_adapt_left = sorted_adaptive_left(1:count);
                     Y_adapt_left = sorted_adaptive_left((count+1):end,:);
+                    X_bn_left = sorted_blocknum_left(1:count);
+                    Y_bn_left = sorted_blocknum_left((count+1):end,:);
 
                     sorted_adaptive_left = [X_adapt_left;0;Y_adapt_left];
+                    sorted_blocknum_left = [X_bn_left;X_bn_left(end);Y_bn_left];
                 else
                     X_adapt_left = sorted_adaptive_left(1:(count-1));
                     Y_adapt_left = sorted_adaptive_left(count:end,:);
+                    X_bn_left = sorted_blocknum_left(1:(count-1));
+                    Y_bn_left = sorted_blocknum_left(count:end,:);
 
                     sorted_adaptive_left = [X_adapt_left;0;Y_adapt_left];
+                    sorted_blocknum_left = [X_bn_left;X_bn_left(end);Y_bn_left];
                 end
             end
         end
@@ -89,7 +105,7 @@ else
         count = count + 1;
     end
     
-    sorted_gait_events = array2table([sorted_gait_events,sorted_adaptive_right,sorted_adaptive_left],'VariableNames',[gait_event_order(:)',{'AdaptiveRight'},{'AdaptiveLeft'}]);
+    sorted_gait_events = array2table([sorted_gait_events,sorted_adaptive_right,sorted_adaptive_left,sorted_blocknum_right,sorted_blocknum_left],'VariableNames',[gait_event_order(:)',{'AdaptiveRight'},{'AdaptiveLeft'},{'BlockNumRight'},{'BlockNumLeft'}]);
 end
 
 % Remove any lines with all NAN

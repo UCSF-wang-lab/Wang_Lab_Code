@@ -1,4 +1,4 @@
-function calcGSLTperformance(processed_cirris_fname,sequence_vec,varargin)
+function calcLearningResponses(processed_cirris_fname,sequence_vec,varargin)
 % Calculates and plots GSLT performance across blocks
 %
 % INPUTS:    
@@ -67,7 +67,6 @@ end
 if ~exist('savePlot','var') || isempty(savePlot)
     savePlot = 0;   % Does not save the plot by default.
 else
-    % plot_save_path = fullfile(parent_dir,'Analysis Data','GSLT','Coherence_data_adaptive','Behavioral_performance');
     plot_save_path = fullfile(parent_dir,'Figures','GSLT','Behavioral_performance');
     if ~exist(plot_save_path, 'dir')
        mkdir(plot_save_path);
@@ -99,103 +98,73 @@ end
 %% Calculate
 % First, check if we have any sequenced block data in the first place.
 % If not, then calculate the hit rate for sequenced vs random.
-hitcount_random = zeros(1,length(sequence_vec));
 
-if procCirrisData.TargetNumber(end)<243
-    warning('Patient did not make it to the sequenced blocks. No sequenced data available');  
-    hitcount_seq = nan(1,length(sequence_vec));
-else
-    hitcount_seq = zeros(1,length(sequence_vec));
-end
-
+% hitcount_random = zeros(1,length(sequence_vec));
+% 
+% if procCirrisData.TargetNumber(end)<243
+%     warning('Patient did not make it to the sequenced blocks. No sequenced data available');  
+%     hitcount_seq = nan(1,length(sequence_vec));
+% else
+%     hitcount_seq = zeros(1,length(sequence_vec));
+% end
+Responses = zeros(1,120);
 for i = 1:height(procCirrisData)
     block_num  = floor(procCirrisData.TargetNumber(i)/120)+1;
-    if sequence_vec(block_num)
-        hitcount_seq(block_num) = hitcount_seq(block_num) + 1;
-    else
-        hitcount_random(block_num) = hitcount_random(block_num) + 1;
+
+    if block_num == 5
+        Responses(mod(procCirrisData.TargetNumber(i),120)+1) = 1;
     end         
 end
 
-% Calculate the target counts
-target_counts = zeros(1,length(sequence_vec));
-target_counts(1:floor((procCirrisData.TargetNumber(end)+1)/120)) = 120;
-if (floor((procCirrisData.TargetNumber(end)+1)/120))<length(sequence_vec)
-    target_count_interrupted_block = mod(procCirrisData.TargetNumber(end),120)+1;
-    if target_count_interrupted_block>12 % 10% of the target count of a full block
-        target_counts(floor((procCirrisData.TargetNumber(end)+1)/120)+1) = target_count_interrupted_block;
-    end
-end
+%% Run the learning probability estimation code
+MaxResponse = 1;
+BackgroundProb = .5;
 
-% Calculate the hit rates
-hitrate_random = hitcount_random./target_counts;
-hitrate_seq = hitcount_seq./target_counts;
+runanalysisv2(Responses, MaxResponse, BackgroundProb);
 
-%% Test for differences in the hit rates between R and S blocks
+load resultsindividual.mat;
 
- % Observed data
-n1 = sum(hitcount_seq);
-N1 = sum(target_counts(sequence_vec==1));
-n2 = sum(hitcount_random);
-N2 = sum(target_counts(sequence_vec==0));
+fontsize1 = 20;
+linewidth1 = 1;
 
-% Pooled estimate of proportion
-p0 = (n1+n2) / (N1+N2);
-% Expected counts under H0 (null hypothesis)
-n10 = N1 * p0;
-n20 = N2 * p0;
-% Chi-square test, by hand
-observed = [n1 N1-n1 n2 N2-n2];
-expected = [n10 N1-n10 n20 N2-n20];
-[h,p,stats] = chi2gof([1 2 3 4],'freq',observed,'expected',expected,'ctrs',[1 2 3 4],'nparams',2);
+t=1:size(p,2)-1; 
 
-
-%% Test for the learning effect, by testing differences in the hit rates between block 5 (S) and 6 (R), and block 6 and 7 (S)
-if ~isnan(hitcount_seq(5)) && hitcount_seq(5)~=0 && ~isnan(hitcount_random(6)) && hitcount_random(6)~=0
-    n1 = hitcount_seq(7)+hitcount_seq(5);
-    N1 = target_counts(7)+target_counts(5);
-    n2 = hitcount_random(6);
-    N2 = target_counts(6);
-
-    % Pooled estimate of proportion
-    p0 = (n1+n2) / (N1+N2);
-    % Expected counts under H0 (null hypothesis)
-    n10 = N1 * p0;
-    n20 = N2 * p0;
-    % Chi-square test, by hand
-    observed = [n1 N1-n1 n2 N2-n2];
-    expected = [n10 N1-n10 n20 N2-n20];
-    [h,p,stats] = chi2gof([1 2 3 4],'freq',observed,'expected',expected,'ctrs',[1 2 3 4],'nparams',2);
-end
+figure(1);  clf;
 
 %% Visualize the results
-figure;
-if procCirrisData.TargetNumber(end)<243
-    h_rand = bar(hitrate_random);
-    h_rand.FaceColor = 'flat';
+subplot(111);  
+h = plot(t, pmid(2:end),'b-'); set(h, 'LineWidth',2);
+hold on;
+plot(t, p05(2:end),'b', t, p95(2:end), 'b', 'LineWidth', linewidth1);
+if(MaxResponse == 1)
+  hold on; [y, x] = find(Responses > 0);
+  h = plot(x,y,'o'); set(h, 'MarkerFaceColor',[.9 .9 .9]);
+  set(h, 'MarkerEdgeColor', 'k' ,'MarkerSize', 4);
+  hold on; [y, x] = find(Responses == 0);
+  h = plot(x,zeros(size(x)),'o'); set(h, 'MarkerFaceColor', [.9 .9 .9]);
+  set(h, 'MarkerEdgeColor', 'k','MarkerSize', 4);
+  axis([1 t(end)  0 1.0]);
 else
-    hitrate_all = hitrate_random + hitrate_seq;
-    h_all = bar(hitrate_all);
-    h_all.FaceColor = 'flat';
-    h_all.CData(sequence_vec==1,:) = repmat([0.7 0 0],length(find(sequence_vec==1)),1);
+  hold on; plot(t, Responses./MaxResponse,'ko');
+  axis([1 t(end)  0 1]);
 end
+plot([1 t(end)], [BackgroundProb  BackgroundProb ], 'b', 'LineWidth', linewidth1);
+title(['Learning trial = ' num2str(cback)],'fontsize',fontsize1);
+xlabel('Trial Number','fontsize',fontsize1)
+ylabel('Probability of a correct response','fontsize',fontsize1)
+set(gca,'tickdir','out','fontsize',fontsize1), box off
 
-string_sequence_vec = num2cell(sequence_vec);
-string_sequence_vec(sequence_vec==1)={'S'};
-string_sequence_vec(sequence_vec==0)={'R'};
 
-set(gca,'XtickLabels',string_sequence_vec);
-set(gca,'FontSize',15);
 
-% Save plots
-if savePlot
-    saveas(gcf,fullfile(plot_save_path,strcat('hit_rate_',condStr,'.fig')));
-    saveas(gcf,fullfile(plot_save_path,strcat('hit_rate_',condStr,'.tiff')));
-end
-
-% Save data
-if saveData
-    save(fullfile(data_save_path,strcat('hitrate_all_',condStr,'.mat')),'hitrate_all');
-end
-
-end
+% % Save plots
+% if savePlot
+%     saveas(gcf,fullfile(plot_save_path,strcat('hit_rate_',condStr,'.fig')));
+%     saveas(gcf,fullfile(plot_save_path,strcat('hit_rate_',condStr,'.tiff')));
+% end
+% 
+% % Save data
+% if saveData
+%     save(fullfile(data_save_path,strcat('hitrate_all_',condStr,'.mat')),'hitrate_all');
+% end
+% 
+% end

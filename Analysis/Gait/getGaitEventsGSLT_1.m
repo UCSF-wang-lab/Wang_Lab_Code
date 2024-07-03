@@ -1,4 +1,4 @@
-function gaitEventTable = getGaitEventsGSLT(data,varargin)
+function gaitEventTable = getGaitEventsGSLT_1(data,varargin)
 
 % Parse optional inputs
 for i = 1:2:nargin-1
@@ -50,11 +50,11 @@ end
 % RHS_times = data.Time.FSR_adapter_16_Right_FSRA_16((data.Data.FSR_adapter_16_Right_FSRA_16(1:end-1) < detectionThreshold) & (data.Data.FSR_adapter_16_Right_FSRA_16(2:end) > detectionThreshold))';
 % LTO_times = data.Time.FSR_adapter_15_Left_FSRD_15((data.Data.FSR_adapter_15_Left_FSRD_15(1:end-1) > detectionThreshold) & (data.Data.FSR_adapter_15_Left_FSRD_15(2:end) < detectionThreshold))';
 
-% gRCS01--ONmed/OFFdbs, preprogramming
-RTO_times = data.Time.FSR_adapter_16_Right_FSRD_16((data.Data.FSR_adapter_16_Right_FSRD_16(1:end-1) > 1) & (data.Data.FSR_adapter_16_Right_FSRD_16(2:end) < 1))';
-RHS_times = data.Time.FSR_adapter_16_Right_FSRA_16((data.Data.FSR_adapter_16_Right_FSRA_16(1:end-1) < -0.0082) & (data.Data.FSR_adapter_16_Right_FSRA_16(2:end) > -0.0082))';
-LTO_times = data.Time.FSR_adapter_15_Left_FSRD_15((data.Data.FSR_adapter_15_Left_FSRD_15(1:end-1) > 1) & (data.Data.FSR_adapter_15_Left_FSRD_15(2:end) < 1))';
-LHS_times = data.Time.FSR_adapter_15_Left_FSRA_15((data.Data.FSR_adapter_15_Left_FSRA_15(1:end-1) < 1.5) & (data.Data.FSR_adapter_15_Left_FSRA_15(2:end) > 1.5))';
+% % gRCS01--ONmed/OFFdbs, preprogramming
+% RTO_times = data.Time.FSR_adapter_16_Right_FSRD_16((data.Data.FSR_adapter_16_Right_FSRD_16(1:end-1) > 1) & (data.Data.FSR_adapter_16_Right_FSRD_16(2:end) < 1))';
+% RHS_times = data.Time.FSR_adapter_16_Right_FSRA_16((data.Data.FSR_adapter_16_Right_FSRA_16(1:end-1) < -0.0082) & (data.Data.FSR_adapter_16_Right_FSRA_16(2:end) > -0.0082))';
+% LTO_times = data.Time.FSR_adapter_15_Left_FSRD_15((data.Data.FSR_adapter_15_Left_FSRD_15(1:end-1) > 1) & (data.Data.FSR_adapter_15_Left_FSRD_15(2:end) < 1))';
+% LHS_times = data.Time.FSR_adapter_15_Left_FSRA_15((data.Data.FSR_adapter_15_Left_FSRA_15(1:end-1) < 1.5) & (data.Data.FSR_adapter_15_Left_FSRA_15(2:end) > 1.5))';
 
 % % gRCS04--ONmed/OFFdbs, preprogramming
 % RTO_times = data.Time.FSR_adapter_16_Right_FSRD_16((data.Data.FSR_adapter_16_Right_FSRD_16(1:end-1) > 5) & (data.Data.FSR_adapter_16_Right_FSRD_16(2:end) < 5))';
@@ -63,16 +63,27 @@ LHS_times = data.Time.FSR_adapter_15_Left_FSRA_15((data.Data.FSR_adapter_15_Left
 % LHS_times = data.Time.FSR_adapter_15_Left_FSRA_15((data.Data.FSR_adapter_15_Left_FSRA_15(1:end-1) < 0.2) & (data.Data.FSR_adapter_15_Left_FSRA_15(2:end) > 0.2))';
 
 % % gRCS02--ONmed/ONdbs, dbsOpt 2nd side
-% RTO_times = data.Time.FSR_adapter_16_Right_FSRD_16((data.Data.FSR_adapter_16_Right_FSRD_16(1:end-1) > 7) & (data.Data.FSR_adapter_16_Right_FSRD_16(2:end) < 7))';
+% RTO_times = data.Time.FSR_adapter_16_Right_FSRD_16((data.Data.FSR_adapter_16_Right_FSRD_16(1:end-1) > 8) & (data.Data.FSR_adapter_16_Right_FSRD_16(2:end) < 8))';
 % RHS_times = data.Time.FSR_adapter_16_Right_FSRA_16((data.Data.FSR_adapter_16_Right_FSRA_16(1:end-1) < 3) & (data.Data.FSR_adapter_16_Right_FSRA_16(2:end) > 3))';
-% LTO_times = data.Time.FSR_adapter_15_Left_FSRD_15((data.Data.FSR_adapter_15_Left_FSRD_15(1:end-1) > 5) & (data.Data.FSR_adapter_15_Left_FSRD_15(2:end) < 5))';
-% LHS_times = data.Time.FSR_adapter_15_Left_FSRA_15((data.Data.FSR_adapter_15_Left_FSRA_15(1:end-1) < 0.06) & (data.Data.FSR_adapter_15_Left_FSRA_15(2:end) > 0.06))';
+% LTO_times = data.Time.FSR_adapter_15_Left_FSRD_15((data.Data.FSR_adapter_15_Left_FSRD_15(1:end-1) > 8) & (data.Data.FSR_adapter_15_Left_FSRD_15(2:end) < 8))';
+% LHS_times = data.Time.FSR_adapter_15_Left_FSRA_15((data.Data.FSR_adapter_15_Left_FSRA_15(1:end-1) < 0.1) & (data.Data.FSR_adapter_15_Left_FSRA_15(2:end) > 0.1))';
 
-% % gRCS03--ONmed/ONdbs, dbsOpt
-% RTO_times = data.Time.FSR_adapter_16_Right_FSRD_16((data.Data.FSR_adapter_16_Right_FSRD_16(1:end-1) > 5) & (data.Data.FSR_adapter_16_Right_FSRD_16(2:end) < 5))';
-% RHS_times = data.Time.FSR_adapter_16_Right_FSRA_16((data.Data.FSR_adapter_16_Right_FSRA_16(1:end-1) < 0.5) & (data.Data.FSR_adapter_16_Right_FSRA_16(2:end) > 0.5))';
-% LTO_times = data.Time.FSR_adapter_15_Left_FSRD_15((data.Data.FSR_adapter_15_Left_FSRD_15(1:end-1) > 5) & (data.Data.FSR_adapter_15_Left_FSRD_15(2:end) < 5))';
-% LHS_times = data.Time.FSR_adapter_15_Left_FSRA_15((data.Data.FSR_adapter_15_Left_FSRA_15(1:end-1) < 0.3) & (data.Data.FSR_adapter_15_Left_FSRA_15(2:end) > 0.3))';
+% gRCS03--ONmed/ONdbs, dbsOpt
+RTO_times = data.Time.FSR_adapter_16_Right_FSRD_16((data.Data.FSR_adapter_16_Right_FSRD_16(1:end-1) > 5) & (data.Data.FSR_adapter_16_Right_FSRD_16(2:end) < 5))';
+RHS_times = data.Time.FSR_adapter_16_Right_FSRA_16((data.Data.FSR_adapter_16_Right_FSRA_16(1:end-1) < 0.5) & (data.Data.FSR_adapter_16_Right_FSRA_16(2:end) > 0.5))';
+
+% change_pnt = 54000;
+% RHS_times_v1 = data.Time.FSR_adapter_16_Right_FSRA_16((data.Data.FSR_adapter_16_Right_FSRA_16(1:end-1) < 1.2) & (data.Data.FSR_adapter_16_Right_FSRA_16(2:end) > 1.2))';
+% RHS_times_v2 = data.Time.FSR_adapter_16_Right_FSRA_16((data.Data.FSR_adapter_16_Right_FSRA_16(1:end-1) < 0.3) & (data.Data.FSR_adapter_16_Right_FSRA_16(2:end) > 0.3))';
+% RHS_times = [RHS_times_v1(RHS_times_v1<data.Time.FSR_adapter_16_Right_FSRA_16(change_pnt));RHS_times_v2(RHS_times_v2>=data.Time.FSR_adapter_16_Right_FSRA_16(change_pnt))];
+
+% change_pnt = 43529;
+% RHS_times_v1 = data.Time.FSR_adapter_16_Right_FSRA_16((data.Data.FSR_adapter_16_Right_FSRA_16(1:end-1) < 0.5) & (data.Data.FSR_adapter_16_Right_FSRA_16(2:end) > 0.5))';
+% RHS_times = RHS_times_v1(RHS_times_v1>data.Time.FSR_adapter_16_Right_FSRA_16(change_pnt));
+
+
+LTO_times = data.Time.FSR_adapter_15_Left_FSRD_15((data.Data.FSR_adapter_15_Left_FSRD_15(1:end-1) > 5) & (data.Data.FSR_adapter_15_Left_FSRD_15(2:end) < 5))';
+LHS_times = data.Time.FSR_adapter_15_Left_FSRA_15((data.Data.FSR_adapter_15_Left_FSRA_15(1:end-1) < 0.3) & (data.Data.FSR_adapter_15_Left_FSRA_15(2:end) > 0.3))';
 
 % % gRCS04--ONmed/ONdbs, dbsOpt
 % RTO_times = data.Time.FSR_adapter_16_Right_FSRD_16((data.Data.FSR_adapter_16_Right_FSRD_16(1:end-1) > 8) & (data.Data.FSR_adapter_16_Right_FSRD_16(2:end) < 8))';

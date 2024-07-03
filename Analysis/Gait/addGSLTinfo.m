@@ -72,65 +72,229 @@ lhs = gaitEventTable.LHS;
 % modification ratio
 gaitEventTable.AdaptiveRight = zeros(height(gaitEventTable),1);
 gaitEventTable.AdaptiveLeft = zeros(height(gaitEventTable),1);
+gaitEventTable.BlockNumRight = zeros(height(gaitEventTable),1);
+gaitEventTable.BlockNumLeft = zeros(height(gaitEventTable),1);
 
-% Define the tolernace level for the time difference between the Cirris and
-% the Xsens events
-tol=0.45;
+count1 = 0;
+count11 = 0;
+count12 = 0;
+count2 = 0;
+count3 = 0;
+count4 = 0;
+timediff_1 = [];
+timediff_2 = [];
+
 for i = 1:height(cirris_table)
     curr_line = cirris_table(i,:);
     side = curr_line.Side{1};
     time = curr_line.TaskTimer;
     step_mod = curr_line.StepModifier;
-    
-    if strcmp(side,'Right')
-        if sum((time>=rto & time<=rhs)>=1)  
-            if sum((time>=rto & time<=rhs)==1)
-                idx= find((time>=rto & time<=rhs));
-                gaitEventTable.AdaptiveRight(idx)= step_mod;     
-            else
-                error('More than one matches--check!');
+    target_num = curr_line.TargetNumber;
+    block_num  = floor(target_num/120)+1;
+
+    if strcmp(side,'Right') 
+
+        % Define the tolernace level for the time difference between 
+        % the Cirris and the Xsens events--Right foot
+        tol=0.3;
+
+        % idx_next_rto = find(time<rto,1);
+        % idx_prev_rto = find(time>rto,'last');
+        % idx_prev_rhs = find(time>rto,'last');
+        % if sum(time>=rhs & (time<=rto))>=1
+        % if sum(time>=rhs & (rto-time<=tol))>=1
+        %     if sum(time>=rhs & (time<=rhs+tol))==1
+        %         idx= find(time>=rhs & (time<=rhs+tol));
+        %         gaitEventTable.AdaptiveRight(idx)= step_mod;
+        %         gaitEventTable.BlockNumRight(idx) = block_num;
+        % 
+        %         num_matches_right = num_matches_right + 1;
+        %     else
+        %         error('More than one matches--check!');
+        %     end
+        % end
+
+        idx_next_rto = find(time<=rto & abs(time-rto)<median(diff(rto)/2,'omitnan'),1);
+        idx_next_lto = find(time<=lto & abs(time-lto)<median(diff(lto)/2,'omitnan'),1);
+        idx_next_lhs = find(time<=lhs & abs(time-lhs)<median(diff(lhs)/2,'omitnan'),1);
+        % idx_next_rhs = find(abs(time-rhs)<tol,1,'last');
+        idx_next_rhs = find(abs(time-rhs)<tol);
+
+        % idx_next_rhs = find(time>=rhs & abs(time-rhs)<tol);
+        % idx_next_rhs = find(time>=rhs & abs(time-rhs)<median(diff(rhs)/2,'omitnan'),1,'last');
+
+        if ~isempty(idx_next_rhs) 
+            idx = idx_next_rhs;
+            gaitEventTable.AdaptiveRight(idx)= step_mod;
+            gaitEventTable.BlockNumRight(idx) = block_num;
+            count1 = count1 + 1;
+
+            if length(idx_next_rhs)>=2
+                sprintf('Multiple indices found. RH index %d',idx_next_rhs)
             end
-        elseif sum(abs(time-rto)<tol)>=1
-            if sum(abs(time-rto)<tol)==1
-                idx= find(abs(time-rto)<tol);
-                gaitEventTable.AdaptiveRight(idx)= step_mod;
+            if time<rhs(idx_next_rhs)
+                count11 = count11 + 1;
+                timediff_1 = [timediff_1, rhs(idx_next_rhs)-time];
             else
-                error('More than one matches--check!');
+                count12 = count12 + 1;
+                timediff_2 = [timediff_2, time-rhs(idx_next_rhs)];
             end
-        elseif sum(abs(time-rhs)<tol)>=1
-            if sum(abs(time-rhs)<tol)==1
-                idx= find(abs(time-rhs)<tol);
-                gaitEventTable.AdaptiveRight(idx)= step_mod;
-            else
-                error('More than one matches--check!');
-            end
+        elseif ~isempty(idx_next_lto)
+            idx = idx_next_lto;
+            gaitEventTable.AdaptiveRight(idx)= step_mod;
+            gaitEventTable.BlockNumRight(idx) = block_num;
+            count3 = count3 + 1;
+        elseif ~isempty(idx_next_lhs)
+            idx = idx_next_lhs;
+            gaitEventTable.AdaptiveRight(idx)= step_mod;
+            gaitEventTable.BlockNumRight(idx) = block_num;
+            count4 = count4 + 1;
+        elseif ~isempty(idx_next_rto) && idx_next_rto>=2
+            idx = idx_next_rto-1;
+            gaitEventTable.AdaptiveRight(idx)= step_mod;
+            gaitEventTable.BlockNumRight(idx) = block_num;
+            count2 = count2 + 1;
         end
+
+        % if ~isempty(idx_next_rto) && ~isempty(idx_next_rhs) && (idx_next_rto == idx_next_rhs + 1)
+        %     idx = idx_next_rhs;
+        %     gaitEventTable.AdaptiveRight(idx)= step_mod;
+        %     gaitEventTable.BlockNumRight(idx) = block_num;
+        % elseif ~isempty(idx_next_lhs) && ~isempty(idx_next_rhs) && (idx_next_lhs == idx_next_rhs + 1)
+        %     idx = idx_next_rhs;
+        %     gaitEventTable.AdaptiveRight(idx)= step_mod;
+        %     gaitEventTable.BlockNumRight(idx) = block_num;
+        % elseif ~isempty(idx_next_rto) && isempty(idx_next_rhs) 
+        %     idx = idx_next_rto-1;
+        %     gaitEventTable.AdaptiveRight(idx)= step_mod;
+        %     gaitEventTable.BlockNumRight(idx) = block_num;
+        % elseif isempty(idx_next_rto) && ~isempty(idx_next_rhs) 
+        %     idx = idx_next_rhs;
+        %     gaitEventTable.AdaptiveRight(idx)= step_mod;
+        %     gaitEventTable.BlockNumRight(idx) = block_num;
+        % end
+       
     elseif strcmp(side,'Left')
-        if sum((time>=lto & time<=lhs)>=1)  
-            if sum((time>=lto & time<=lhs)==1)
-                idx= find((time>=lto & time<=lhs));
-                gaitEventTable.AdaptiveLeft(idx)= step_mod;     
-            else
-                error('More than one matches--check!');
-            end
-        elseif sum(abs(time-lto)<tol)>=1
-            if sum(abs(time-lto)<tol)==1
-                idx= find(abs(time-lto)<tol);
-                gaitEventTable.AdaptiveLeft(idx)= step_mod;
-            else
-                error('More than one matches--check!');
-            end
-        elseif sum(abs(time-lhs)<tol)>=1
-            if sum(abs(time-lhs)<tol)==1
-                idx= find(abs(time-lhs)<tol);
-                gaitEventTable.AdaptiveLeft(idx)= step_mod;
-            else
-                error('More than one matches--check!');
-            end
+
+        % Define the tolernace level for the time difference between 
+        % the Cirris and the Xsens events--Left foot
+        % tol=median(diff(lhs),'omitnan');
+        tol=0.3;
+
+        % 
+        % if sum(time>=lhs & (time<=lhs+tol))>=1
+        %     if sum(time>=lhs & (time<=lhs+tol))==1
+        %         idx= find(time>=lhs & (time<=lhs+tol));
+        %         gaitEventTable.AdaptiveLeft(idx)= step_mod;
+        %         gaitEventTable.BlockNumLeft(idx) = block_num;
+        % 
+        %         num_matches_left = num_matches_left + 1;
+        %     else
+        %         error('More than one matches--check!');
+        %     end
+        % end
+
+
+        idx_next_lto = find(time<=lto & abs(time-lto)<median(diff(lto)/2,'omitnan'),1);
+        idx_next_rto = find(time<=rto & abs(time-rto)<median(diff(rto)/2,'omitnan'),1);
+        idx_next_rhs = find(time<=rhs & abs(time-rhs)<median(diff(rhs)/2,'omitnan'),1);
+        idx_next_lhs = find(abs(time-lhs)<tol);
+        % idx_next_lhs = find(time>=lhs & abs(time-lhs)<tol);
+        % idx_next_lhs = find(time>=lhs & abs(time-lhs)<median(diff(lhs)/2,'omitnan'),1,'last');
+       
+        if ~isempty(idx_next_lhs) 
+            idx = idx_next_lhs;
+            gaitEventTable.AdaptiveLeft(idx)= step_mod;
+            gaitEventTable.BlockNumLeft(idx) = block_num;
+        elseif ~isempty(idx_next_rto) && idx_next_rto>=2
+            idx = idx_next_rto-1;
+            gaitEventTable.AdaptiveLeft(idx)= step_mod;
+            gaitEventTable.BlockNumLeft(idx) = block_num;
+        elseif ~isempty(idx_next_rhs) && idx_next_rhs>=2
+            idx = idx_next_rhs-1;
+            gaitEventTable.AdaptiveLeft(idx)= step_mod;
+            gaitEventTable.BlockNumLeft(idx) = block_num;
+        elseif ~isempty(idx_next_lto) && idx_next_lto>=2
+            idx = idx_next_lto-1;
+            gaitEventTable.AdaptiveLeft(idx)= step_mod;
+            gaitEventTable.BlockNumLeft(idx) = block_num;
+        end
+
+        % if ~isempty(idx_next_lto) && ~isempty(idx_next_lhs) && (idx_next_lto == idx_next_lhs + 1)
+        %     idx = idx_next_lhs;
+        %     gaitEventTable.AdaptiveLeft(idx)= step_mod;
+        %     gaitEventTable.BlockNumLeft(idx) = block_num;
+        % elseif ~isempty(idx_next_lto) && isempty(idx_next_lhs) 
+        %     idx = idx_next_lto-1;
+        %     gaitEventTable.AdaptiveLeft(idx)= step_mod;
+        %     gaitEventTable.BlockNumLeft(idx) = block_num;
+        % elseif isempty(idx_next_lto) && ~isempty(idx_next_lhs) 
+        %     idx = idx_next_lhs;
+        %     gaitEventTable.AdaptiveLeft(idx)= step_mod;
+        %     gaitEventTable.BlockNumLeft(idx) = block_num;
+        % end
+    end
+    clear idx
+end
+
+%% Fill the zero-gaps in the block number columns 
+max_block_num = max([gaitEventTable.BlockNumRight; gaitEventTable.BlockNumLeft]);
+for b = 1:max_block_num
+    min_ind_right = find(gaitEventTable.BlockNumRight==b, 1);
+    max_ind_right = find(gaitEventTable.BlockNumRight==b, 1, 'last');
+
+    min_ind_left = find(gaitEventTable.BlockNumLeft==b, 1);
+    max_ind_left = find(gaitEventTable.BlockNumLeft==b, 1, 'last');
+
+    % Fill in the right-foot block numbers
+    % Block start
+    if min_ind_right<=min_ind_left
+        min_ind_right_new = min_ind_right;
+    else 
+        if rhs(min_ind_left)>lhs(min_ind_left)
+            min_ind_right_new = min_ind_left;
+        else
+            min_ind_right_new = min_ind_left+1;
         end
     end
-    
+    % Block end
+    if max_ind_right>=max_ind_left
+        max_ind_right_new = max_ind_right;
+    else 
+        if rhs(max_ind_left)<lhs(max_ind_left)
+            max_ind_right_new = max_ind_left;
+        else
+            max_ind_right_new = max_ind_left-1;
+        end
+    end
+
+    % Update the gaitEventTable for the right foot
+    gaitEventTable.BlockNumRight(min_ind_right_new:max_ind_right_new) = b;
+
+    % Fill in the left-foot block numbers
+    % Block start
+    if min_ind_left<=min_ind_right
+        min_ind_left_new = min_ind_left;
+    else 
+        if lhs(min_ind_right)>rhs(min_ind_right)
+            min_ind_left_new = min_ind_right;
+        else
+            min_ind_left_new = min_ind_right+1;
+        end
+    end
+    % Block end
+    if max_ind_left>=max_ind_right
+        max_ind_left_new = max_ind_left;
+    else 
+        if rhs(max_ind_right)<lhs(max_ind_right)
+            max_ind_left_new = max_ind_right;
+        else
+            max_ind_left_new = max_ind_right-1;
+        end
+    end
+
+    % Update the gaitEventTable for the right foot
+    gaitEventTable.BlockNumLeft(min_ind_left_new:max_ind_left_new) = b;
 end
 
 end
-

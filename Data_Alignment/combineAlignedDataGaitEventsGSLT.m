@@ -54,7 +54,7 @@ opts.DataLines(1) = count+1;
 gait_events = readtable(fullfile(path2,filename_gait_events),opts);
 
 gait_events_aligned = gait_events;
-for i = 1:length(gait_events.Properties.VariableNames)-2
+for i = 1:length(gait_events.Properties.VariableNames)-4
     if ~isnan(aligned_data.alignment_times(5))
         gait_events_aligned.(gait_events.Properties.VariableNames{i}) = ...
             gait_events_aligned.(gait_events.Properties.VariableNames{i}) - aligned_data.alignment_times(5) + aligned_data.pre_align_time;

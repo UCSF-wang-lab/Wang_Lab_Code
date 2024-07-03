@@ -19,10 +19,9 @@ function GaitCycleGrandAvgCoherogramGSLT(fileList,varargin)
 %
 %               stepEndEvent[=] Which gait event to be the end of the
 %                               step. For example, if the start event is
-%                               LHS then end event is RHS,
-%                               respectively. If the start event is RHS,
-%                               then end event is Default is LHS,
-%                               respecitvely. Due to the structure of the
+%                               LHS then end event is RHS. If the start 
+%                               event is RHS, then end event is LHS. 
+%                               Default is LHS. Due to the structure of the
 %                               task, the step can only start and end at
 %                               heel strike events.
 %
@@ -60,21 +59,15 @@ function GaitCycleGrandAvgCoherogramGSLT(fileList,varargin)
 %
 %                   saveData[=] Boolean option to save the coherence data.
 %                               Default is false.
+%
+%                  condition[=] String that descibes the task condition analyzed.              
 % 
 %                multpartNum[=] In case the dataset has been split into
 %                               multiple parts, give the part number analyzed
 %                               
 %
 %   Example call:
-%           RCS03 = '/Users/klouie/Documents/Backup Data/RCS03_OG_after_task_OFF_STIM_w_Gait_Events_Julia.mat';
-%           RCS14 = '/Users/klouie/Documents/Backup Data/RCS14_OG_OFF_STIM_ON_MEDS_w_Gait_Events_Julia.mat';
-%           gRCS01 = '/Users/klouie/Documents/Backup Data/gait_RCS_01_OG_ON_Meds_Trial1_w_Gait_Events_Ken.mat';
-%           gRCS02 = '/Users/klouie/Documents/Backup Data/gait_RCS_02_OG_OFF_STIM_ON_MEDS_w_Gait_Events_Julia.mat';
-%           gRCS03 = '/Users/klouie/Documents/Backup Data/gait_RCS_03_OG_OFF_Stim_ON_Meds_Trial1_w_Gait_Events_Julia.mat';
-%           fileList = {RCS03,RCS14,gRCS01,gRCS02,gRCS03};
-%           keys = {'key0','key1','key2'};
-%           swapKeys = {{'key2','key3'},{'key2','key3'},{},{},{}};
-%           GaitCycleGrandAvgCoherogramGSLT(fileList,'gcStartEvent','LHS','normBy','average_during_walking','normType','zscore','keys',keys,'swapKeys',swapKeys)
+%           GaitCycleGrandAvgCoherogramGSLT(fileList,'stepStartEvent','LHS','stepEndEvent','RHS','normBy','average_during_walking','normType','zscore','keys',keys,'swapKeys',swapKeys)
 %
 % Date:     03/11/2024
 % Author:   Kenneth H. Louie (kenneth.louie@ucsf.edu)
@@ -193,13 +186,29 @@ end
 
 %% Set up variables for each recording key
 
-% To hold gait cycle data
+% To hold step cycle data
 step.Left = cell(1,length(fileList)*size(cohPairs,1));
 step.Right = cell(1,length(fileList)*size(cohPairs,1));
+
+% To hold step cycle data, with unnormalized durations (for rastergrams)
+stepUnnormDur.Left = cell(1,length(fileList)*size(cohPairs,1));
+stepUnnormDur.Right = cell(1,length(fileList)*size(cohPairs,1));
+
+% To hold the step modification index data
+step_mod.Left = cell(1,length(fileList)*size(cohPairs,1));
+step_mod.Right = cell(1,length(fileList)*size(cohPairs,1));
+
+% To hold the block number data
+blockNum.Left = cell(1,length(fileList)*size(cohPairs,1));
+blockNum.Right = cell(1,length(fileList)*size(cohPairs,1));
 
 % To hold normalization data
 normalization.Left = cell(1,length(fileList)*size(cohPairs,1));
 normalization.Right = cell(1,length(fileList)*size(cohPairs,1));
+normalization.Left = cell(1,length(fileList)*size(cohPairs,1));
+normalization.Right = cell(1,length(fileList)*size(cohPairs,1));
+lenNorm.Left = cell(1,length(fileList)*size(cohPairs,1));
+lenNorm.Right = cell(1,length(fileList)*size(cohPairs,1));
 
 % To hold output frequency of wavelet ouptut (fc stands for frequency
 % cell)
@@ -207,8 +216,8 @@ fc.Left = cell(1,length(fileList)*size(cohPairs,1));
 fc.Right = cell(1,length(fileList)*size(cohPairs,1));
 
 % Hold normalized data
-normalized.Left = cell(1,length(fileList)*size(cohPairs,1));
-normalized.Right = cell(1,length(fileList)*size(cohPairs,1));
+normalizedData.Left = cell(1,length(fileList)*size(cohPairs,1));
+normalizedData.Right = cell(1,length(fileList)*size(cohPairs,1));
 
 % Hold grand averages
 grandAverage.Left = cell(1,length(fileList)*size(cohPairs,1));
@@ -218,6 +227,8 @@ grandAverage.Right = cell(1,length(fileList)*size(cohPairs,1));
 % The goal is to identify the start and end point of the pre-swing phase
 toeOff.Left = cell(1,length(fileList)*size(cohPairs,1));
 toeOff.Right = cell(1,length(fileList)*size(cohPairs,1));
+toeOffUnnormDur.Left = cell(1,length(fileList)*size(cohPairs,1));
+toeOffUnnormDur.Right = cell(1,length(fileList)*size(cohPairs,1));
 
 %% Go through all files and extract data
 for i = 1:length(fileList)
@@ -231,20 +242,30 @@ for i = 1:length(fileList)
         alignedData = aligned_data;
     end
     
+    % if isempty(geRangeTable)
+    %     geRange = [1,height(gaitEventsSorted)];
+    % elseif isinf(geRangeTable(i,2)) && geRangeTable(i,1) == 1
+    %     geRange = [1,height(gaitEventsSorted)];
+    % else
+    %     start_ind = find(gaitEventsSorted.(stepStartEvent) > geRangeTable(i,1),1,'first');
+    %     end_ind = find(gaitEventsSorted.(stepEndEvent) < geRangeTable(i,2),1,'last');
+    %     geRange = [start_ind,end_ind];
+    % end
+
     if isempty(geRangeTable)
-        geRange = [1,height(gaitEventsSorted)];
-    elseif isinf(geRangeTable(i,2)) && geRangeTable(i,1) == 1
-        geRange = [1,height(gaitEventsSorted)];
+        start_ind = find(gaitEventsSorted.(stepStartEvent) > 0,1,'first');
+        end_ind = height(gaitEventsSorted);
     else
         start_ind = find(gaitEventsSorted.(stepStartEvent) > geRangeTable(i,1),1,'first');
-        end_ind = find(gaitEventsSorted.(stepEndEvent) < geRangeTable(i,2),1,'last');
-        geRange = [start_ind,end_ind];
+        end_ind = find(gaitEventsSorted.(stepEndEvent) < geRangeTable(i,2),1,'last'); 
     end
+    geRange = [start_ind,end_ind]; 
     
     if isfield(alignedData,'left_taxis')
         % Get sample rate
         sr = aligned_data.DeviceSettings.Left.timeDomainSettings.samplingRate(end);
         for j = 1:size(cohPairs)
+
             % Calculate coherence and extract gait cycle values
             [x,~,y] = wcoherence(alignedData.left_LFP_table.(cohPairs{j,1}),alignedData.left_LFP_table.(cohPairs{j,2}),sr,'VoicesPerOctave',10);
             
@@ -253,17 +274,21 @@ for i = 1:length(fileList)
             x = x(y>=0.1&y<=140,:);
             y = y(y>=0.1&y<=140,:);
             
-            walking_start_ind = find(alignedData.left_taxis >= min(gaitEventsSorted{geRange(1),:})-1,1,'first');
-            walking_end_ind = find(alignedData.left_taxis <= max(gaitEventsSorted{geRange(2),:}),1,'last');
+            % walking_start_ind = find(alignedData.left_taxis >= min(gaitEventsSorted{geRange(1),1:4})-1,1,'first');
+            % walking_end_ind = find(alignedData.left_taxis <= max(gaitEventsSorted{geRange(2),1:4}),1,'last');
+
+            walking_start_ind = find(alignedData.left_taxis >= min(gaitEventsSorted{geRange(1),1:4}),1,'first');
+            walking_end_ind = find(alignedData.left_taxis <= max(gaitEventsSorted{geRange(2),1:4}),1,'last');
 
             step_mat_left = zeros(length(y),nPercentBins,1);
+            step_mod_left = [];
             count = 1;
             
             for k = geRange(1):geRange(2)
                 if ~isnan(gaitEventsSorted.(stepStartEvent)(k)) && ~isnan(gaitEventsSorted.(stepEndEvent)(k)) && ...
                    ((gaitEventsSorted.(stepEndEvent)(k)-gaitEventsSorted.(stepStartEvent)(k)) < 2) && ...
                    ((gaitEventsSorted.(stepEndEvent)(k)-gaitEventsSorted.(stepStartEvent)(k)) > 0.3) && ...
-                   gaitEventsSorted.('AdaptiveRight')(k)>0
+                   gaitEventsSorted.('AdaptiveLeft')(k)>0
 
                     start_ind = find(abs(alignedData.left_taxis-gaitEventsSorted.(stepStartEvent)(k))<0.001);
                     end_ind = find(abs(alignedData.left_taxis-gaitEventsSorted.(stepEndEvent)(k))<0.001);
@@ -284,30 +309,61 @@ for i = 1:length(fileList)
                                     step_mat_left(:,m,count) = mean(data_snip(:,percent_inds(m)+1:percent_inds(m+1)),2);
                                 end
                             end
-                            count = count + 1;
-                        end
 
-                        % Store the toe-offs
-                        if strcmp(stepStartEvent,'LHS')
-                            toeOff_ind = find(abs(alignedData.left_taxis-gaitEventsSorted.('RTO')(k))<0.001);
-                            if ~isempty(toeOff_ind) && toeOff_ind>start_ind && toeOff_ind<end_ind
-                                toeOff.Left{(i-1)*size(cohPairs,1)+j}(end+1)  = (toeOff_ind-start_ind)/(end_ind-start_ind)*100;
+                            % Store the step epooch coherence data,
+                            % unnormalized in terms of duration
+                            step_mat_unnormDur_left{count} = data_snip;
+
+                            % Store the step modification index
+                            step_mod_left(count) = gaitEventsSorted.('AdaptiveLeft')(k);
+
+                            % Store the block number
+                            block_num(count) = gaitEventsSorted.('BlockNumRight')(k);
+
+
+                            % Store the toe-offs
+                            if strcmp(stepStartEvent,'LHS')
+                                toeOff_ind = find(abs(alignedData.left_taxis-gaitEventsSorted.('RTO')(k))<0.001);
+                                if ~isempty(toeOff_ind) && toeOff_ind>start_ind && toeOff_ind<end_ind
+                                    % toeOff.Left{(i-1)*size(cohPairs,1)+j}(end+1)  = (toeOff_ind-start_ind)/(end_ind-start_ind)*100;
+                                    toeoff_left(count) = (toeOff_ind-start_ind)/(end_ind-start_ind)*100;
+                                    toeoff_left_UnnormDur(count) = alignedData.left_taxis(toeOff_ind)-alignedData.left_taxis(start_ind);
+                                else
+                                    toeoff_left(count) = NaN;
+                                    toeoff_left_UnnormDur(count) = NaN;
+                                end
+                            elseif strcmp(stepStartEvent,'RHS')
+                                toeOff_ind = find(abs(alignedData.left_taxis-gaitEventsSorted.('LTO')(k))<0.001);
+                                if ~isempty(toeOff_ind) && toeOff_ind>start_ind && toeOff_ind<end_ind
+                                    % toeOff.Left{(i-1)*size(cohPairs,1)+j}(end+1)  = (toeOff_ind-start_ind)/(end_ind-start_ind)*100;
+                                    toeoff_left(count) = (toeOff_ind-start_ind)/(end_ind-start_ind)*100;
+                                    toeoff_left_UnnormDur(count) = alignedData.left_taxis(toeOff_ind)-alignedData.left_taxis(start_ind);
+                                else
+                                    toeoff_left(count) = NaN;
+                                    toeoff_left_UnnormDur(count) = NaN;
+                                end
+                            else
+                                error('Unsupported start step event');
                             end
-                        elseif strcmp(stepStartEvent,'RHS')
-                            toeOff_ind = find(abs(alignedData.left_taxis-gaitEventsSorted.('LTO')(k))<0.001);
-                            if ~isempty(toeOff_ind) && toeOff_ind>start_ind && toeOff_ind<end_ind
-                                toeOff.Left{(i-1)*size(cohPairs,1)+j}(end+1)  = (toeOff_ind-start_ind)/(end_ind-start_ind)*100;
-                            end
-                        end
+
+
+                            count = count + 1;
+                        end    
                     end
                 end
             end
             
             step.Left{(i-1)*size(cohPairs,1)+j} = step_mat_left;
+            stepUnnormDur.Left{(i-1)*size(cohPairs,1)+j} = step_mat_unnormDur_left;
+            step_mod.Left{(i-1)*size(cohPairs,1)+j} = step_mod_left;
+            blockNum.Left{(i-1)*size(cohPairs,1)+j} = block_num;
+            toeOff.Left{(i-1)*size(cohPairs,1)+j} = toeoff_left;
+            toeOffUnnormDur.Left{(i-1)*size(cohPairs,1)+j} = toeoff_left_UnnormDur;
             if strcmp(normBy,'average_during_walking')
                 normalization.Left{(i-1)*size(cohPairs,1)+j} = [mean(x(:,walking_start_ind:walking_end_ind),2,'omitnan'),...
                         std(x(:,walking_start_ind:walking_end_ind),0,2,'omitnan'),...
                         median(x(:,walking_start_ind:walking_end_ind),2,'omitnan')];
+                lenNorm.Left{(i-1)*size(cohPairs,1)+j} = size(x(:,walking_start_ind:walking_end_ind),2);
             elseif strcmp(normBy,'baseline')
                 normalization.Left{(i-1)*size(cohPairs,1)+j} = [mean(x(:,start_ind:end_ind),2,'omitnan'),...
                         std(x(:,start_ind:end_ind),0,2,'omitnan'),...
@@ -315,7 +371,7 @@ for i = 1:length(fileList)
             end
             fc.Left{(i-1)*size(cohPairs,1)+j} = y;
             
-            clear x y
+            clear x y step_mat_left step_mat_unnormDur_left step_mod_left toeoff_left toeoff_left_UnnormDur block_num
         end
     end
     
@@ -331,17 +387,21 @@ for i = 1:length(fileList)
             x = x(y>=0.1&y<=140,:);
             y = y(y>=0.1&y<=140,:);
 
-            walking_start_ind = find(alignedData.right_taxis >= min(gaitEventsSorted{geRange(1),:})-1,1,'first');
-            walking_end_ind = find(alignedData.right_taxis <= max(gaitEventsSorted{geRange(2),:}),1,'last');
+            % walking_start_ind = find(alignedData.right_taxis >= min(gaitEventsSorted{geRange(1),1:4})-1,1,'first');
+            % walking_end_ind = find(alignedData.right_taxis <= max(gaitEventsSorted{geRange(2),1:4}),1,'last');
+
+            walking_start_ind = find(alignedData.right_taxis >= min(gaitEventsSorted{geRange(1),1:4}),1,'first');
+            walking_end_ind = find(alignedData.right_taxis <= max(gaitEventsSorted{geRange(2),1:4}),1,'last');
 
             step_mat_right = zeros(length(y),nPercentBins,1);
+            step_mod_right = [];
             count = 1;
             
             for k = geRange(1):geRange(2)
                 if ~isnan(gaitEventsSorted.(stepStartEvent)(k)) && ~isnan(gaitEventsSorted.(stepEndEvent)(k)) && ...
                    ((gaitEventsSorted.(stepEndEvent)(k)-gaitEventsSorted.(stepStartEvent)(k)) < 2) && ...
                    ((gaitEventsSorted.(stepEndEvent)(k)-gaitEventsSorted.(stepStartEvent)(k)) > 0.3) && ...
-                   gaitEventsSorted.('AdaptiveRight')(k)>0
+                   gaitEventsSorted.('AdaptiveLeft')(k)>0
                
                     start_ind = find(abs(alignedData.right_taxis-gaitEventsSorted.(stepStartEvent)(k))<0.001);
                     end_ind = find(abs(alignedData.right_taxis-gaitEventsSorted.(stepEndEvent)(k))<0.001);
@@ -362,30 +422,60 @@ for i = 1:length(fileList)
                                     step_mat_right(:,m,count) = mean(data_snip(:,percent_inds(m)+1:percent_inds(m+1)),2);
                                 end
                             end
-                            count = count + 1;
-                        end
+                
+                
+                            % Store the step epooch coherence data,
+                            % unnormalized in terms of duration
+                            step_mat_unnormDur_right{count} = data_snip;
 
-                         % Store the toe-offs
-                        if strcmp(stepStartEvent,'LHS')
-                            toeOff_ind = find(abs(alignedData.right_taxis-gaitEventsSorted.('RTO')(k))<0.001);
-                            if ~isempty(toeOff_ind) && toeOff_ind>start_ind && toeOff_ind<end_ind
-                                toeOff.Right{(i-1)*size(cohPairs,1)+j}(end+1)  = (toeOff_ind-start_ind)/(end_ind-start_ind)*100;
+                            % Store the step modification index
+                            step_mod_right(count) = gaitEventsSorted.('AdaptiveLeft')(k);
+
+                            % Store the block number
+                            block_num(count) = gaitEventsSorted.('BlockNumRight')(k);
+
+                            % Store the toe-offs
+                            if strcmp(stepStartEvent,'LHS')
+                                toeOff_ind = find(abs(alignedData.right_taxis-gaitEventsSorted.('RTO')(k))<0.001);
+                                if ~isempty(toeOff_ind) && toeOff_ind>start_ind && toeOff_ind<end_ind
+                                    % toeOff.Right{(i-1)*size(cohPairs,1)+j}(end+1)  = (toeOff_ind-start_ind)/(end_ind-start_ind)*100;
+                                    toeoff_right(count)  = (toeOff_ind-start_ind)/(end_ind-start_ind)*100;
+                                    toeoff_right_UnnormDur(count) = alignedData.right_taxis(toeOff_ind)-alignedData.right_taxis(start_ind);
+                                else
+                                    toeoff_right(count)  = NaN;
+                                    toeoff_right_UnnormDur(count) = NaN;
+                                end
+                            elseif strcmp(stepStartEvent,'RHS')
+                                toeOff_ind = find(abs(alignedData.right_taxis-gaitEventsSorted.('LTO')(k))<0.001);
+                                if ~isempty(toeOff_ind) && toeOff_ind>start_ind && toeOff_ind<end_ind
+                                    % toeOff.Right{(i-1)*size(cohPairs,1)+j}(end+1)  = (toeOff_ind-start_ind)/(end_ind-start_ind)*100;
+                                    toeoff_right(count)  = (toeOff_ind-start_ind)/(end_ind-start_ind)*100;
+                                    toeoff_right_UnnormDur(count) = alignedData.right_taxis(toeOff_ind)-alignedData.right_taxis(start_ind);
+                                else
+                                    toeoff_right(count)  = NaN;
+                                    toeoff_right_UnnormDur(count) = NaN;
+                                end
+                            else
+                                error('Unsupported start step event');
                             end
-                        elseif strcmp(stepStartEvent,'RHS')
-                            toeOff_ind = find(abs(alignedData.right_taxis-gaitEventsSorted.('LTO')(k))<0.001);
-                            if ~isempty(toeOff_ind) && toeOff_ind>start_ind && toeOff_ind<end_ind
-                                toeOff.Right{(i-1)*size(cohPairs,1)+j}(end+1)  = (toeOff_ind-start_ind)/(end_ind-start_ind)*100;
-                            end
+
+                            count = count + 1;
                         end
                     end
                 end
             end
 
             step.Right{(i-1)*size(cohPairs,1)+j} = step_mat_right;
+            stepUnnormDur.Right{(i-1)*size(cohPairs,1)+j} = step_mat_unnormDur_right;
+            step_mod.Right{(i-1)*size(cohPairs,1)+j} = step_mod_right;
+            blockNum.Right{(i-1)*size(cohPairs,1)+j} = block_num;
+            toeOff.Right{(i-1)*size(cohPairs,1)+j} = toeoff_right;
+            toeOffUnnormDur.Right{(i-1)*size(cohPairs,1)+j} = toeoff_right_UnnormDur;
             if strcmp(normBy,'average_during_walking')
                 normalization.Right{(i-1)*size(cohPairs,1)+j} = [mean(x(:,walking_start_ind:walking_end_ind),2,'omitnan'),...
                         std(x(:,walking_start_ind:walking_end_ind),0,2,'omitnan'),...
                         median(x(:,walking_start_ind:walking_end_ind),2,'omitnan')];
+                lenNorm.Right{(i-1)*size(cohPairs,1)+j} = size(x(:,walking_start_ind:walking_end_ind),2);
             elseif strcmp(normBy,'baseline')
                 normalization.Right{(i-1)*size(cohPairs,1)+j} = [mean(x(:,start_ind:end_ind),2,'omitnan'),...
                         std(x(:,start_ind:end_ind),0,2,'omitnan'),...
@@ -393,7 +483,7 @@ for i = 1:length(fileList)
             end
             fc.Right{(i-1)*size(cohPairs,1)+j} = y;
             
-            clear x y
+            clear x y step_mat_right step_mat_unnormDur_right step_mod_right toeoff_right toeoff_right_UnnormDur block_num
         end
     end
 end
@@ -403,18 +493,18 @@ count = 1;
 for i = 1:size(cohPairs,1)
     for j = i:size(cohPairs,1):length(fileList)*size(cohPairs,1)
         if ~isempty(step.Left{j})
-            normalization_mat = nan(size(step.Left{j}));
+            normalized = nan(size(step.Left{j}));
 
             for k = 1:size(step.Left{j},3)
                 if strcmp(normType,'zscore')
-                    normalization_mat(:,:,k) = normalizeData(step.Left{j}(:,:,k),'zscore',normalization.Left{j});
+                    normalized(:,:,k) = normalizeData(step.Left{j}(:,:,k),'zscore',normalization.Left{j});
                 elseif strcmp(normType,'rm_baseline') 
-                    normalization_mat(:,:,k) = normalizeData(step.Left{j}(:,:,k),'rm_baseline',normalization.Left{j});
+                    normalized(:,:,k) = normalizeData(step.Left{j}(:,:,k),'rm_baseline',normalization.Left{j});
                 elseif strcmp(normType,'percent_change')
                     % TODO
                 end
             end
-            normalized.Left{count} = cat(3,normalized.Left{count},normalization_mat);
+            normalizedData.Left{count} = cat(3,normalizedData.Left{count},normalized);
         end
     end
     count = count + 1;
@@ -424,18 +514,18 @@ count = 1;
 for i = 1:size(cohPairs,1)
     for j = i:size(cohPairs,1):length(fileList)*size(cohPairs,1)
         if ~isempty(step.Right{j})
-            normalization_mat = nan(size(step.Right{j}));
+            normalized = nan(size(step.Right{j}));
 
             for k = 1:size(step.Right{j},3)
                 if strcmp(normType,'zscore')
-                    normalization_mat(:,:,k) = normalizeData(step.Right{j}(:,:,k),'zscore',normalization.Right{j});
+                    normalized(:,:,k) = normalizeData(step.Right{j}(:,:,k),'zscore',normalization.Right{j});
                 elseif strcmp(normType,'rm_baseline') 
-                    normalization_mat(:,:,k) = normalizeData(step.Right{j}(:,:,k),'rm_baseline',normalization.Right{j});
+                    normalized(:,:,k) = normalizeData(step.Right{j}(:,:,k),'rm_baseline',normalization.Right{j});
                 elseif strcmp(normType,'percent_change')
                     % TODO
                 end
             end
-            normalized.Right{count} = cat(3,normalized.Right{count},normalization_mat);
+            normalizedData.Right{count} = cat(3,normalizedData.Right{count},normalized);
         end
     end
     count = count + 1;
@@ -445,24 +535,34 @@ end
 if saveData
     if ~exist('multpartNum','var') || isempty(multpartNum)
         save(fullfile(data_save_path,'step_coh.mat'),'step','-v7.3');
+        save(fullfile(data_save_path,'step_unnormDur_coh.mat'),'stepUnnormDur','-v7.3');
+        save(fullfile(data_save_path,'step_mod_coh.mat'),'step_mod','-v7.3');
+        save(fullfile(data_save_path,'blockNum.mat'),'blockNum','-v7.3');
         save(fullfile(data_save_path,'fc_coh.mat'),'fc','-v7.3');
         save(fullfile(data_save_path,'toeoff'),'toeOff','-v7.3');
+        save(fullfile(data_save_path,'toeoff_unnormDur'),'toeOffUnnormDur','-v7.3');
         save(fullfile(data_save_path,'normalization.mat'),'normalization','-v7.3');
+        save(fullfile(data_save_path,'lenNorm.mat'),'lenNorm','-v7.3');
     else
         save(fullfile(data_save_path,strcat('step_coh_part',num2str(multpartNum),'.mat')),'step','-v7.3');
+        save(fullfile(data_save_path,strcat('step_unnormDur_coh_part',num2str(multpartNum),'.mat')),'stepUnnormDur','-v7.3');
+        save(fullfile(data_save_path,strcat('step_mod_coh_part',num2str(multpartNum),'.mat')),'step_mod','-v7.3');
+        save(fullfile(data_save_path,strcat('blockNum_part',num2str(multpartNum),'.mat')),'blockNum','-v7.3');
         save(fullfile(data_save_path,strcat('fc_coh_part',num2str(multpartNum),'.mat')),'fc','-v7.3');
         save(fullfile(data_save_path,strcat('toeoff_part',num2str(multpartNum),'.mat')),'toeOff','-v7.3');
+        save(fullfile(data_save_path,strcat('toeoff_unnormDur_part',num2str(multpartNum),'.mat')),'toeOffUnnormDur','-v7.3');
         save(fullfile(data_save_path,strcat('normalization_part',num2str(multpartNum),'.mat')),'normalization','-v7.3');
+        save(fullfile(data_save_path,strcat('lenNorm_part',num2str(multpartNum),'.mat')),'lenNorm','-v7.3');
     end
 end
 
 % calculate grand averages
-for i = 1:length(normalized.Left)
-    grandAverage.Left{i} = mean(normalized.Left{i},3);
+for i = 1:length(normalizedData.Left)
+    grandAverage.Left{i} = mean(normalizedData.Left{i},3);
 end
 
-for i = 1:length(normalized.Right)
-    grandAverage.Right{i} = mean(normalized.Right{i},3);
+for i = 1:length(normalizedData.Right)
+    grandAverage.Right{i} = mean(normalizedData.Right{i},3);
 end
 
 %% Plotting
@@ -475,7 +575,7 @@ for i = 1:length(grandAverage.Left)
     ticks = logspace(log10(2.5),log10(50),5);
     ax.Parent.YTick = log2(ticks);
     ax.Parent.YTickLabel = sprintf('%1.2f\n',round(ticks,2));
-    xline(mean(toeOff.Left{i}),'LineStyle','--','LineWidth',1.5);
+    xline(mean(toeOff.Left{i},'omitnan'),'LineStyle','--','LineWidth',1.5);
     ylim([log2(2.5),log2(50)]);
     xticks([1,10,20,30,40,50,60,70,80,90,100]);
     xticklabels({'0','10','20','30','40','50','60','70','80','90','100'});
@@ -508,7 +608,7 @@ for i = 1:length(grandAverage.Right)
     ticks = logspace(log10(2.5),log10(50),5);
     ax.Parent.YTick = log2(ticks);
     ax.Parent.YTickLabel = sprintf('%1.2f\n',round(ticks,2));
-    xline(mean(toeOff.Right{i}),'LineStyle','--','LineWidth',1.5);
+    xline(mean(toeOff.Right{i},'omitnan'),'LineStyle','--','LineWidth',1.5);
     ylim([log2(2.5),log2(50)]);
     xticks([1,10,20,30,40,50,60,70,80,90,100]);
     xticklabels({'0','10','20','30','40','50','60','70','80','90','100'});
