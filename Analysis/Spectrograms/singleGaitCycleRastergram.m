@@ -1,4 +1,4 @@
-function singleGaitCycleRastergram(file_names,varargin)
+function [single_gait_cycle_struct] = singleGaitCycleRastergram(file_names,varargin)
 
 %% go through optional inputs
 for i = 1:2:nargin-1
@@ -11,6 +11,16 @@ for i = 1:2:nargin-1
             turn_threshold = varargin{i+1};
         case 'avg_gc_length'
             avg_gc_length = varargin{i+1};
+        case 'custom_freq_band_val'
+            custom_freq_band_val = varargin{i+1};
+        case 'custom_freq_band_name'
+            if iscell(varargin{i+1})
+                custom_freq_band_name = varargin{i+1};
+            else
+                custom_freq_band_name = {varargin{i+1}};
+            end
+        case 'custom_key'
+            custom_key = varargini+1};
         case 'ytickSpacing'
             ytickSpacing = varargin{i+1};
         case 'scatterPointSize'
@@ -21,6 +31,8 @@ for i = 1:2:nargin-1
             figureFormatOpts = varargin{i+1}; % [width, height, font size]
         case 'subjectID'
             subjectID = varargin{i+1};
+        case 'showPlot'
+            showPlot = varargin{i+1};
         case 'savePlot'
             savePlot = varargin{i+1};
     end
@@ -62,6 +74,10 @@ if ~exist('subjectID','var')
     subjectID = 'RCSXX';
 end
 
+if ~exist('showPlot','var')
+    showPlot = true;
+end
+
 if ~exist('savePlot','var')
     savePlot = false;
 end
@@ -78,6 +94,24 @@ freq_bands = [4,8;...       % theta
     30,50];       % low gamma
 freq_bands_names = {'Theta','Alpha','Beta','Low Beta','High Beta','Low Gamma'};
 chan_names = {'+2-0','+3-1','+9-8','+11-10'};
+
+if exist('custom_freq_band_val','var')
+    freq_bands = [freq_bands;custom_freq_band_val];
+end
+
+if exist('custom_freq_band_val','var') && ~exist('custom_freq_band_name','var')
+    for i = 1:size(custom_freq_band_val,1)
+        freq_bands_names = [freq_bands_names,'custom'];
+    end
+else
+    for i = 1:length(custom_freq_band_name)
+        freq_bands_names = [freq_bands_names,custom_freq_band_name{i}];
+    end
+end
+
+if ~exist('custom_key','var')
+    custom_key = [0;]
+end
 
 % varibles to hold all the data from all files passed in
 left_single_gait_cycle_cell_all = [];
@@ -120,29 +154,31 @@ for f = 1:length(file_names)
         valid_gc = gc_test&gc_test2;
         left_single_gait_cycle_cell = cell(size(freq_bands,1),sum(valid_gc),4);   % freq_band x gait cycle x recording area
 
-        count = 1;
-        for j = 1:length(valid_gc)
-            if valid_gc(j)
-                for k = 1:length(lfp_spec.Left.Chan_Names)
-                    time_inds = getTimeInds(lfp_spec.Left.Time{k},gait_events_ordered_trim.LHS(j),gait_events_ordered_trim.LHS(j+1));
-                    for m = 1:size(freq_bands,1)
-                        freq_inds = getFreqInds(lfp_spec.Left.Freq_Values{k},freq_bands(m,1),freq_bands(m,2));
-                        gc_data = lfp_spec.Left.Values{k}([freq_inds(1):freq_inds(2)],[time_inds(1):time_inds(2)]);
-                        left_single_gait_cycle_cell{m,count,k} = mean(abs(gc_data));
+        if ~isempty(valid_gc)
+            count = 1;
+            for j = 1:length(valid_gc)
+                if valid_gc(j)
+                    for k = 1:length(lfp_spec.Left.Chan_Names)
+                        time_inds = getTimeInds(lfp_spec.Left.Time{k},gait_events_ordered_trim.LHS(j),gait_events_ordered_trim.LHS(j+1));
+                        for m = 1:size(freq_bands,1)
+                            freq_inds = getFreqInds(lfp_spec.Left.Freq_Values{k},freq_bands(m,1),freq_bands(m,2));
+                            gc_data = lfp_spec.Left.Values{k}([freq_inds(1):freq_inds(2)],[time_inds(1):time_inds(2)]);
+                            left_single_gait_cycle_cell{m,count,k} = mean(abs(gc_data));
+                        end
                     end
+                    count = count + 1;
                 end
-                count = count + 1;
             end
+
+            % normalize data
+            left_single_gait_cycle_cell_norm = normalizeSingleGaitCycle(left_single_gait_cycle_cell,lfp_spec.Left,gait_events_ordered_trim,freq_bands,normalizationType);
+            left_single_gait_cycle_cell_all = [left_single_gait_cycle_cell_all,left_single_gait_cycle_cell_norm];
+
+            % calc event time markers from LHS
+            left_RTO_relative_time = [left_RTO_relative_time;gait_events_ordered_trim.('RTO')(valid_gc)-gait_events_ordered_trim.LHS(valid_gc)];
+            left_RHS_relative_time = [left_RHS_relative_time;gait_events_ordered_trim.('RHS')(valid_gc)-gait_events_ordered_trim.LHS(valid_gc)];
+            left_LTO_relative_time = [left_LTO_relative_time;gait_events_ordered_trim.('LTO')(valid_gc)-gait_events_ordered_trim.LHS(valid_gc)];
         end
-
-        % normalize data
-        left_single_gait_cycle_cell_norm = normalizeSingleGaitCycle(left_single_gait_cycle_cell,lfp_spec.Left,gait_events_ordered_trim,freq_bands,normalizationType);
-        left_single_gait_cycle_cell_all = [left_single_gait_cycle_cell_all,left_single_gait_cycle_cell_norm];
-
-        % calc event time markers from LHS
-        left_RTO_relative_time = [left_RTO_relative_time;gait_events_ordered_trim.('RTO')(valid_gc)-gait_events_ordered_trim.LHS(valid_gc)];
-        left_RHS_relative_time = [left_RHS_relative_time;gait_events_ordered_trim.('RHS')(valid_gc)-gait_events_ordered_trim.LHS(valid_gc)];
-        left_LTO_relative_time = [left_LTO_relative_time;gait_events_ordered_trim.('LTO')(valid_gc)-gait_events_ordered_trim.LHS(valid_gc)];
     end
 
     if isfield(lfp_spec,'Right')
@@ -157,32 +193,35 @@ for f = 1:length(file_names)
 
         right_single_gait_cycle_cell = cell(size(freq_bands,1),sum(valid_gc),4);   % freq_band x gait cycle x recording area
         
-        count = 1;
-        for j = 1:length(valid_gc)
-            if valid_gc(j)
-                for k = 1:length(lfp_spec.Right.Chan_Names)
-                    time_inds = getTimeInds(lfp_spec.Right.Time{k},gait_events_ordered_trim.LHS(j),gait_events_ordered_trim.LHS(j+1));
-                    for m = 1:size(freq_bands,1)
-                        freq_inds = getFreqInds(lfp_spec.Right.Freq_Values{k},freq_bands(m,1),freq_bands(m,2));
-                        gc_data = lfp_spec.Right.Values{k}([freq_inds(1):freq_inds(2)],[time_inds(1):time_inds(2)]);
-                        right_single_gait_cycle_cell{m,count,k} = mean(abs(gc_data));
+        if ~isempty(valid_gc)
+            count = 1;
+            for j = 1:length(valid_gc)
+                if valid_gc(j)
+                    for k = 1:length(lfp_spec.Right.Chan_Names)
+                        time_inds = getTimeInds(lfp_spec.Right.Time{k},gait_events_ordered_trim.LHS(j),gait_events_ordered_trim.LHS(j+1));
+                        for m = 1:size(freq_bands,1)
+                            freq_inds = getFreqInds(lfp_spec.Right.Freq_Values{k},freq_bands(m,1),freq_bands(m,2));
+                            gc_data = lfp_spec.Right.Values{k}([freq_inds(1):freq_inds(2)],[time_inds(1):time_inds(2)]);
+                            right_single_gait_cycle_cell{m,count,k} = mean(abs(gc_data));
+                        end
                     end
+                    count = count + 1;
                 end
-                count = count + 1;
             end
-        end
-        % normalize data
-        right_single_gait_cycle_cell_norm = normalizeSingleGaitCycle(right_single_gait_cycle_cell,lfp_spec.Right,gait_events_ordered_trim,freq_bands,normalizationType);
-        right_single_gait_cycle_cell_all = [right_single_gait_cycle_cell_all,right_single_gait_cycle_cell_norm];
+            % normalize data
+            right_single_gait_cycle_cell_norm = normalizeSingleGaitCycle(right_single_gait_cycle_cell,lfp_spec.Right,gait_events_ordered_trim,freq_bands,normalizationType);
+            right_single_gait_cycle_cell_all = [right_single_gait_cycle_cell_all,right_single_gait_cycle_cell_norm];
 
-        % calc event time markers from LHS
-        right_RTO_relative_time = [right_RTO_relative_time;gait_events_ordered_trim.('RTO')(valid_gc)-gait_events_ordered_trim.LHS(valid_gc)];
-        right_RHS_relative_time = [right_RHS_relative_time;gait_events_ordered_trim.('RHS')(valid_gc)-gait_events_ordered_trim.LHS(valid_gc)];
-        right_LTO_relative_time = [right_LTO_relative_time;gait_events_ordered_trim.('LTO')(valid_gc)-gait_events_ordered_trim.LHS(valid_gc)];
+            % calc event time markers from LHS
+            right_RTO_relative_time = [right_RTO_relative_time;gait_events_ordered_trim.('RTO')(valid_gc)-gait_events_ordered_trim.LHS(valid_gc)];
+            right_RHS_relative_time = [right_RHS_relative_time;gait_events_ordered_trim.('RHS')(valid_gc)-gait_events_ordered_trim.LHS(valid_gc)];
+            right_LTO_relative_time = [right_LTO_relative_time;gait_events_ordered_trim.('LTO')(valid_gc)-gait_events_ordered_trim.LHS(valid_gc)];
+        end
     end
 end
 
 %% Determine which gait cycle is the longest and setup visualization matrix
+single_gait_cycle_struct = [];
 if isfield(lfp_spec,'Left')
     temp = left_single_gait_cycle_cell_all(1,:,1);
     gc_lengths = cellfun(@(x)size(x,2),temp);
@@ -203,8 +242,15 @@ if isfield(lfp_spec,'Left')
     left_LTO_relative_time = left_LTO_relative_time(gc_sort_inds);
 
     left_single_gait_cycle_struct = removeArtifactGC(left_single_gait_cycle_mat,left_RTO_relative_time,left_RHS_relative_time,left_LTO_relative_time);
+    
+
     left_sr = unique(aligned_data.DeviceSettings.Left.timeDomainSettings.samplingRate);
     left_single_gait_cycle_time_vec = (0:max_gc_length-1).*(1/left_sr);
+    left_single_gait_cycle_struct.time_vec = left_single_gait_cycle_time_vec;
+    left_single_gait_cycle_struct.freq_bands = freq_bands;
+    left_single_gait_cycle_struct.freq_band_names = freq_bands_names;
+    
+    single_gait_cycle_struct.Left = left_single_gait_cycle_struct;
 end
 
 if isfield(lfp_spec,'Right')
@@ -229,75 +275,85 @@ if isfield(lfp_spec,'Right')
     right_single_gait_cycle_struct = removeArtifactGC(right_single_gait_cycle_mat,right_RTO_relative_time,right_RHS_relative_time,right_LTO_relative_time);
     right_sr = unique(aligned_data.DeviceSettings.Right.timeDomainSettings.samplingRate);
     right_single_gait_cycle_time_vec = (0:max_gc_length-1).*(1/right_sr);
+    right_single_gait_cycle_struct.time_vec = right_single_gait_cycle_time_vec;
+    right_single_gait_cycle_struct.freq_bands = freq_bands; 
+    right_single_gait_cycle_struct.freq_band_names = freq_bands_names;
+
+    single_gait_cycle_struct.Right = right_single_gait_cycle_struct;
 end
 
 %% Plot the data
-fig_vec = [];
-if exist('left_single_gait_cycle_struct','var')
-    for i = 1:size(left_single_gait_cycle_struct.data,2)        % channel
-        for j = 1:size(left_single_gait_cycle_struct.data,1)    % freq band
-            fig_vec(end+1) = figure();
-            pcolor(left_single_gait_cycle_time_vec,size(left_single_gait_cycle_struct.data{j,i},1):-1:1,left_single_gait_cycle_struct.data{j,i});
-            title({subjectID;['Left ',chan_names{i},' ',freq_bands_names{j}]});
-            shading flat
-            hold on;
-            a(1) = scatter(left_single_gait_cycle_struct.RTO_timings{j,i},length(left_single_gait_cycle_struct.RTO_timings{j,i}):-1:1,scatterPointSize,'MarkerEdgeColor',marker_colors.RTO,'MarkerFaceColor',marker_colors.RTO,'DisplayName','RTO');
-            a(2) = scatter(left_single_gait_cycle_struct.RHS_timings{j,i},length(left_single_gait_cycle_struct.RHS_timings{j,i}):-1:1,scatterPointSize,'MarkerEdgeColor',marker_colors.RHS,'MarkerFaceColor',marker_colors.RHS,'DisplayName','RHS');
-            a(3) = scatter(left_single_gait_cycle_struct.LTO_timings{j,i},length(left_single_gait_cycle_struct.LTO_timings{j,i}):-1:1,scatterPointSize,'MarkerEdgeColor',marker_colors.LTO,'MarkerFaceColor',marker_colors.LTO,'DisplayName','LTO');
+if showPlot
+    fig_vec = [];
+    if exist('left_single_gait_cycle_struct','var')
+        for i = 1:size(left_single_gait_cycle_struct.data,2)        % channel
+            for j = 1:size(left_single_gait_cycle_struct.data,1)    % freq band
+                fig_vec(end+1) = figure();
+                pcolor(left_single_gait_cycle_time_vec,size(left_single_gait_cycle_struct.data{j,i},1):-1:1,left_single_gait_cycle_struct.data{j,i});
+                title({subjectID;['Left ',chan_names{i},' ',freq_bands_names{j}]});
+                shading flat
+                hold on;
+                a(1) = scatter(left_single_gait_cycle_struct.RTO_timings{j,i},length(left_single_gait_cycle_struct.RTO_timings{j,i}):-1:1,scatterPointSize,'MarkerEdgeColor',marker_colors.RTO,'MarkerFaceColor',marker_colors.RTO,'DisplayName','RTO');
+                a(2) = scatter(left_single_gait_cycle_struct.RHS_timings{j,i},length(left_single_gait_cycle_struct.RHS_timings{j,i}):-1:1,scatterPointSize,'MarkerEdgeColor',marker_colors.RHS,'MarkerFaceColor',marker_colors.RHS,'DisplayName','RHS');
+                a(3) = scatter(left_single_gait_cycle_struct.LTO_timings{j,i},length(left_single_gait_cycle_struct.LTO_timings{j,i}):-1:1,scatterPointSize,'MarkerEdgeColor',marker_colors.LTO,'MarkerFaceColor',marker_colors.LTO,'DisplayName','LTO');
 
-            if mod(size(left_single_gait_cycle_struct.data{j,i},1)-1,5)~=0
-                yticks([1:ytickSpacing:size(left_single_gait_cycle_struct.data{j,i},1),size(left_single_gait_cycle_struct.data{j,i},1)]);
-            else
-                yticks([1:ytickSpacing:size(left_single_gait_cycle_struct.data{j,i},1)])
-            end
+                if mod(size(left_single_gait_cycle_struct.data{j,i},1)-1,5)~=0
+                    yticks([1:ytickSpacing:size(left_single_gait_cycle_struct.data{j,i},1),size(left_single_gait_cycle_struct.data{j,i},1)]);
+                else
+                    yticks([1:ytickSpacing:size(left_single_gait_cycle_struct.data{j,i},1)])
+                end
 
-            ylabel('Gait Cycle');
-            xlabel('Time (sec)');
-            cb = colorbar;
-            caxis([-3,3])
-            if strcmp(normalizationType,'zscore')
-                cb.Label.String = 'Z-Score';
-                cb.Label.VerticalAlignment = 'middle';
-                cb.Label.Rotation = 270;
-            end
+                ylabel('Gait Cycle');
+                xlabel('Time (sec)');
+                cb = colorbar;
+                caxis([-3,3])
+                if strcmp(normalizationType,'zscore')
+                    cb.Label.String = 'Z-Score';
+                    cb.Label.VerticalAlignment = 'middle';
+                    cb.Label.Rotation = 270;
+                end
 
-            if showLegend
-                legend(a);
+                if showLegend
+                    legend(a);
+                end
             end
         end
     end
-end
 
-if exist('right_single_gait_cycle_struct','var')
-    for i = 1:size(right_single_gait_cycle_struct.data,2)       % channel
-        for j = 1:size(right_single_gait_cycle_struct.data,1)   % freq band
-            fig_vec(end+1) = figure();
-            pcolor(right_single_gait_cycle_time_vec,size(right_single_gait_cycle_struct.data{j,i},1):-1:1,right_single_gait_cycle_struct.data{j,i});
-            title({subjectID;['Right ',chan_names{i},' ',freq_bands_names{j}]});
-            shading flat
-            hold on;
-            a(1) = scatter(right_single_gait_cycle_struct.RTO_timings{j,i},length(right_single_gait_cycle_struct.RTO_timings{j,i}):-1:1,scatterPointSize,'MarkerEdgeColor',marker_colors.RTO,'MarkerFaceColor',marker_colors.RTO,'DisplayName','RTO');
-            a(2) = scatter(right_single_gait_cycle_struct.RHS_timings{j,i},length(right_single_gait_cycle_struct.RHS_timings{j,i}):-1:1,scatterPointSize,'MarkerEdgeColor',marker_colors.RHS,'MarkerFaceColor',marker_colors.RHS,'DisplayName','RHS');
-            a(3) = scatter(right_single_gait_cycle_struct.LTO_timings{j,i},length(right_single_gait_cycle_struct.LTO_timings{j,i}):-1:1,scatterPointSize,'MarkerEdgeColor',marker_colors.LTO,'MarkerFaceColor',marker_colors.LTO,'DisplayName','LTO');
+    if exist('right_single_gait_cycle_struct','var')
+        for i = 1:size(right_single_gait_cycle_struct.data,2)       % channel
+            for j = 1:size(right_single_gait_cycle_struct.data,1)   % freq band
+                if size(right_single_gait_cycle_struct.data{j,i},1) == 1
+                    continue;
+                end
+                fig_vec(end+1) = figure();
+                pcolor(right_single_gait_cycle_time_vec,size(right_single_gait_cycle_struct.data{j,i},1):-1:1,right_single_gait_cycle_struct.data{j,i});
+                title({subjectID;['Right ',chan_names{i},' ',freq_bands_names{j}]});
+                shading flat
+                hold on;
+                a(1) = scatter(right_single_gait_cycle_struct.RTO_timings{j,i},length(right_single_gait_cycle_struct.RTO_timings{j,i}):-1:1,scatterPointSize,'MarkerEdgeColor',marker_colors.RTO,'MarkerFaceColor',marker_colors.RTO,'DisplayName','RTO');
+                a(2) = scatter(right_single_gait_cycle_struct.RHS_timings{j,i},length(right_single_gait_cycle_struct.RHS_timings{j,i}):-1:1,scatterPointSize,'MarkerEdgeColor',marker_colors.RHS,'MarkerFaceColor',marker_colors.RHS,'DisplayName','RHS');
+                a(3) = scatter(right_single_gait_cycle_struct.LTO_timings{j,i},length(right_single_gait_cycle_struct.LTO_timings{j,i}):-1:1,scatterPointSize,'MarkerEdgeColor',marker_colors.LTO,'MarkerFaceColor',marker_colors.LTO,'DisplayName','LTO');
 
-            if mod(size(right_single_gait_cycle_struct.data{j,i},1)-1,5)~=0
-                yticks([1:ytickSpacing:size(right_single_gait_cycle_struct.data{j,i},1),size(right_single_gait_cycle_struct.data{j,i},1)]);
-            else
-                yticks([1:ytickSpacing:size(right_single_gait_cycle_struct.data{j,i},1)])
-            end
+                if mod(size(right_single_gait_cycle_struct.data{j,i},1)-1,5)~=0
+                    yticks([1:ytickSpacing:size(right_single_gait_cycle_struct.data{j,i},1),size(right_single_gait_cycle_struct.data{j,i},1)]);
+                else
+                    yticks([1:ytickSpacing:size(right_single_gait_cycle_struct.data{j,i},1)])
+                end
 
-            ylabel('Gait Cycle');
-            xlabel('Time (sec)');
-            cb = colorbar;
-            caxis([-3,3])
-            if strcmp(normalizationType,'zscore')
-                cb.Label.String = 'Z-Score';
-                cb.Label.VerticalAlignment = 'middle';
-                cb.Label.Rotation = 270;
-            end
+                ylabel('Gait Cycle');
+                xlabel('Time (sec)');
+                cb = colorbar;
+                caxis([-3,3])
+                if strcmp(normalizationType,'zscore')
+                    cb.Label.String = 'Z-Score';
+                    cb.Label.VerticalAlignment = 'middle';
+                    cb.Label.Rotation = 270;
+                end
 
-            if showLegend
-                legend(a);
+                if showLegend
+                    legend(a);
+                end
             end
         end
     end
@@ -426,7 +482,7 @@ for i = 1:size(freq_bands,1)
         freq_inds = getFreqInds(full_spec.Freq_Values{j},freq_bands(i,1),freq_bands(i,2));
 
         % Go through movement data and remove artifacts
-        data_snip = abs(full_spec.Values{j}(freq_inds,time_inds(1):time_inds(2)));
+        data_snip = abs(full_spec.Values{j}(freq_inds(1):freq_inds(2),time_inds(1):time_inds(2)));
         temp_mean = mean(data_snip,'all');
         temp_sd = std(mean(data_snip));
         remove_inds = or(mean(data_snip) > (temp_mean + 2*temp_sd),mean(data_snip) < (temp_mean - 2*temp_sd));

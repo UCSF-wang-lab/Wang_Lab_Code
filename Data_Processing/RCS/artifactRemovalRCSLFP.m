@@ -158,6 +158,9 @@ for j = 1:length(lfp_data)
 
         figure;
         for i = 1:length(recording_channels)
+            if any(isnan(lfp_data{j}.(recording_channels{i})))
+                continue
+            end
             subplot(2,2,i);
             pwelch(lfp_data{j}.(recording_channels{i}),sampling_rate,round(sampling_rate*0.9),[1:200],sampling_rate);
             ylabel('dB/Hz');
@@ -193,6 +196,9 @@ for j = 1:length(lfp_data)
 
         figure;
         for i = 1:length(recording_channels)
+            if any(isnan(lfp_data{j}.(recording_channels{i})))
+                continue
+            end
             subplot(2,2,i);
             pwelch(filt_data{j}.(recording_channels{i}),sampling_rate,round(sampling_rate*0.9),[1:200],sampling_rate);
             ylabel('dB/Hz');
@@ -231,6 +237,9 @@ for j = 1:length(lfp_data)
 
         figure;
         for i = 1:length(recording_channels)
+            if any(isnan(lfp_data{j}.(recording_channels{i})))
+                continue
+            end
             subplot(2,2,i);
             pwelch(filt_data{j}.(recording_channels{i}),sampling_rate,round(sampling_rate*0.9),[1:200],sampling_rate);
             ylabel('dB/Hz');
@@ -250,7 +259,7 @@ for j = 1:length(lfp_data)
 
     while ~stim_filt_done
         [b,a] = butter(6,[(stim_freq/(2^count))-7.5,(stim_freq/(2^count))+7.5]/(sampling_rate/2),'stop');
-        [b2,a2] = butter(6,[(stim_freq/(2^count))-40,(stim_freq/(2^count))+40]/(sampling_rate/2),'stop');
+        [b2,a2] = butter(6,[(stim_freq/(2^count))-60,(stim_freq/(2^count))+60]/(sampling_rate/2),'stop');
 
         for i = 1:length(recording_channels)
             if contains(filt_type{j,i},'stimTherapy')
@@ -286,6 +295,9 @@ for j = 1:length(lfp_data)
 
             figure;
             for i = 1:length(recording_channels)
+                if any(isnan(lfp_data{j}.(recording_channels{i})))
+                    continue
+                end
                 subplot(2,2,i);
                 pwelch(filt_data{j}.(recording_channels{i}),sampling_rate,round(sampling_rate*0.9),[1:200],sampling_rate);
                 ylabel('dB/Hz');
@@ -353,6 +365,9 @@ for j = 1:length(lfp_data)
 
         figure;
         for i = 1:length(recording_channels)
+            if any(isnan(lfp_data{j}.(recording_channels{i})))
+                continue
+            end
             subplot(2,2,i);
             pwelch(filt_data{j}.(recording_channels{i}),sampling_rate,round(sampling_rate*0.9),[1:200],sampling_rate);
             ylabel('dB/Hz');
