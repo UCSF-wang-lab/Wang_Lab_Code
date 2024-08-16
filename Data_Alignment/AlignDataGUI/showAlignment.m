@@ -89,16 +89,23 @@ if isfield(aligned_data,'left_Accel_table') || isfield(aligned_data,'right_Accel
                 left_name_ind = find(strcmp(data_sources{5},aligned_data.Delsys.Chan_names));
             else
                 if contains(data_sources{5},'X','IgnoreCase',true)
-                    axis_name = 'X_IM';
+                    axis_name = 'X';
                 elseif contains(data_sources{5},'Y','IgnoreCase',true)
-                    axis_name = 'Y_IM';
+                    axis_name = 'Y';
                 elseif contains(data_sources{5},'Z','IgnoreCase',true)
-                    axis_name = 'Z_IM';
+                    axis_name = 'Z';
                 end
+
+                if contains(data_sources{5},'IM')
+                    axis_name = [axis_name,'_IM'];
+                else
+                    axis_name = [axis_name,'_G'];
+                end
+
                 left_name_ind = find(cellfun(@(x) contains(x,'Left','IgnoreCase',true) && contains(x,'DBS','IgnoreCase',true) && contains(x,'Acc','IgnoreCase',true) && contains(x,axis_name,'IgnoreCase',true),aligned_data.Delsys.Chan_names));
             end
         else
-            left_name_ind = find(cellfun(@(x) contains(x,'Left') && contains(x,'Acc') && contains(x,'Y'),aligned_data.Delsys.Chan_names));
+            left_name_ind = find(cellfun(@(x) contains(x,'Left','IgnoreCase',true) && contains(x,'Acc','IgnoreCase',true) && contains(x,'Y','IgnoreCase',true),aligned_data.Delsys.Chan_names));
         end
         if ~isempty(left_name_ind)
             plot(ax(3),aligned_data.Delsys.Time.(aligned_data.Delsys.Chan_names{left_name_ind}),aligned_data.Delsys.Data.(aligned_data.Delsys.Chan_names{left_name_ind}),'-k');
@@ -111,21 +118,28 @@ if isfield(aligned_data,'left_Accel_table') || isfield(aligned_data,'right_Accel
         
         
         ax(4) = subplot(4,1,4);
-        if contains(data_sources{5},'Acc')
+        if contains(data_sources{5},'Acc','IgnoreCase',true)
             if contains(data_sources{5},'right','IgnoreCase',true) || contains(data_sources{5},'R','IgnoreCase',true)
                 right_name_ind = find(strcmp(data_sources{5},aligned_data.Delsys.Chan_names));
             else
                 if contains(data_sources{5},'X','IgnoreCase',true)
-                    axis_name = 'X_IM';
+                    axis_name = 'X';
                 elseif contains(data_sources{5},'Y','IgnoreCase',true)
-                    axis_name = 'Y_IM';
+                    axis_name = 'Y';
                 elseif contains(data_sources{5},'Z','IgnoreCase',true)
-                    axis_name = 'Z_IM';
+                    axis_name = 'Z';
                 end
+
+                if contains(data_sources{5},'IM')
+                    axis_name = [axis_name,'_IM'];
+                else
+                    axis_name = [axis_name,'_G'];
+                end
+
                 right_name_ind = find(cellfun(@(x) contains(x,'Right','IgnoreCase',true) && contains(x,'DBS','IgnoreCase',true) && contains(x,'Acc','IgnoreCase',true) && contains(x,axis_name,'IgnoreCase',true),aligned_data.Delsys.Chan_names));
             end
         else
-            right_name_ind = find(cellfun(@(x) contains(x,'Right') && contains(x,'Acc') && contains(x,'Y'),aligned_data.Delsys.Chan_names));
+            right_name_ind = find(cellfun(@(x) contains(x,'Right','IgnoreCase',true) && contains(x,'Acc','IgnoreCase',true) && contains(x,'Y','IgnoreCase',true),aligned_data.Delsys.Chan_names));
         end
         if ~isempty(right_name_ind)
             plot(ax(4),aligned_data.Delsys.Time.(aligned_data.Delsys.Chan_names{right_name_ind}),aligned_data.Delsys.Data.(aligned_data.Delsys.Chan_names{right_name_ind}),'-k');
@@ -165,7 +179,7 @@ if isfield(aligned_data,'Delsys') && isfield(aligned_data,'Xsens')
                 left_name_ind = find(cellfun(@(x) contains(x,'Left','IgnoreCase',true) && contains(x,'DBS','IgnoreCase',true) && contains(x,'Acc','IgnoreCase',true) && contains(x,axis_name,'IgnoreCase',true),aligned_data.Delsys.Chan_names));
             end
         else
-            left_name_ind = find(cellfun(@(x) contains(x,'Left') && contains(x,'Acc') && contains(x,'Y'),aligned_data.Delsys.Chan_names));
+            left_name_ind = find(cellfun(@(x) contains(x,'Left','IgnoreCase',true) && contains(x,'Acc','IgnoreCase',true) && contains(x,'Y','IgnoreCase',true),aligned_data.Delsys.Chan_names));
         end
         if ~isempty(left_name_ind)
             plot(ax(1),aligned_data.Delsys.Time.(aligned_data.Delsys.Chan_names{left_name_ind}),aligned_data.Delsys.Data.(aligned_data.Delsys.Chan_names{left_name_ind}),'-k');
@@ -192,7 +206,7 @@ if isfield(aligned_data,'Delsys') && isfield(aligned_data,'Xsens')
                 right_name_ind = find(cellfun(@(x) contains(x,'Right','IgnoreCase',true) && contains(x,'DBS','IgnoreCase',true) && contains(x,'Acc','IgnoreCase',true) && contains(x,axis_name,'IgnoreCase',true),aligned_data.Delsys.Chan_names));
             end
         else
-            right_name_ind = find(cellfun(@(x) contains(x,'Right') && contains(x,'Acc') && contains(x,'Y'),aligned_data.Delsys.Chan_names));
+            right_name_ind = find(cellfun(@(x) contains(x,'Right','IgnoreCase',true) && contains(x,'Acc','IgnoreCase',true) && contains(x,'Y','IgnoreCase',true),aligned_data.Delsys.Chan_names));
         end
         if ~isempty(right_name_ind)
             plot(ax(2),aligned_data.Delsys.Time.(aligned_data.Delsys.Chan_names{right_name_ind}),aligned_data.Delsys.Data.(aligned_data.Delsys.Chan_names{right_name_ind}),'-k');
@@ -238,7 +252,7 @@ if isfield(aligned_data,'FP') && isfield(aligned_data,'Delsys')
         figure('Name','Alignment Results - Force plate vs Delsys TTL');
     end
     
-    TTL_ind = find(cellfun(@(x) contains(x,'TTL'),aligned_data.Delsys.Chan_names));
+    TTL_ind = find(cellfun(@(x) contains(x,'TTL','IgnoreCase',true),aligned_data.Delsys.Chan_names));
     
 %     plot(aligned_data.FP.Time,aligned_data.FP.Fx_N);
 %     hold on;
