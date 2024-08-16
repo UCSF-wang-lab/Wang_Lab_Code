@@ -327,7 +327,7 @@ for j = 1:length(lfp_data)
         if contains(filt_type{j,i},'ekg')
             if ~isnan(ekg_template_indexes{j}(i,1)) && ~isnan(ekg_template_indexes{j}(i,2))
                 ekg_template = filt_data{j}.(recording_channels{i})(ekg_template_indexes{j}(i,1):ekg_template_indexes{j}(i,2));
-                [sigClean, artRem, artLog, template] = RemoveNoiseTempMatch(filt_data{j}.(recording_channels{i}), sampling_rate, ekg_template, [1 5], [0,0], [], 1, 1, 1);
+                [sigClean, artRem, artLog, template] = RemoveNoiseTempMatch(filt_data{j}.(recording_channels{i}), sampling_rate, ekg_template, [1 10], [0,0], [], 1, 1, 1);
                 filt_data{j}.(recording_channels{i}) = sigClean;
                 ekg_filtered = true;
             end
@@ -406,13 +406,27 @@ if save_data
         aligned_data.right_LFP_table = filt_data{2};
         save(file_path,"aligned_data");
     else
-        file_path2 = strrep(file_path,'TD.mat','TD_original.mat');
-        copyfile(file_path,file_path2);
+        if ~contains(file_path,'filtered')
+            file_path2 = strrep(file_path,'TD.mat','TD_original.mat');
+            copyfile(file_path,file_path2);
+        else
+            if contains(file_path,'stage')
+                parts = strsplit(file_path,'_');
+                stage_ind = find(cellfun(@(x) strcmp(x,'stage'),parts));
+                parts2 = strsplit(parts{stage_ind+1},'.');
+                stage_num = int16(str2num(parts2{1}) + 1);
+                save_name = strrep(file_path,['filtered_stage_',parts2{1}],['filtered_stage_',num2str(stage_num)]);
+            else
+                save_name = strrep(file_path,'filtered','filtered_stage_2');
+            end
+        end
 
         % Copy filt data as timeDomainDataTable to replicate original file
         timeDomainDataTable = filt_data{1};
-        [A,B,C] = fileparts(file_path);
-        save_name = fullfile(A,[B,'_filtered',C]);
+        if ~exist('save_name','var')
+            [A,B,C] = fileparts(file_path);
+            save_name = fullfile(A,[B,'_filtered',C]);
+        end
         save(save_name,'timeDomainDataTable');
     end
 end

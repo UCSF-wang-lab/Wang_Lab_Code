@@ -49,6 +49,15 @@ elseif ~exist('filename','var') && exist('path','var')
             td_data_array = cellfun(@(x)contains(x,'RawDataTD'),{file_list.name});
             remove_inds = xor(filt_data_array,td_data_array);
             file_list(remove_inds) = [];
+
+            % Check if there was a multi-staged filter for the raw data
+            n_filtered = sum(cellfun(@(x)contains(x,'filtered'),{file_list.name}));
+            if n_filtered > 1
+                matches = cellfun(@(x)contains(x,'filtered'),{file_list.name});
+                change_ind = find(matches,1,'last');
+                matches(change_ind) = 0;
+                file_list(matches) = [];
+            end
         else
             filt_data_ind = find(cellfun(@(x)contains(x,'filtered'),{file_list.name}));
             orignal_data_ind = find(cellfun(@(x)contains(x,'original'),{file_list.name}));
@@ -61,23 +70,22 @@ elseif ~exist('filename','var') && exist('path','var')
     for i = 1:length(file_list)
         if file_list(i).isdir == 0
             filename = fullfile(file_list(i).folder,file_list(i).name);
-            switch file_list(i).name
-                case "DeviceSettings.mat"
-                    settings_data = load(filename);
-                    filenames{end+1} = file_list(i).name;
-                    str = sprintf('Loaded RC+S DeviceSettings file: %s',filename);
-                    addEvent(str);
-                case "LogTable.mat"
+            if contains(file_list(i).name,"DeviceSettings")
+                settings_data = load(filename);
+                filenames{end+1} = file_list(i).name;
+                str = sprintf('Loaded RC+S DeviceSettings file: %s',filename);
+                addEvent(str);
+            elseif contains(file_list(i).name,"LogTable")
                     log_data = load(filename);
                     filenames{end+1} = file_list(i).name;
                     str = sprintf('Loaded RC+S LogTable file: %s',filename);
                     addEvent(str);
-                case "RawDataAccel.mat"
+            elseif contains(file_list(i).name,"RawDataAccel")
                     accel_data = load(filename);
                     filenames{end+1} = file_list(i).name;
                     str = sprintf('Loaded RC+S Acceleration file: %s',filename);
                     addEvent(str);
-                case {"RawDataTD.mat","RawDataTD_filtered.mat"}
+            elseif contains(file_list(i).name,"RawDataTD")
                     td_data = load(filename);
                     filenames{end+1} = file_list(i).name;
                     str = sprintf('Loaded RC+S LFP time domain file: %s',filename);
