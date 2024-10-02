@@ -39,14 +39,26 @@ end
 
 %% Determine gait events
 % Heel strike
-LHS_times = data.Time.FSR_adapter_15_Left_FSRA_15((data.Data.FSR_adapter_15_Left_FSRA_15(1:end-1) < detectionThreshold) & (data.Data.FSR_adapter_15_Left_FSRA_15(2:end) > detectionThreshold))';
+if sum(~cellfun(@isempty,regexp(data.Chan_names,'FSR.*Analog'))) > 0
+    LHS_chan_name = 'FSR_adapter_Left_Analog_1';
+    LHS_chan_name2 = 'FSR_adapter_Left_Analog_3';
+    RHS_chan_name = 'FSR_adapter_Right_Analog_1';
+    RHS_chan_name2 = 'FSR_adapter_Right_Analog_3';
+else
+    LHS_chan_name = 'FSR_adapter_15_Left_FSRA_15';
+    LHS_chan_name2 = 'FSR_adapter_15_Left_FSRC_15';
+    RHS_chan_name = 'FSR_adapter_16_Right_FSRA_16';
+    RHS_chan_name2 = 'FSR_adapter_16_Right_FSRC_16';
+end
+
+LHS_times = data.Time.(LHS_chan_name)((data.Data.(LHS_chan_name)(1:end-1) < detectionThreshold) & (data.Data.(LHS_chan_name)(2:end) > detectionThreshold))';
 LHS_times = LHS_times(LHS_times>=markingTimeRange(1) & LHS_times<=markingTimeRange(2));
 LHS_source = zeros([length(LHS_times),1]);
 remove_inds = find(diff(LHS_times)<0.75)+1;
 LHS_times(remove_inds) = [];
 LHS_source(remove_inds) = [];
 
-RHS_times = data.Time.FSR_adapter_16_Right_FSRA_16((data.Data.FSR_adapter_16_Right_FSRA_16(1:end-1) < detectionThreshold) & (data.Data.FSR_adapter_16_Right_FSRA_16(2:end) > detectionThreshold))';
+RHS_times = data.Time.(RHS_chan_name)((data.Data.(RHS_chan_name)(1:end-1) < detectionThreshold) & (data.Data.(RHS_chan_name)(2:end) > detectionThreshold))';
 RHS_times = RHS_times(RHS_times>=markingTimeRange(1) & RHS_times<=markingTimeRange(2));
 RHS_source = zeros([length(RHS_times),1]);
 remove_inds = find(diff(RHS_times)<0.75)+1;
@@ -54,7 +66,7 @@ RHS_times(remove_inds) = [];
 RHS_source(remove_inds) = [];
 
 if fifthMeta
-    LHS_times2 = data.Time.FSR_adapter_15_Left_FSRC_15((data.Data.FSR_adapter_15_Left_FSRC_15(1:end-1) < detectionThreshold) & (data.Data.FSR_adapter_15_Left_FSRC_15(2:end) > detectionThreshold))';
+    LHS_times2 = data.Time.(LHS_chan_name2)((data.Data.(LHS_chan_name2)(1:end-1) < detectionThreshold) & (data.Data.(LHS_chan_name2)(2:end) > detectionThreshold))';
     LHS_times2 = LHS_times2(LHS_times2>=markingTimeRange(1) & LHS_times2<=markingTimeRange(2));
     LHS_source2 = ones([length(LHS_times2),1]);
     remove_inds = find(diff(LHS_times2)<0.75)+1;
@@ -62,7 +74,7 @@ if fifthMeta
     LHS_source2(remove_inds) = [];
     LHS_times = combineAndSort([LHS_times;LHS_times2],[LHS_source;LHS_source2]);
 
-    RHS_times2 = data.Time.FSR_adapter_16_Right_FSRC_16((data.Data.FSR_adapter_16_Right_FSRC_16(1:end-1) < detectionThreshold) & (data.Data.FSR_adapter_16_Right_FSRC_16(2:end) > detectionThreshold))';
+    RHS_times2 = data.Time.(RHS_chan_name2)((data.Data.(RHS_chan_name2)(1:end-1) < detectionThreshold) & (data.Data.(RHS_chan_name2)(2:end) > detectionThreshold))';
     RHS_times2 = RHS_times2(RHS_times2>=markingTimeRange(1) & RHS_times2<=markingTimeRange(2));
     RHS_source2 = ones([length(RHS_times2),1]);
     remove_inds = find(diff(RHS_times2)<0.75)+1;
@@ -72,14 +84,26 @@ if fifthMeta
 end
 
 % Toe off
-LTO_times = data.Time.FSR_adapter_15_Left_FSRD_15((data.Data.FSR_adapter_15_Left_FSRD_15(1:end-1) > detectionThreshold) & (data.Data.FSR_adapter_15_Left_FSRD_15(2:end) < detectionThreshold))';
+if sum(~cellfun(@isempty,regexp(data.Chan_names,'FSR.*Analog'))) > 0
+    LTO_chan_name = 'FSR_adapter_Left_Analog_4';
+    LTO_chan_name2 = 'FSR_adapter_Left_Analog_2';
+    RTO_chan_name = 'FSR_adapter_Right_Analog_4';
+    RTO_chan_name2 = 'FSR_adapter_Right_Analog_2';
+else
+    LTO_chan_name = 'FSR_adapter_15_Left_FSRD_15';
+    LTO_chan_name2 = 'FSR_adapter_15_Left_FSRB_15';
+    RTO_chan_name = 'FSR_adapter_16_Right_FSRD_16';
+    RTO_chan_name2 = 'FSR_adapter_16_Right_FSRB_16';
+end
+
+LTO_times = data.Time.(LTO_chan_name)((data.Data.(LTO_chan_name)(1:end-1) > detectionThreshold) & (data.Data.(LTO_chan_name)(2:end) < detectionThreshold))';
 LTO_times = LTO_times(LTO_times>=markingTimeRange(1) & LTO_times<=markingTimeRange(2));
 LTO_source = zeros([length(LTO_times),1]);
 remove_inds = find(diff(LTO_times)<0.75)+1;
 LTO_times(remove_inds) = [];
 LTO_source(remove_inds) = [];
 
-RTO_times = data.Time.FSR_adapter_16_Right_FSRD_16((data.Data.FSR_adapter_16_Right_FSRD_16(1:end-1) > detectionThreshold) & (data.Data.FSR_adapter_16_Right_FSRD_16(2:end) < detectionThreshold))';
+RTO_times = data.Time.(RTO_chan_name)((data.Data.(RTO_chan_name)(1:end-1) > detectionThreshold) & (data.Data.(RTO_chan_name)(2:end) < detectionThreshold))';
 RTO_times = RTO_times(RTO_times>=markingTimeRange(1) & RTO_times<=markingTimeRange(2));
 RTO_source = zeros([length(RTO_times),1]);
 remove_inds = find(diff(RTO_times)<0.75)+1;
@@ -87,21 +111,21 @@ RTO_times(remove_inds) = [];
 RTO_source(remove_inds) = [];
 
 if firstMeta
-    LTO_times2 = data.Time.FSR_adapter_15_Left_FSRB_15((data.Data.FSR_adapter_15_Left_FSRB_15(1:end-1) > detectionThreshold) & (data.Data.FSR_adapter_15_Left_FSRB_15(2:end) < detectionThreshold))';
+    LTO_times2 = data.Time.(LTO_chan_name2)((data.Data.(LTO_chan_name2)(1:end-1) > detectionThreshold) & (data.Data.(LTO_chan_name2)(2:end) < detectionThreshold))';
     LTO_times2 = LTO_times2(LTO_times2>=markingTimeRange(1) & LTO_times2<=markingTimeRange(2));
     LTO_source2 = ones([length(LTO_times2),1]);
     remove_inds = find(diff(LTO_times2)<0.75)+1;
     LTO_times2(remove_inds) = [];
     LTO_source2(remove_inds) = [];
-    LTO_times = combineAndSort([LTO_times;LTO_times2],[LTO_source;LTO_source2]);
+    LTO_times = combineAndSort([LTO_times';LTO_times2'],[LTO_source;LTO_source2]);
 
-    RTO_times2 = data.Time.FSR_adapter_16_Right_FSRB_16((data.Data.FSR_adapter_16_Right_FSRB_16(1:end-1) > detectionThreshold) & (data.Data.FSR_adapter_16_Right_FSRB_16(2:end) < detectionThreshold))';
+    RTO_times2 = data.Time.(RTO_chan_name2)((data.Data.(RTO_chan_name2)(1:end-1) > detectionThreshold) & (data.Data.(RTO_chan_name2)(2:end) < detectionThreshold))';
     RTO_times2 = RTO_times2(RTO_times2>=markingTimeRange(1) & RTO_times2<=markingTimeRange(2));
     RTO_source2 = ones([length(RTO_times2),1]);
     remove_inds = find(diff(RTO_times2)<0.75)+1;
     RTO_times2(remove_inds) = [];
     RTO_source2(remove_inds) = [];
-    RTO_times = combineAndSort([RTO_times;RTO_times2],[RTO_source;RTO_source2]);
+    RTO_times = combineAndSort([RTO_times';RTO_times2'],[RTO_source;RTO_source2]);
 end
 
 % % Remove gait events that are before marking start time
