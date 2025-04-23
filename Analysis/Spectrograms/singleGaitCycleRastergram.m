@@ -300,8 +300,8 @@ if showPlot
                 ylabel('Gait Cycle');
                 xlabel('Time (sec)');
                 cb = colorbar;
-                caxis([-3,3])
                 if strcmp(normalizationType,'zscore')
+                    caxis([-3,3]);
                     cb.Label.String = 'Z-Score';
                     cb.Label.VerticalAlignment = 'middle';
                     cb.Label.Rotation = 270;
@@ -338,8 +338,8 @@ if showPlot
                 ylabel('Gait Cycle');
                 xlabel('Time (sec)');
                 cb = colorbar;
-                caxis([-3,3])
                 if strcmp(normalizationType,'zscore')
+                    caxis([-3,3])
                     cb.Label.String = 'Z-Score';
                     cb.Label.VerticalAlignment = 'middle';
                     cb.Label.Rotation = 270;
@@ -448,6 +448,10 @@ freq_inds = sort([first_freq_ind,second_freq_ind]);
 end
 
 function norm_data = normalizeSingleGaitCycle(gait_cycle_cell,full_spec,gait_events,freq_bands,norm_type)
+if strcmp(norm_type,'none')
+    norm_data = gait_cycle_cell;
+    return;
+end
 
 % check to make sure gait cycle cell has the same number of channels
 if size(gait_cycle_cell,3) ~= size(full_spec.Values,2)
