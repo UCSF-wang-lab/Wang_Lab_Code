@@ -1,5 +1,5 @@
 function aggregateTables = aggregateRCSSimSpecData(patientFolder)
-patientFolder = '/Volumes/dwang3_shared/Patient Data/RC+S Data/gait_RCS_05';
+patientFolder = '/Volumes/dwang3_shared/Patient Data/RC+S Data/gait_RCS_01';
 folderList = dir([patientFolder,'/*v*']);
 subjectID = patientFolder(find(patientFolder=='/',1,'last')+1:end);
 aggregateTables = [];
@@ -12,7 +12,7 @@ for i = 1:length(folderList)
         fprintf('Parsing folder: %s\n',folderList(i).name);
         
         % Grab all the spectrogram and mat files
-        spec_files = dir(fullfile(folderList(i).folder,folderList(i).name,'Data','Analysis Data','aDBS','*bitshift*'));
+        spec_files = dir(fullfile(folderList(i).folder,folderList(i).name,'Data','Analysis Data','aDBS','ConvertedData','*bitshift*'));
         mat_files = dir(fullfile(folderList(i).folder,folderList(i).name,'Data','Aligned Data','*_OG_*w_Gait_Events*'));
 
         % Remove filtered files
@@ -76,7 +76,7 @@ for i = 1:length(folderList)
                     fprintf('Associated rcs sim file: %s\n',specFileNames{k});
                     
                     % Load in spectral data
-                    specData = readtable(fullfile(folderList(1).folder,folderList(i).name,'Data/Analysis Data/aDBS',specFileNames{k}));
+                    specData = readtable(fullfile(folderList(1).folder,folderList(i).name,'Data/Analysis Data/aDBS/ConvertedData',specFileNames{k}));
                     
                     % Grab current spec parameters and hemisphere
                     specParam = strsplit(specFileNames{k},'_');
@@ -115,14 +115,20 @@ for i = 1:length(folderList)
                                 % Specific for swing phase. Future will change
                                 % to make this generic.
                                 if strcmp(hemisphere,'left')
-                                    toeOff = (specData.time(m)>=sortedGaitEvents.RTO) & (specData.time(m)<=sortedGaitEvents.RHS);
-                                    if sum(toeOff) == 1
+                                    cToeOff = (specData.time(m)>=sortedGaitEvents.RTO) & (specData.time(m)<=sortedGaitEvents.RHS);
+                                    iToeOff = (specData.time(m)>=sortedGaitEvents.LTO) & (specData.time(m)<=sortedGaitEvents.LHS);
+                                    if sum(cToeOff) == 1
                                         state(m) = 1;
+                                    elseif sum(iToeOff) == 1
+                                        state(m) = 2;
                                     end
                                 else
-                                    toeOff = (specData.time(m)>=sortedGaitEvents.LTO) & (specData.time(m)<=sortedGaitEvents.LHS);
-                                    if sum(toeOff) == 1
+                                    cToeOff = (specData.time(m)>=sortedGaitEvents.LTO) & (specData.time(m)<=sortedGaitEvents.LHS);
+                                    iToeOff = (specData.time(m)>=sortedGaitEvents.RTO) & (specData.time(m)<=sortedGaitEvents.RHS);
+                                    if sum(cToeOff) == 1
                                         state(m) = 1;
+                                    elseif sum(iToeOff) == 1
+                                        state(m) = 2;
                                     end
                                 end
                             end
@@ -141,7 +147,7 @@ for i = 1:length(folderList)
                     
                     switch subjectID
                         case 'gait_RCS_01'
-                            if contains(folderList(i).name,'v4')
+                            if contains(folderList(i).name,'v4') || contains(folderList(i).name,'v7')
                                 visitNameVec = repmat({'dbsOptBilateral'},height(currTable),1);
                             end
                         case 'gait_RCS_02'

@@ -184,40 +184,51 @@ out_table = table(amp_gains,fs_td,fft_size,fft_interval,fft_bitshift,power_bands
 end
 
 function file_name = generateFileName(loaded_file_name,data)
-file_name = [];
+parts = strsplit(loaded_file_name,'/');
+file_name = parts{end};
+file_name = strrep(file_name,'w_Gait_Events_Ken.mat','');
 
-% Add subject
-if contains(data.DeviceSettings.Left.metaData.subjectID,'01')
-    file_name = [file_name,'gait_RCS_01_'];
-elseif contains(data.DeviceSettings.Left.metaData.subjectID,'02')
-    file_name = [file_name,'gait_RCS_02_'];
-elseif contains(data.DeviceSettings.Left.metaData.subjectID,'03')
-    file_name = [file_name,'gait_RCS_03_'];
-elseif contains(data.DeviceSettings.Left.metaData.subjectID,'04')
-    file_name = [file_name,'gait_RCS_04_'];
-elseif contains(data.DeviceSettings.Left.metaData.subjectID,'05')
-    file_name = [file_name,'gait_RCS_05_'];
-end
-
-% Add stim state
-file_name = [file_name,data.stim_condition,'_Stim_',data.med_condition,'_Med_'];
-
-% Add trial num if it exist
-if ~isempty(data.trial_num)
-    file_name = [file_name,sprintf('Trial_%d_',data.trial_num)];
-end
-
-% Add "Turn" direction if it exist
-file_name_elements = strsplit(loaded_file_name,'_');
-turn_ind = find(cellfun(@(x)strcmp(x,'Turns'),file_name_elements));
-if ~isempty(turn_ind)
-    file_name = [file_name,file_name_elements{turn_ind-1},'_',file_name_elements{turn_ind},'_'];
-end
-
-% Add "Part" number if it exist
-part_ind = find(cellfun(@(x)strcmp(x,'Part'),file_name_elements));
-if ~isempty(part_ind)
-    file_name = [file_name,file_name_elements{part_ind},'_',file_name_elements{part_ind+1},'_'];
-end
+% % Add subject
+% if contains(data.DeviceSettings.Left.metaData.subjectID,'01')
+%     file_name = [file_name,'gait_RCS_01_'];
+% elseif contains(data.DeviceSettings.Left.metaData.subjectID,'02')
+%     file_name = [file_name,'gait_RCS_02_'];
+% elseif contains(data.DeviceSettings.Left.metaData.subjectID,'03')
+%     file_name = [file_name,'gait_RCS_03_'];
+% elseif contains(data.DeviceSettings.Left.metaData.subjectID,'04')
+%     file_name = [file_name,'gait_RCS_04_'];
+% elseif contains(data.DeviceSettings.Left.metaData.subjectID,'05')
+%     file_name = [file_name,'gait_RCS_05_'];
+% elseif contains(data.DeviceSettings.Left.metaData.subjectID,'09')
+%     file_name = [file_name,'RCS09_'];
+% end
+% 
+% % Add stim and med state
+% file_name = [file_name,data.stim_condition,'_Stim_',data.med_condition,'_Meds_'];
+% 
+% % Add Setting number if it exist
+% if contains(loaded_file_name,'Setting')
+%     parts = strsplit(loaded_file_name,'_');
+%     setting_ind = find(strcmpi(parts,'Setting'));
+%     file_name = [file_name,'Setting_',parts{setting_ind+1},'_'];
+% end
+% 
+% % Add trial num if it exist
+% if ~isempty(data.trial_num)
+%     file_name = [file_name,sprintf('Trial_%d_',data.trial_num)];
+% end
+% 
+% % Add "Turn" direction if it exist
+% file_name_elements = strsplit(loaded_file_name,'_');
+% turn_ind = find(cellfun(@(x)strcmp(x,'Turns'),file_name_elements));
+% if ~isempty(turn_ind)
+%     file_name = [file_name,file_name_elements{turn_ind-1},'_',file_name_elements{turn_ind},'_'];
+% end
+% 
+% % Add "Part" number if it exist
+% part_ind = find(cellfun(@(x)strcmp(x,'Part'),file_name_elements));
+% if ~isempty(part_ind)
+%     file_name = [file_name,file_name_elements{part_ind},'_',file_name_elements{part_ind+1},'_'];
+% end
 
 end

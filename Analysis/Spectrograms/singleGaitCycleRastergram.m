@@ -19,8 +19,6 @@ for i = 1:2:nargin-1
             else
                 custom_freq_band_name = {varargin{i+1}};
             end
-        case 'custom_key'
-            custom_key = varargini+1};
         case 'ytickSpacing'
             ytickSpacing = varargin{i+1};
         case 'scatterPointSize'
@@ -103,14 +101,10 @@ if exist('custom_freq_band_val','var') && ~exist('custom_freq_band_name','var')
     for i = 1:size(custom_freq_band_val,1)
         freq_bands_names = [freq_bands_names,'custom'];
     end
-else
+elseif exist('custom_freq_band_val','var') && exist('custom_freq_band_name','var')
     for i = 1:length(custom_freq_band_name)
         freq_bands_names = [freq_bands_names,custom_freq_band_name{i}];
     end
-end
-
-if ~exist('custom_key','var')
-    custom_key = [0;]
 end
 
 % varibles to hold all the data from all files passed in

@@ -206,11 +206,13 @@ def main(sim_type: str = "fft",save_path: str = os.getcwd()):
         elif args[i] == "-fs":
             fs = int(args[i+1])
         elif args[i] == "-nfft":
-            nfft = int(args[i+1])                # Can be 64, 256, or 1024
+            nfft_int = int(args[i+1])                # Can be 64, 256, or 1024
+            nfft = [nfft_int]                        # Convert to iterable
         elif args[i] == "-fft_int":
             fft_int = int(args[i+1])
         elif args[i] == "-fft_bitshift":
-            fft_bitshift = int(args[i+1])
+            fft_bitshift_int = int(args[i+1])
+            fft_bitshift = [fft_bitshift_int]        # Convert to iterable
         elif args[i] == "-overlap":
             overlap_percent = float(args[i+1])
         elif args[i] == "-sim_type":
