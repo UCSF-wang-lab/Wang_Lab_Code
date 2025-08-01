@@ -53,7 +53,7 @@ if isfield(aligned_data,'left_LFP_table')
     remove_ind = [];
     for i = 1:length(left_chan_names)
         same_chan = cellfun(@(x) strcmp(left_chan_names{i},x),left_chan_names(1:i-1));
-        if sum(same_chan) == 0  % Not a duplicate channel recording
+        if sum(same_chan) == 0  && ~any(isnan(aligned_data.left_LFP_table.(['key',num2str(i-1)]))) % Not a duplicate channel recording
             [data,time] = addEmptyData(aligned_data.left_taxis,aligned_data.left_LFP_table.(['key',num2str(i-1)]),left_sr,gapFillType);
             [left_spect{end+1},left_spect_freq{end+1},left_spect_time{end+1},left_PSD{end+1}]=spectrogram(data,WINDOW,NOVERLAP,nfft,left_sr);
         else
@@ -101,7 +101,7 @@ if isfield(aligned_data,'right_LFP_table')
     remove_ind = [];
     for i = 1:length(right_chan_names)
         same_chan = cellfun(@(x) strcmp(right_chan_names{i},x),right_chan_names(1:i-1));
-        if sum(same_chan) == 0  % Not a duplicate channel recording
+        if sum(same_chan) == 0  && ~any(isnan(aligned_data.left_LFP_table.(['key',num2str(i-1)]))) % Not a duplicate channel recording
             [data,time] = addEmptyData(aligned_data.right_taxis,aligned_data.right_LFP_table.(['key',num2str(i-1)]),right_sr,gapFillType);
             [right_spect{end+1},right_spect_freq{end+1},right_spect_time{end+1},right_PSD{end+1}]=spectrogram(data,WINDOW,NOVERLAP,nfft,right_sr);
         else
