@@ -23,6 +23,14 @@ function out_struct = DelsysCSV2MAT(filename,savepath)
 fid = fopen(filename);
 curr_line = fgetl(fid);
 if contains(curr_line,'Trigno Discover')
+    match = regexp(curr_line, '\((.*?)\)', 'tokens','once');
+    software_version = match{1};
+    if software_version(1) == '1'
+        skip_extra_line = false;
+    else
+        skip_extra_line = true;
+    end
+    
     while true
         curr_line = fgetl(fid);
         if contains(curr_line,'Collection Length')
@@ -54,7 +62,30 @@ if contains(curr_line,'Trigno Discover')
 
     % Extract data from matrix and put them in individual variables for
     % struct
-    data_matrix = readmatrix(filename,'NumHeaderLines',7);
+    if skip_extra_line
+        data_matrix = readmatrix(filename,'NumHeaderLines',8);
+        
+        % remove blank columns
+        remove_ind = [];
+        for i = size(data_matrix,2):-1:1
+            if sum(isnan(data_matrix(:,i))) == size(data_matrix,1)
+                remove_ind = [remove_ind,i];
+            end
+        end
+        data_matrix(:,remove_ind) = [];
+    else
+        data_matrix = readmatrix(filename,'NumHeaderLines',7);
+        
+        % remove blank columns
+        remove_ind = [];
+        for i = size(data_matrix,2):-1:1
+            if sum(isnan(data_matrix(:,i))) == size(data_matrix,1)
+                remove_ind = [remove_ind,i];
+            end
+        end
+        data_matrix(:,remove_ind) = [];
+    end
+    
     for i = 1:2:size(data_matrix,2)
         time = data_matrix(:,i);
         remove_ind = isnan(time);
